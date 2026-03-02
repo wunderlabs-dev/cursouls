@@ -80,13 +80,13 @@ const agentSnapshotSchema = z.object({
   kind: agentKindSchema,
   status: agentStatusSchema,
   taskSummary: z.string(),
-  startedAt: z.number().finite().optional(),
-  updatedAt: z.number().finite(),
+  startedAt: z.number().optional(),
+  updatedAt: z.number(),
   source: sourceKindSchema,
 });
 
 const seatFrameSchema = z.object({
-  tableIndex: z.number().finite(),
+  tableIndex: z.number(),
   agent: z.union([agentSnapshotSchema, z.null()]),
 });
 
@@ -97,7 +97,7 @@ const sourceHealthSchema = z.object({
 });
 
 const sceneFrameSchema: z.ZodType<SceneFrame> = z.object({
-  generatedAt: z.number().finite(),
+  generatedAt: z.number(),
   seats: z.array(seatFrameSchema),
   queue: z.array(agentSnapshotSchema),
   health: sourceHealthSchema,

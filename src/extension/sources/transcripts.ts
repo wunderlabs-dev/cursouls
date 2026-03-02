@@ -43,6 +43,9 @@ const conversationContentEntrySchema = z.object({
   text: z.string().optional(),
 });
 
+const RUNNING_WINDOW_MS = 60_000;
+const IDLE_WINDOW_MS = 10 * 60_000;
+
 const conversationLineSchema = z.object({
   role: nonEmptyStringSchema,
   message: z
@@ -298,10 +301,10 @@ function deriveConversationStatus(
     return "error";
   }
   const ageMs = Math.max(0, now - updatedAt);
-  if (ageMs <= 120_000) {
+  if (ageMs <= RUNNING_WINDOW_MS) {
     return "running";
   }
-  if (ageMs <= 3_600_000) {
+  if (ageMs <= IDLE_WINDOW_MS) {
     return "idle";
   }
   return "completed";

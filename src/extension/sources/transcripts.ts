@@ -151,7 +151,6 @@ export function createCursorTranscriptSource(
           }
           continue;
         }
-        warnings.push(formatLineWarning(sourcePath, lineNumber + 1, "Invalid transcript shape."));
         continue;
       }
 

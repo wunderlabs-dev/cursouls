@@ -7,15 +7,23 @@ export interface TranscriptDiscoveryOptions {
 }
 
 export function resolveTranscriptSourcePaths(options: TranscriptDiscoveryOptions): string[] {
-  const discoveredPaths = options.workspacePaths.flatMap((workspacePath) =>
-    collectTranscriptPaths([toTranscriptDirectory(workspacePath)]),
+  const workspaceTranscriptDirectories = options.workspacePaths.map((workspacePath) =>
+    toTranscriptDirectory(workspacePath),
   );
+  const discoveredPaths = collectTranscriptPaths([
+    ...workspaceTranscriptDirectories,
+    toGlobalProjectsDirectory(),
+  ]);
   return dedupePaths(discoveredPaths);
 }
 
 function toTranscriptDirectory(workspacePath: string): string {
   const workspaceId = workspacePath.trim().replace(/^\/+/, "").split("/").join("-");
   return path.join(homedir(), ".cursor", "projects", workspaceId, "agent-transcripts");
+}
+
+function toGlobalProjectsDirectory(): string {
+  return path.join(homedir(), ".cursor", "projects");
 }
 
 function collectTranscriptPaths(inputPaths: readonly string[]): string[] {

@@ -18,7 +18,6 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   const transcriptPaths = resolveTranscriptSourcePaths({
     workspacePaths,
-    configuredPaths: config.transcriptPaths,
   });
   const store = createCafeStore(config.seatCount);
   const source = createAgentSource({

@@ -12,6 +12,7 @@ interface PhaserCanvasProps {
 export function PhaserCanvas({ frame, onSeatClick }: PhaserCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<CafePhaserSceneAdapter | null>(null);
+  const gameRef = useRef<Phaser.Game | null>(null);
   const onSeatClickRef = useRef(onSeatClick);
 
   useEffect(() => {
@@ -51,9 +52,26 @@ export function PhaserCanvas({ frame, onSeatClick }: PhaserCanvasProps) {
         noAudio: true,
       },
     });
+    gameRef.current = game;
+
+    const refreshScale = () => {
+      game.scale?.refresh?.();
+    };
+    const resizeObserver =
+      typeof ResizeObserver === "function" ? new ResizeObserver(refreshScale) : null;
+    resizeObserver?.observe(container);
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", refreshScale);
+    }
+    refreshScale();
 
     return () => {
       sceneRef.current = null;
+      gameRef.current = null;
+      resizeObserver?.disconnect();
+      if (typeof window !== "undefined") {
+        window.removeEventListener("resize", refreshScale);
+      }
       game.destroy(true);
     };
   }, []);

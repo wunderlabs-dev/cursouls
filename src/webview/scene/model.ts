@@ -32,7 +32,7 @@ export const TABLE_ANCHORS: readonly TableAnchor[] = [
   { tableIndex: 5, label: "Table 6", x: 258, y: 276, width: TABLE_WIDTH, height: TABLE_HEIGHT },
 ];
 
-export const SCENE_WIDTH = 348;
+export const SCENE_WIDTH = 420;
 export const SCENE_HEIGHT = 362;
 
 export function buildCafeSceneModel(frame?: SceneFrame): CafeSceneModel {

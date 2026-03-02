@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
+import path from "node:path";
 import type { AgentKind, AgentSnapshot, AgentSourceReadResult, AgentStatus } from "@shared/types";
 import type { AgentSource } from "./source";
 
@@ -10,6 +11,11 @@ interface CursorTranscriptRecord {
   task: string;
   startedAt?: number;
   updatedAt: number;
+}
+
+interface ConversationTranscriptRecord {
+  role: string;
+  text?: string;
 }
 
 export interface CursorTranscriptSourceOptions {
@@ -36,7 +42,7 @@ export function createCursorTranscriptSource(
     connected = false;
   }
 
-  async function readSnapshot(_now: number = Date.now()): Promise<AgentSourceReadResult> {
+  async function readSnapshot(now: number = Date.now()): Promise<AgentSourceReadResult> {
     if (!connected) {
       return {
         agents: [],
@@ -62,6 +68,13 @@ export function createCursorTranscriptSource(
 
     for (const sourcePath of sourcePaths) {
       let contents: string;
+      let fileUpdatedAt = now;
+      try {
+        const stats = await stat(sourcePath);
+        fileUpdatedAt = Math.round(stats.mtimeMs);
+      } catch {
+        // Keep default now timestamp when stat access fails.
+      }
       try {
         contents = await readFile(sourcePath, "utf8");
       } catch {
@@ -70,7 +83,7 @@ export function createCursorTranscriptSource(
         continue;
       }
 
-      const parsedAgents = parseTranscriptFile(contents, sourcePath, warnings);
+      const parsedAgents = parseTranscriptFile(contents, sourcePath, warnings, fileUpdatedAt, now);
       for (const parsedAgent of parsedAgents) {
         const existing = latestById.get(parsedAgent.id);
         if (!existing) {
@@ -101,9 +114,14 @@ export function createCursorTranscriptSource(
     contents: string,
     sourcePath: string,
     warnings: string[],
+    fileUpdatedAt: number,
+    now: number,
   ): AgentSnapshot[] {
     const lines = contents.split(/\r?\n/);
     const agents: AgentSnapshot[] = [];
+    let latestUserTask: string | undefined;
+    let sawConversationRecord = false;
+    let sawErrorMarker = false;
 
     for (let lineNumber = 0; lineNumber < lines.length; lineNumber += 1) {
       const rawLine = lines[lineNumber];
@@ -122,6 +140,17 @@ export function createCursorTranscriptSource(
 
       const record = asRecord(parsed);
       if (!record) {
+        const conversationRecord = asConversationRecord(parsed);
+        if (conversationRecord) {
+          sawConversationRecord = true;
+          if (conversationRecord.role === "user" && conversationRecord.text) {
+            latestUserTask = sanitizeTaskSummary(conversationRecord.text);
+          }
+          if (conversationRecord.text && hasErrorMarker(conversationRecord.text)) {
+            sawErrorMarker = true;
+          }
+          continue;
+        }
         warnings.push(formatLineWarning(sourcePath, lineNumber + 1, "Invalid transcript shape."));
         continue;
       }
@@ -153,7 +182,22 @@ export function createCursorTranscriptSource(
       agents.push(snapshot);
     }
 
-    return agents;
+    if (agents.length > 0 || !sawConversationRecord) {
+      return agents;
+    }
+
+    const agentId = deriveAgentId(sourcePath);
+    return [
+      {
+        id: agentId,
+        name: deriveAgentName(agentId, sourcePath),
+        kind: "local",
+        status: deriveConversationStatus(now, fileUpdatedAt, sawErrorMarker),
+        taskSummary: latestUserTask ?? "Working",
+        updatedAt: fileUpdatedAt,
+        source: "cursor-transcripts",
+      },
+    ];
   }
 
   function asRecord(value: unknown): CursorTranscriptRecord | null {
@@ -225,6 +269,71 @@ function asNonEmptyString(value: unknown): string | undefined {
 
 function asFiniteNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function asConversationRecord(value: unknown): ConversationTranscriptRecord | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const role = asNonEmptyString(value.role);
+  if (!role) {
+    return null;
+  }
+
+  if (!isRecord(value.message) || !Array.isArray(value.message.content)) {
+    return { role };
+  }
+
+  for (const item of value.message.content) {
+    if (!isRecord(item) || item.type !== "text") {
+      continue;
+    }
+    const text = asNonEmptyString(item.text);
+    if (text) {
+      return { role, text };
+    }
+  }
+
+  return { role };
+}
+
+function sanitizeTaskSummary(value: string): string {
+  const match = value.match(/<user_query>\s*([\s\S]*?)\s*<\/user_query>/i);
+  const query = match ? match[1] : value;
+  return query.replace(/\s+/g, " ").trim();
+}
+
+function hasErrorMarker(value: string): boolean {
+  return /(error|failed|exception|traceback)/i.test(value);
+}
+
+function deriveConversationStatus(
+  now: number,
+  updatedAt: number,
+  sawErrorMarker: boolean,
+): AgentStatus {
+  if (sawErrorMarker) {
+    return "error";
+  }
+  const ageMs = Math.max(0, now - updatedAt);
+  if (ageMs <= 120_000) {
+    return "running";
+  }
+  if (ageMs <= 3_600_000) {
+    return "idle";
+  }
+  return "completed";
+}
+
+function deriveAgentId(sourcePath: string): string {
+  const fileName = path.basename(sourcePath, ".jsonl");
+  return fileName.length > 0 ? fileName : sourcePath;
+}
+
+function deriveAgentName(agentId: string, sourcePath: string): string {
+  const prefix = sourcePath.includes("/subagents/") ? "Subagent" : "Agent";
+  return `${prefix} ${agentId.slice(0, 6)}`;
 }
 
 function isAgentStatus(value: string): value is AgentStatus {

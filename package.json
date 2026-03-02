@@ -32,7 +32,8 @@
       "cursorCafe": [
         {
           "id": "cursorCafe.sidebar",
-          "name": "Cafe Sidebar"
+          "name": "Cafe Sidebar",
+          "type": "webview"
         }
       ]
     },

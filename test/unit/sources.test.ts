@@ -25,13 +25,13 @@ describe("createAgentSource", () => {
     expect(source.sourceKind).toBe("cursor-transcripts");
   });
 
-  it("falls back to mock source in auto mode when transcript paths are missing", () => {
+  it("uses transcript source in auto mode when transcript paths are missing", () => {
     const source = createAgentSource({
       mode: "auto",
       transcriptOptions: {} as never,
     });
 
-    expect(source.sourceKind).toBe("mock");
+    expect(source.sourceKind).toBe("cursor-transcripts");
   });
 
   it("uses preferred source before mock fallback in auto mode", () => {
@@ -54,11 +54,14 @@ describe("createAgentSource", () => {
 });
 
 describe("readCafeConfig", () => {
-  it("reads optional transcript paths from config", () => {
+  it("keeps refresh and source config without transcript path options", () => {
     const config = {
       get<T>(key: string): T | undefined {
-        if (key === "cursorCafe.transcriptPaths") {
-          return ["/tmp/a.jsonl", " ", "/tmp/b.jsonl"] as T;
+        if (key === "cursorCafe.refreshMs") {
+          return 1500 as T;
+        }
+        if (key === "cursorCafe.sourceMode") {
+          return "auto" as T;
         }
         return undefined;
       },
@@ -66,6 +69,7 @@ describe("readCafeConfig", () => {
 
     const parsed = readCafeConfig(config);
 
-    expect(parsed.transcriptPaths).toEqual(["/tmp/a.jsonl", "/tmp/b.jsonl"]);
+    expect(parsed.refreshMs).toBe(1500);
+    expect(parsed.sourceMode).toBe("auto");
   });
 });

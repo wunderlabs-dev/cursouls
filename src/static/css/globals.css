@@ -73,7 +73,9 @@ textarea {
 }
 
 .phaser-canvas-root {
-  min-height: 362px;
+  aspect-ratio: 420 / 362;
+  max-width: 420px;
+  min-height: 0;
   width: 100%;
 }
 

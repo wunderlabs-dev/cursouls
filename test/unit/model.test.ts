@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AgentSnapshot, SceneFrame } from "@shared/types";
-import { TABLE_ANCHORS, buildCafeSceneModel } from "@web/scene/model";
+import { SCENE_HEIGHT, SCENE_WIDTH, TABLE_ANCHORS, buildCafeSceneModel } from "@web/scene/model";
 
 function makeAgent(id: string, status: AgentSnapshot["status"]): AgentSnapshot {
   return {
@@ -78,5 +78,14 @@ describe("scene model mapping", () => {
     expect(mapped.seats.every((seat) => seat.agent?.id !== "bad-index")).toBe(true);
     expect(empty.seats).toHaveLength(6);
     expect(empty.seats.every((seat) => seat.agent === null)).toBe(true);
+  });
+
+  it("keeps every table anchor fully inside the scene bounds", () => {
+    for (const anchor of TABLE_ANCHORS) {
+      expect(anchor.x).toBeGreaterThanOrEqual(0);
+      expect(anchor.y).toBeGreaterThanOrEqual(0);
+      expect(anchor.x + anchor.width).toBeLessThanOrEqual(SCENE_WIDTH);
+      expect(anchor.y + anchor.height).toBeLessThanOrEqual(SCENE_HEIGHT);
+    }
   });
 });

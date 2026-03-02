@@ -24,14 +24,10 @@ export function createAgentSource(options: AgentSourceFactoryOptions = {}): Agen
   }
 
   const transcriptPaths = normalizeTranscriptPaths(options.transcriptOptions?.sourcePaths);
-  if (transcriptPaths.length > 0) {
-    return createCursorTranscriptSource({
-      sourcePaths: transcriptPaths,
-      sourceLabel: options.transcriptOptions?.sourceLabel,
-    });
-  }
-
-  return createMockAgentSource(options.mockOptions);
+  return createCursorTranscriptSource({
+    sourcePaths: transcriptPaths,
+    sourceLabel: options.transcriptOptions?.sourceLabel,
+  });
 }
 
 function normalizeTranscriptPaths(sourcePaths: readonly string[] | undefined): string[] {

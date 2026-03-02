@@ -4,15 +4,13 @@ import path from "node:path";
 
 export interface TranscriptDiscoveryOptions {
   workspacePaths: string[];
-  configuredPaths?: string[];
 }
 
 export function resolveTranscriptSourcePaths(options: TranscriptDiscoveryOptions): string[] {
-  const configuredPaths = collectTranscriptPaths(options.configuredPaths ?? []);
   const discoveredPaths = options.workspacePaths.flatMap((workspacePath) =>
     collectTranscriptPaths([toTranscriptDirectory(workspacePath)]),
   );
-  return dedupePaths([...configuredPaths, ...discoveredPaths]);
+  return dedupePaths(discoveredPaths);
 }
 
 function toTranscriptDirectory(workspacePath: string): string {
@@ -45,22 +43,42 @@ function collectTranscriptPaths(inputPaths: readonly string[]): string[] {
       continue;
     }
 
+    collected.push(...collectJsonlFilesRecursive(normalizedPath));
+  }
+
+  return collected;
+}
+
+function collectJsonlFilesRecursive(directory: string): string[] {
+  const collected: string[] = [];
+  const stack = [directory];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) {
+      continue;
+    }
+
     let entries: Dirent[];
     try {
-      entries = readdirSync(normalizedPath, { withFileTypes: true });
+      entries = readdirSync(current, { withFileTypes: true });
     } catch {
       continue;
     }
 
-    const files = entries
-      .filter((entry) => entry.isFile() && entry.name.endsWith(".jsonl"))
-      .map((entry) => path.join(normalizedPath, entry.name))
-      .sort((left, right) => left.localeCompare(right));
-
-    collected.push(...files);
+    for (const entry of entries) {
+      const entryPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(entryPath);
+        continue;
+      }
+      if (entry.isFile() && entry.name.endsWith(".jsonl")) {
+        collected.push(entryPath);
+      }
+    }
   }
 
-  return collected;
+  return collected.sort((left, right) => left.localeCompare(right));
 }
 
 function dedupePaths(paths: readonly string[]): string[] {

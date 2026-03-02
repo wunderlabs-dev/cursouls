@@ -1,4 +1,5 @@
 import type * as vscode from "vscode";
+import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
 import type { AgentSnapshot, AgentStatus, SceneFrame } from "@shared/types";
 import { getWebviewHtml } from "./html";
 
@@ -140,10 +141,10 @@ function formatElapsed(startedAt?: number): string {
     return "-";
   }
 
-  const delta = Math.max(0, Date.now() - startedAt);
-  const totalMinutes = Math.floor(delta / 60000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
+  const { hours = 0, minutes = 0 } = intervalToDuration({
+    start: startedAt,
+    end: Date.now(),
+  });
   if (hours > 0) {
     return `${hours}h ${minutes}m`;
   }
@@ -151,15 +152,5 @@ function formatElapsed(startedAt?: number): string {
 }
 
 function formatRelative(updatedAt: number): string {
-  const delta = Math.max(0, Date.now() - updatedAt);
-  const seconds = Math.floor(delta / 1000);
-  if (seconds < 60) {
-    return `${seconds}s ago`;
-  }
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) {
-    return `${minutes}m ago`;
-  }
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
+  return formatDistanceToNowStrict(updatedAt, { addSuffix: true });
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
 import { createRoot } from "react-dom/client";
 import type { SceneFrame } from "@shared/types";
 import type { VsCodeBridge } from "@web/bridge/bridge";
@@ -167,20 +168,13 @@ function formatElapsed(startedAt?: number): string {
   if (!startedAt) {
     return "-";
   }
-  const totalMinutes = Math.floor((Date.now() - startedAt) / 60000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
+  const { hours = 0, minutes = 0 } = intervalToDuration({
+    start: startedAt,
+    end: Date.now(),
+  });
   return hours > 0 ? `${hours}h ${minutes}m` : `${Math.max(0, minutes)}m`;
 }
 
 function formatRelative(updatedAt: number): string {
-  const seconds = Math.floor(Math.max(0, Date.now() - updatedAt) / 1000);
-  if (seconds < 60) {
-    return `${seconds}s ago`;
-  }
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) {
-    return `${minutes}m ago`;
-  }
-  return `${Math.floor(minutes / 60)}h ago`;
+  return formatDistanceToNowStrict(updatedAt, { addSuffix: true });
 }

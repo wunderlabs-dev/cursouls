@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import truncate from "lodash.truncate";
 import type { AgentStatus } from "@shared/types";
-import { initialsFor, statusGlyph } from "@web/ui/sprites";
+import { initialsFor, statusGlyph } from "@web/present";
 import type { SeatRenderModel } from "./model";
 
 interface SeatPalette {

@@ -1,4 +1,4 @@
-import { mountApp } from "@web/app/app";
+import { mountApp } from "@web/app";
 import { createBridge } from "@web/bridge/bridge";
 
 export function mountWebviewApp(): void {

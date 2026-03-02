@@ -247,6 +247,9 @@ export function createCursorTranscriptSource(
     connect,
     disconnect,
     readSnapshot,
+    getWatchPaths(): string[] {
+      return [...sourcePaths];
+    },
   };
 }
 

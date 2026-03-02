@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { SceneFrame } from "@shared/types";
+import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import { extractMessageTypesFromSource } from "@test/unit/helpers/bridge";
 
 vi.mock("vscode", () => ({}), { virtual: true });
@@ -34,6 +34,17 @@ function buildFrame(): SceneFrame {
       warnings: [],
     },
   };
+}
+
+function buildLifecycleEvents(): AgentLifecycleEvent[] {
+  return [
+    {
+      type: "joined",
+      agentId: "a-1",
+      at: 1_700_000_000_000,
+      nextStatus: "running",
+    },
+  ];
 }
 
 function createWebviewViewMock() {
@@ -128,6 +139,22 @@ describe("webview bridge compatibility", () => {
     expect(harness.postedMessages).toEqual([
       { type: "sceneFrame", frame },
       { type: "sceneFrame", frame },
+    ]);
+  });
+
+  it("replays the latest lifecycle events when the webview sends ready", async () => {
+    const { createCafeViewProvider } = await import("@ext/providers/provider");
+    const provider = createCafeViewProvider({} as never);
+    const harness = createWebviewViewMock();
+    provider.resolveWebviewView(harness.view as never);
+
+    const events = buildLifecycleEvents();
+    provider.updateLifecycleEvents(events);
+    harness.sendInboundMessage({ type: "ready" });
+
+    expect(harness.postedMessages).toEqual([
+      { type: "lifecycleEvents", events },
+      { type: "lifecycleEvents", events },
     ]);
   });
 

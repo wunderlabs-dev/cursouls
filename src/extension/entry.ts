@@ -5,9 +5,9 @@ import { CAFE_VIEW_TYPE, createCafeViewProvider } from "@ext/providers/provider"
 import { createAgentSource } from "@ext/sources";
 import { resolveTranscriptSourcePaths } from "@ext/sources/discovery";
 import { createCafeStore } from "@ext/services/store";
-import { createPollingController, type PollingController } from "@ext/services/polling";
+import { createWatchController, type WatchController } from "@ext/services/watch";
 
-let activePollingController: PollingController | undefined;
+let activeWatchController: WatchController | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   const outputChannel = vscode.window.createOutputChannel("Cursor Cafe");
@@ -26,18 +26,20 @@ export function activate(context: vscode.ExtensionContext): void {
     },
   });
   const viewProvider = createCafeViewProvider(context.extensionUri);
-  const pollingController = createPollingController({
+  const watchController = createWatchController({
     source,
     store,
-    refreshMs: config.refreshMs,
+    watchPaths: transcriptPaths,
+    debounceMs: config.refreshMs,
     logger,
   });
-  activePollingController = pollingController;
-  const disposeFrameListener = pollingController.onFrame((frame) => {
+  activeWatchController = watchController;
+  const disposeFrameListener = watchController.onFrame((frame) => {
     viewProvider.updateFrame(frame);
+    viewProvider.updateLifecycleEvents(store.getLastEvents());
   });
-  const disposeErrorListener = pollingController.onError((error) => {
-    logger.error(`Polling error: ${formatUnknownError(error)}`);
+  const disposeErrorListener = watchController.onError((error) => {
+    logger.error(`Watch refresh error: ${formatUnknownError(error)}`);
   });
 
   context.subscriptions.push(
@@ -47,8 +49,7 @@ export function activate(context: vscode.ExtensionContext): void {
     new vscode.Disposable(disposeErrorListener),
     vscode.commands.registerCommand("cursorCafe.refresh", async () => {
       try {
-        const frame = await pollingController.pollOnce();
-        viewProvider.updateFrame(frame);
+        await watchController.refreshNow();
       } catch (error) {
         const message = `Cursor Cafe refresh failed: ${formatUnknownError(error)}`;
         logger.error(message);
@@ -56,25 +57,26 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     }),
     new vscode.Disposable(() => {
-      void pollingController.stop();
-      if (activePollingController === pollingController) {
-        activePollingController = undefined;
+      void watchController.stop();
+      if (activeWatchController === watchController) {
+        activeWatchController = undefined;
       }
     }),
   );
 
   viewProvider.updateFrame(store.getFrame());
-  void pollingController.start().catch((error: unknown) => {
-    logger.error(`Failed to start polling: ${formatUnknownError(error)}`);
+  viewProvider.updateLifecycleEvents(store.getLastEvents());
+  void watchController.start().catch((error: unknown) => {
+    logger.error(`Failed to start transcript watch: ${formatUnknownError(error)}`);
   });
 }
 
 export function deactivate(): Thenable<void> | void {
-  if (!activePollingController) {
+  if (!activeWatchController) {
     return;
   }
-  const controller = activePollingController;
-  activePollingController = undefined;
+  const controller = activeWatchController;
+  activeWatchController = undefined;
   return controller.stop();
 }
 

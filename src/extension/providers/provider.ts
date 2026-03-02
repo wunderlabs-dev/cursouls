@@ -1,6 +1,6 @@
 import type * as vscode from "vscode";
 import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
-import type { AgentSnapshot, AgentStatus, SceneFrame } from "@shared/types";
+import type { AgentLifecycleEvent, AgentSnapshot, AgentStatus, SceneFrame } from "@shared/types";
 import { getWebviewHtml } from "./html";
 
 type OutboundMessage =
@@ -9,6 +9,7 @@ type OutboundMessage =
 
 type InboundMessage =
   | { type: "sceneFrame"; frame: SceneFrame }
+  | { type: "lifecycleEvents"; events: AgentLifecycleEvent[] }
   | { type: "tooltipData"; tooltip: TooltipPayload }
   | { type: "hideTooltip" };
 
@@ -25,11 +26,13 @@ export const CAFE_VIEW_TYPE = "cursorCafe.sidebar";
 
 export interface CafeViewProvider extends vscode.WebviewViewProvider {
   updateFrame(frame: SceneFrame): void;
+  updateLifecycleEvents(events: AgentLifecycleEvent[]): void;
 }
 
 export function createCafeViewProvider(extensionUri: vscode.Uri): CafeViewProvider {
   let view: vscode.WebviewView | undefined;
   let latestFrame: SceneFrame | undefined;
+  let latestLifecycleEvents: AgentLifecycleEvent[] | undefined;
 
   function resolveWebviewView(nextView: vscode.WebviewView): void {
     view = nextView;
@@ -53,6 +56,9 @@ export function createCafeViewProvider(extensionUri: vscode.Uri): CafeViewProvid
         if (latestFrame) {
           postMessage({ type: "sceneFrame", frame: latestFrame });
         }
+        if (latestLifecycleEvents) {
+          postMessage({ type: "lifecycleEvents", events: latestLifecycleEvents });
+        }
         return;
       }
 
@@ -72,6 +78,11 @@ export function createCafeViewProvider(extensionUri: vscode.Uri): CafeViewProvid
     postMessage({ type: "sceneFrame", frame });
   }
 
+  function updateLifecycleEvents(events: AgentLifecycleEvent[]): void {
+    latestLifecycleEvents = events;
+    postMessage({ type: "lifecycleEvents", events });
+  }
+
   function buildTooltip(agentId: string): TooltipPayload | undefined {
     if (!latestFrame) {
       return undefined;
@@ -87,15 +98,7 @@ export function createCafeViewProvider(extensionUri: vscode.Uri): CafeViewProvid
       return undefined;
     }
 
-    const elapsed = agent.startedAt
-      ? (() => {
-          const { hours = 0, minutes = 0 } = intervalToDuration({
-            start: agent.startedAt,
-            end: Date.now(),
-          });
-          return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-        })()
-      : "-";
+    const elapsed = formatElapsed(agent.startedAt);
 
     const updated = formatDistanceToNowStrict(agent.updatedAt, { addSuffix: true });
 
@@ -119,6 +122,7 @@ export function createCafeViewProvider(extensionUri: vscode.Uri): CafeViewProvid
   return {
     resolveWebviewView,
     updateFrame,
+    updateLifecycleEvents,
   };
 }
 
@@ -146,4 +150,15 @@ function isOutboundMessage(value: unknown): value is OutboundMessage {
   }
 
   return false;
+}
+
+function formatElapsed(startedAt: number | undefined): string {
+  if (!startedAt) {
+    return "-";
+  }
+  const { hours = 0, minutes = 0 } = intervalToDuration({
+    start: startedAt,
+    end: Date.now(),
+  });
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }

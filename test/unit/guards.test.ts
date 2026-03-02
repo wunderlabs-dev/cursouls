@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { SceneFrame } from "@shared/types";
+import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import { createBridge } from "@web/bridge/bridge";
 import type { InboundMessage } from "@web/bridge/types";
 
@@ -30,6 +30,23 @@ function buildFrame(): SceneFrame {
       warnings: [],
     },
   };
+}
+
+function buildLifecycleEvents(): AgentLifecycleEvent[] {
+  return [
+    {
+      type: "joined",
+      agentId: "a-1",
+      at: 1_700_000_000_000,
+      nextStatus: "running",
+    },
+    {
+      type: "left",
+      agentId: "a-2",
+      at: 1_700_000_001_000,
+      previousStatus: "idle",
+    },
+  ];
 }
 
 describe("useVsCodeBridge inbound parse guards", () => {
@@ -123,5 +140,23 @@ describe("useVsCodeBridge inbound parse guards", () => {
         },
       },
     ]);
+  });
+
+  it("ignores malformed lifecycleEvents payloads and accepts valid lifecycleEvents", () => {
+    const bridge = createBridge();
+    const seen: InboundMessage[] = [];
+    bridge.subscribe((message) => seen.push(message));
+
+    emitInbound({ type: "lifecycleEvents" });
+    emitInbound({ type: "lifecycleEvents", events: {} });
+    emitInbound({
+      type: "lifecycleEvents",
+      events: [{ type: "joined", agentId: "a-1", at: "bad" }],
+    });
+    expect(seen).toEqual([]);
+
+    const events = buildLifecycleEvents();
+    emitInbound({ type: "lifecycleEvents", events });
+    expect(seen).toEqual([{ type: "lifecycleEvents", events }]);
   });
 });

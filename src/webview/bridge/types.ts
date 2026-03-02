@@ -1,4 +1,4 @@
-import type { AgentStatus, SceneFrame } from "@shared/types";
+import type { AgentLifecycleEvent, AgentStatus, SceneFrame } from "@shared/types";
 
 export type AgentAnchor = "seat" | "queue";
 
@@ -17,6 +17,7 @@ export type OutboundMessage =
 
 export type InboundMessage =
   | { type: "sceneFrame"; frame: SceneFrame }
+  | { type: "lifecycleEvents"; events: AgentLifecycleEvent[] }
   | { type: "tooltipData"; tooltip: TooltipData }
   | { type: "hideTooltip" };
 

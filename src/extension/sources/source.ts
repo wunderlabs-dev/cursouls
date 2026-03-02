@@ -5,4 +5,5 @@ export interface AgentSource {
   connect(): Promise<void> | void;
   disconnect(): Promise<void> | void;
   readSnapshot(now?: number): Promise<AgentSourceReadResult> | AgentSourceReadResult;
+  getWatchPaths?(): string[];
 }

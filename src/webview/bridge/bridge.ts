@@ -1,4 +1,4 @@
-import type { SceneFrame } from "@shared/types";
+import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import { z } from "zod";
 import type { InboundMessage, OutboundMessage, TooltipData } from "./types";
 
@@ -8,6 +8,7 @@ const AGENT_STATUS_VALUES = ["running", "idle", "completed", "error"] as const;
 const AGENT_KIND_VALUES = ["local", "remote"] as const;
 const SOURCE_KIND_VALUES = ["cursor-transcripts", "mock"] as const;
 const INBOUND_SCENE_FRAME_TYPE = "sceneFrame";
+const INBOUND_LIFECYCLE_EVENTS_TYPE = "lifecycleEvents";
 const INBOUND_TOOLTIP_DATA_TYPE = "tooltipData";
 const INBOUND_HIDE_TOOLTIP_TYPE = "hideTooltip";
 const OUTBOUND_READY_TYPE = "ready";
@@ -81,6 +82,7 @@ function parseInboundMessage(value: unknown): InboundMessage | undefined {
 const agentStatusSchema = z.enum(AGENT_STATUS_VALUES);
 const agentKindSchema = z.enum(AGENT_KIND_VALUES);
 const sourceKindSchema = z.enum(SOURCE_KIND_VALUES);
+const lifecycleEventTypeSchema = z.enum(["joined", "left", "status-changed", "heartbeat"]);
 
 const agentSnapshotSchema = z.object({
   id: z.string(),
@@ -120,10 +122,22 @@ const tooltipDataSchema: z.ZodType<TooltipData> = z.object({
   updated: z.string(),
 });
 
+const lifecycleEventSchema: z.ZodType<AgentLifecycleEvent> = z.object({
+  type: lifecycleEventTypeSchema,
+  agentId: z.string(),
+  at: z.number(),
+  previousStatus: agentStatusSchema.optional(),
+  nextStatus: agentStatusSchema.optional(),
+});
+
 const inboundMessageSchema: z.ZodType<InboundMessage> = z.discriminatedUnion("type", [
   z.object({
     type: z.literal(INBOUND_SCENE_FRAME_TYPE),
     frame: sceneFrameSchema,
+  }),
+  z.object({
+    type: z.literal(INBOUND_LIFECYCLE_EVENTS_TYPE),
+    events: z.array(lifecycleEventSchema),
   }),
   z.object({
     type: z.literal(INBOUND_TOOLTIP_DATA_TYPE),

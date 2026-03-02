@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
 import { createRoot } from "react-dom/client";
-import type { SceneFrame } from "@shared/types";
+import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import type { TooltipData } from "@web/bridge/types";
 import { PhaserCanvas } from "@web/ui/canvas";
@@ -38,6 +38,7 @@ export function mountApp(container: HTMLElement, bridge: VsCodeBridge): AppContr
 function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
   const [frame, setFrame] = useState<SceneFrame | undefined>(undefined);
   const [tooltip, setTooltip] = useState<TooltipData | undefined>(undefined);
+  const [lifecycleEvents, setLifecycleEvents] = useState<AgentLifecycleEvent[]>([]);
 
   useEffect(() => {
     const unsubscribe = bridge.subscribe((message) => {
@@ -49,6 +50,10 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
         setTooltip(message.tooltip);
         return;
       }
+      if (message.type === "lifecycleEvents") {
+        setLifecycleEvents(message.events);
+        return;
+      }
       setTooltip(undefined);
     });
     bridge.postReady();
@@ -58,6 +63,7 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
   }, [bridge]);
 
   const queueAgents = frame?.queue ?? [];
+  const lifecycleEventCount = lifecycleEvents.length;
   const queueVisible = queueAgents.slice(0, QUEUE_VISIBLE_LIMIT);
   const queueOverflow = Math.max(0, queueAgents.length - queueVisible.length);
   const healthLabel = useMemo(
@@ -88,7 +94,11 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
   );
 
   return (
-    <main className="cafe-root" aria-label="Cursor Cafe sidebar">
+    <main
+      className="cafe-root"
+      aria-label="Cursor Cafe sidebar"
+      data-lifecycle-event-count={lifecycleEventCount}
+    >
       <header
         className={`cafe-health${frame && !frame.health.sourceConnected ? " is-warning" : ""}`}
       >

@@ -44,7 +44,7 @@ const conversationContentEntrySchema = z.object({
 });
 
 const RUNNING_WINDOW_MS = 60_000;
-const IDLE_WINDOW_MS = 10 * 60_000;
+const IDLE_WINDOW_MS = 5 * 60_000;
 
 const conversationLineSchema = z.object({
   role: nonEmptyStringSchema,

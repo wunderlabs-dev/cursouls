@@ -22,15 +22,27 @@ export interface CafeSceneModel {
 
 const TABLE_WIDTH = 144;
 const TABLE_HEIGHT = 86;
+const TABLE_LEFT_X = 90;
+const TABLE_RIGHT_X = 258;
+const TABLE_TOP_Y = 76;
+const TABLE_ROW_GAP = 100;
+const TABLE_COLUMN_COUNT = 2;
+const TABLE_LABEL_PREFIX = "Table";
 
-export const TABLE_ANCHORS: readonly TableAnchor[] = [
-  { tableIndex: 0, label: "Table 1", x: 90, y: 76, width: TABLE_WIDTH, height: TABLE_HEIGHT },
-  { tableIndex: 1, label: "Table 2", x: 258, y: 76, width: TABLE_WIDTH, height: TABLE_HEIGHT },
-  { tableIndex: 2, label: "Table 3", x: 90, y: 176, width: TABLE_WIDTH, height: TABLE_HEIGHT },
-  { tableIndex: 3, label: "Table 4", x: 258, y: 176, width: TABLE_WIDTH, height: TABLE_HEIGHT },
-  { tableIndex: 4, label: "Table 5", x: 90, y: 276, width: TABLE_WIDTH, height: TABLE_HEIGHT },
-  { tableIndex: 5, label: "Table 6", x: 258, y: 276, width: TABLE_WIDTH, height: TABLE_HEIGHT },
-];
+export const TABLE_ANCHORS: readonly TableAnchor[] = Array.from({ length: TABLE_COUNT }, (_, index) => {
+  const rowIndex = Math.floor(index / TABLE_COLUMN_COUNT);
+  const columnIndex = index % TABLE_COLUMN_COUNT;
+  const x = columnIndex === 0 ? TABLE_LEFT_X : TABLE_RIGHT_X;
+  const y = TABLE_TOP_Y + rowIndex * TABLE_ROW_GAP;
+  return {
+    tableIndex: index,
+    label: `${TABLE_LABEL_PREFIX} ${index + 1}`,
+    x,
+    y,
+    width: TABLE_WIDTH,
+    height: TABLE_HEIGHT,
+  };
+});
 
 export const SCENE_WIDTH = 420;
 export const SCENE_HEIGHT = 362;

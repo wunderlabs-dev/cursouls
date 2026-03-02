@@ -1,5 +1,6 @@
 import type Phaser from "phaser";
 import type { SceneFrame } from "@shared/types";
+import { SCENE_BACKGROUND_COLOR_NUMERIC, SCENE_KEY } from "@web/constants";
 import { buildCafeSceneModel } from "./model";
 import { createSeatSprite, type SeatSprite, updateSeatSprite } from "./sprites";
 
@@ -51,10 +52,10 @@ export function createCafePhaserScene({
   };
 
   const scene: Phaser.Types.Scenes.SceneType = {
-    key: "CafePhaserScene",
+    key: SCENE_KEY,
     create(this: Phaser.Scene) {
       state.sceneInstance = this;
-      this.cameras.main.setBackgroundColor(0x221b16);
+      this.cameras.main.setBackgroundColor(SCENE_BACKGROUND_COLOR_NUMERIC);
       renderFrame(state, state.latestFrame);
     },
   };

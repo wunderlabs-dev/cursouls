@@ -3,6 +3,7 @@ import Phaser from "phaser";
 import type { SceneFrame } from "@shared/types";
 import { createCafePhaserScene, type CafePhaserSceneAdapter } from "@web/scene/scene";
 import { SCENE_HEIGHT, SCENE_WIDTH } from "@web/scene/model";
+import { SCENE_BACKGROUND_COLOR } from "@web/constants";
 
 interface PhaserCanvasProps {
   frame?: SceneFrame;
@@ -37,7 +38,7 @@ export function PhaserCanvas({ frame, onSeatClick }: PhaserCanvasProps) {
       width: SCENE_WIDTH,
       height: SCENE_HEIGHT,
       parent: container,
-      backgroundColor: "#221b16",
+      backgroundColor: SCENE_BACKGROUND_COLOR,
       scene: [scene.scene],
       scale: {
         mode: Phaser.Scale.FIT,

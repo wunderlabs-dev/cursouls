@@ -4,6 +4,14 @@ import type { InboundMessage, OutboundMessage, TooltipData } from "./types";
 
 type MessageListener = (message: InboundMessage) => void;
 
+const AGENT_STATUS_VALUES = ["running", "idle", "completed", "error"] as const;
+const AGENT_KIND_VALUES = ["local", "remote"] as const;
+const SOURCE_KIND_VALUES = ["cursor-transcripts", "mock"] as const;
+const INBOUND_SCENE_FRAME_TYPE = "sceneFrame";
+const INBOUND_TOOLTIP_DATA_TYPE = "tooltipData";
+const INBOUND_HIDE_TOOLTIP_TYPE = "hideTooltip";
+const OUTBOUND_READY_TYPE = "ready";
+
 type VsCodeApi = {
   postMessage(message: OutboundMessage): void;
 };
@@ -40,7 +48,7 @@ export function createBridge(): VsCodeBridge {
 
   return {
     postReady(): void {
-      vscode.postMessage({ type: "ready" });
+      vscode.postMessage({ type: OUTBOUND_READY_TYPE });
     },
     postAgentClick(agentId: string, anchor: "seat" | "queue"): void {
       vscode.postMessage({ type: "agentClick", agentId, anchor });
@@ -70,9 +78,9 @@ function parseInboundMessage(value: unknown): InboundMessage | undefined {
   return parsed.success ? parsed.data : undefined;
 }
 
-const agentStatusSchema = z.enum(["running", "idle", "completed", "error"]);
-const agentKindSchema = z.enum(["local", "remote"]);
-const sourceKindSchema = z.enum(["cursor-transcripts", "mock"]);
+const agentStatusSchema = z.enum(AGENT_STATUS_VALUES);
+const agentKindSchema = z.enum(AGENT_KIND_VALUES);
+const sourceKindSchema = z.enum(SOURCE_KIND_VALUES);
 
 const agentSnapshotSchema = z.object({
   id: z.string(),
@@ -114,14 +122,14 @@ const tooltipDataSchema: z.ZodType<TooltipData> = z.object({
 
 const inboundMessageSchema: z.ZodType<InboundMessage> = z.discriminatedUnion("type", [
   z.object({
-    type: z.literal("sceneFrame"),
+    type: z.literal(INBOUND_SCENE_FRAME_TYPE),
     frame: sceneFrameSchema,
   }),
   z.object({
-    type: z.literal("tooltipData"),
+    type: z.literal(INBOUND_TOOLTIP_DATA_TYPE),
     tooltip: tooltipDataSchema,
   }),
   z.object({
-    type: z.literal("hideTooltip"),
+    type: z.literal(INBOUND_HIDE_TOOLTIP_TYPE),
   }),
 ]);

@@ -1,10 +1,11 @@
 import { mountApp } from "@web/app";
 import { createBridge } from "@web/bridge/bridge";
+import { APP_ROOT_ID } from "@web/constants";
 
 export function mountWebviewApp(): void {
-  const root = document.getElementById("app");
+  const root = document.getElementById(APP_ROOT_ID);
   if (!root) {
-    throw new Error("Missing #app root");
+    throw new Error(`Missing #${APP_ROOT_ID} root`);
   }
 
   const bridge = createBridge();

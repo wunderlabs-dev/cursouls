@@ -6,6 +6,20 @@ import type { VsCodeBridge } from "@web/bridge/bridge";
 import type { TooltipData } from "@web/bridge/types";
 import { PhaserCanvas } from "@web/ui/canvas";
 import { initialsFor, spriteStatusClass } from "@web/present";
+import {
+  EMPTY_ELAPSED_LABEL,
+  INITIALIZING_LABEL,
+  NO_ACTIVE_TASK_LABEL,
+  NO_QUEUE_LABEL,
+  QUEUE_VISIBLE_LIMIT,
+  TOOLTIP_ELAPSED_LABEL,
+  TOOLTIP_STATUS_LABEL,
+  TOOLTIP_TASK_LABEL,
+  TOOLTIP_UPDATED_LABEL,
+  UNKNOWN_SOURCE_LABEL,
+  WARNING_LABEL_PLURAL,
+  WARNING_LABEL_SINGULAR,
+} from "@web/constants";
 
 export interface AppController {
   destroy(): void;
@@ -44,9 +58,12 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
   }, [bridge]);
 
   const queueAgents = frame?.queue ?? [];
-  const queueVisible = queueAgents.slice(0, 8);
+  const queueVisible = queueAgents.slice(0, QUEUE_VISIBLE_LIMIT);
   const queueOverflow = Math.max(0, queueAgents.length - queueVisible.length);
-  const healthLabel = useMemo(() => (frame ? buildHealthLabel(frame) : "initializing..."), [frame]);
+  const healthLabel = useMemo(
+    () => (frame ? buildHealthLabel(frame) : INITIALIZING_LABEL),
+    [frame],
+  );
 
   const handleSeatClick = useCallback(
     (agentId: string): void => {
@@ -82,7 +99,7 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
       </section>
       <section className="cafe-queue" aria-label="Overflow queue">
         {queueVisible.length === 0 ? (
-          <div className="queue-empty">No queue</div>
+          <div className="queue-empty">{NO_QUEUE_LABEL}</div>
         ) : (
           <div className="queue-row">
             {queueVisible.map((agent, index) => {
@@ -111,19 +128,19 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
           <div className="tooltip-card">
             <div className="tooltip-title">{tooltip.name}</div>
             <div className="tooltip-line">
-              <span>Status</span>
+              <span>{TOOLTIP_STATUS_LABEL}</span>
               <strong>{tooltip.status}</strong>
             </div>
             <div className="tooltip-line">
-              <span>Task</span>
+              <span>{TOOLTIP_TASK_LABEL}</span>
               <strong>{tooltip.task}</strong>
             </div>
             <div className="tooltip-line">
-              <span>Elapsed</span>
+              <span>{TOOLTIP_ELAPSED_LABEL}</span>
               <strong>{tooltip.elapsed}</strong>
             </div>
             <div className="tooltip-line">
-              <span>Updated</span>
+              <span>{TOOLTIP_UPDATED_LABEL}</span>
               <strong>{tooltip.updated}</strong>
             </div>
           </div>
@@ -154,7 +171,7 @@ function findAgentTooltip(frame: SceneFrame | undefined, agentId: string): Toolt
         });
         return hours > 0 ? `${hours}h ${minutes}m` : `${Math.max(0, minutes)}m`;
       })()
-    : "-";
+    : EMPTY_ELAPSED_LABEL;
 
   const updated = formatDistanceToNowStrict(agent.updatedAt, { addSuffix: true });
 
@@ -162,17 +179,18 @@ function findAgentTooltip(frame: SceneFrame | undefined, agentId: string): Toolt
     id: agent.id,
     name: agent.name,
     status: agent.status,
-    task: agent.taskSummary || "No active task",
+    task: agent.taskSummary || NO_ACTIVE_TASK_LABEL,
     elapsed,
     updated,
   };
 }
 
 function buildHealthLabel(frame: SceneFrame): string {
-  const source = frame.health.sourceLabel || "unknown source";
+  const source = frame.health.sourceLabel || UNKNOWN_SOURCE_LABEL;
   const warnings = frame.health.warnings.length;
   if (warnings === 0) {
     return source;
   }
-  return `${source} (${warnings} warning${warnings === 1 ? "" : "s"})`;
+  const label = warnings === 1 ? WARNING_LABEL_SINGULAR : WARNING_LABEL_PLURAL;
+  return `${source} (${warnings} ${label})`;
 }

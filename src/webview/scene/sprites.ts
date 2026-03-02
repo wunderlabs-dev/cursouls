@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import truncate from "lodash.truncate";
 import type { AgentStatus } from "@shared/types";
 import { initialsFor, statusGlyph } from "@web/ui/sprites";
 import type { SeatRenderModel } from "./model";
@@ -159,9 +160,5 @@ export function updateSeatSprite(sprite: SeatSprite, seat: SeatRenderModel): voi
 }
 
 function trimName(value: string, maxLength = 14): string {
-  const trimmed = value.trim();
-  if (trimmed.length <= maxLength) {
-    return trimmed;
-  }
-  return `${trimmed.slice(0, maxLength - 1)}…`;
+  return truncate(value.trim(), { length: maxLength, omission: "…" });
 }

@@ -1,6 +1,7 @@
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import type { AgentKind, AgentSnapshot, AgentSourceReadResult, AgentStatus } from "@shared/types";
+import { z } from "zod";
 import type { AgentSource } from "./source";
 
 interface CursorTranscriptRecord {
@@ -17,6 +18,39 @@ interface ConversationTranscriptRecord {
   role: string;
   text?: string;
 }
+
+const nonEmptyStringSchema = z
+  .string()
+  .transform((value) => value.trim())
+  .pipe(z.string().min(1));
+
+const finiteNumberSchema = z.number().refine(Number.isFinite);
+const agentStatusSchema = z.enum(["running", "idle", "completed", "error"]);
+const agentKindSchema = z.enum(["local", "remote"]);
+
+const flatTranscriptRecordSchema = z.object({
+  agentId: nonEmptyStringSchema,
+  agentName: nonEmptyStringSchema,
+  kind: nonEmptyStringSchema.optional(),
+  status: nonEmptyStringSchema,
+  task: nonEmptyStringSchema,
+  startedAt: finiteNumberSchema.optional(),
+  updatedAt: finiteNumberSchema,
+});
+
+const conversationContentEntrySchema = z.object({
+  type: z.string(),
+  text: z.string().optional(),
+});
+
+const conversationLineSchema = z.object({
+  role: nonEmptyStringSchema,
+  message: z
+    .object({
+      content: z.array(conversationContentEntrySchema),
+    })
+    .optional(),
+});
 
 export interface CursorTranscriptSourceOptions {
   sourcePaths: string[];
@@ -138,37 +172,39 @@ export function createCursorTranscriptSource(
         continue;
       }
 
-      const record = asRecord(parsed);
+      const record = parseFlatRecord(parsed);
       if (!record) {
-        const conversationRecord = asConversationRecord(parsed);
-        if (conversationRecord) {
-          sawConversationRecord = true;
-          if (conversationRecord.role === "user" && conversationRecord.text) {
-            latestUserTask = sanitizeTaskSummary(conversationRecord.text);
-          }
-          if (conversationRecord.text && hasErrorMarker(conversationRecord.text)) {
-            sawErrorMarker = true;
-          }
+        const conversationRecord = parseConversationRecord(parsed);
+        if (!conversationRecord) {
           continue;
+        }
+        sawConversationRecord = true;
+        if (conversationRecord.role === "user" && conversationRecord.text) {
+          latestUserTask = sanitizeTaskSummary(conversationRecord.text);
+        }
+        if (conversationRecord.text && hasErrorMarker(conversationRecord.text)) {
+          sawErrorMarker = true;
         }
         continue;
       }
 
-      if (!isAgentStatus(record.status)) {
+      const statusResult = agentStatusSchema.safeParse(record.status);
+      if (!statusResult.success) {
         warnings.push(formatLineWarning(sourcePath, lineNumber + 1, "Invalid agent status."));
         continue;
       }
 
-      const normalizedKind = normalizeKind(record.kind, sourcePath, lineNumber + 1, warnings);
-      if (!normalizedKind) {
+      const kindResult = parseAgentKind(record.kind);
+      if (!kindResult.success) {
+        warnings.push(formatLineWarning(sourcePath, lineNumber + 1, "Invalid agent kind."));
         continue;
       }
 
       const snapshot: AgentSnapshot = {
         id: record.agentId,
         name: record.agentName,
-        kind: normalizedKind,
-        status: record.status,
+        kind: kindResult.value,
+        status: statusResult.data,
         taskSummary: record.task,
         updatedAt: record.updatedAt,
         source: "cursor-transcripts",
@@ -199,53 +235,6 @@ export function createCursorTranscriptSource(
     ];
   }
 
-  function asRecord(value: unknown): CursorTranscriptRecord | null {
-    if (!isRecord(value)) {
-      return null;
-    }
-
-    const agentId = asNonEmptyString(value.agentId);
-    const agentName = asNonEmptyString(value.agentName);
-    const status = asNonEmptyString(value.status);
-    const task = asNonEmptyString(value.task);
-    const updatedAt = asFiniteNumber(value.updatedAt);
-
-    if (!agentId || !agentName || !status || !task || updatedAt === undefined) {
-      return null;
-    }
-
-    const kind = asNonEmptyString(value.kind);
-    const startedAt = asFiniteNumber(value.startedAt);
-
-    return {
-      agentId,
-      agentName,
-      kind,
-      status,
-      task,
-      startedAt,
-      updatedAt,
-    };
-  }
-
-  function normalizeKind(
-    rawKind: string | undefined,
-    sourcePath: string,
-    lineNumber: number,
-    warnings: string[],
-  ): AgentKind | null {
-    if (rawKind === undefined) {
-      return "local";
-    }
-
-    if (isAgentKind(rawKind)) {
-      return rawKind;
-    }
-
-    warnings.push(formatLineWarning(sourcePath, lineNumber, "Invalid agent kind."));
-    return null;
-  }
-
   function formatLineWarning(sourcePath: string, lineNumber: number, reason: string): string {
     return `${sourcePath}:${lineNumber} ${reason}`;
   }
@@ -258,42 +247,35 @@ export function createCursorTranscriptSource(
   };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function parseFlatRecord(value: unknown): CursorTranscriptRecord | null {
+  const parsed = flatTranscriptRecordSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }
 
-function asNonEmptyString(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+function parseAgentKind(value: string | undefined): { success: true; value: AgentKind } | { success: false } {
+  if (value === undefined) {
+    return { success: true, value: "local" };
+  }
+  const parsed = agentKindSchema.safeParse(value);
+  return parsed.success ? { success: true, value: parsed.data } : { success: false };
 }
 
-function asFiniteNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-function asConversationRecord(value: unknown): ConversationTranscriptRecord | null {
-  if (!isRecord(value)) {
+function parseConversationRecord(value: unknown): ConversationTranscriptRecord | null {
+  const parsed = conversationLineSchema.safeParse(value);
+  if (!parsed.success) {
     return null;
   }
-
-  const role = asNonEmptyString(value.role);
-  if (!role) {
-    return null;
-  }
-
-  if (!isRecord(value.message) || !Array.isArray(value.message.content)) {
-    return { role };
-  }
-
-  for (const item of value.message.content) {
-    if (!isRecord(item) || item.type !== "text") {
+  const role = parsed.data.role;
+  const entries = parsed.data.message?.content ?? [];
+  for (const entry of entries) {
+    if (entry.type !== "text" || typeof entry.text !== "string") {
       continue;
     }
-    const text = asNonEmptyString(item.text);
-    if (text) {
+    const text = entry.text.trim();
+    if (text.length > 0) {
       return { role, text };
     }
   }
-
   return { role };
 }
 
@@ -335,10 +317,3 @@ function deriveAgentName(agentId: string, sourcePath: string): string {
   return `${prefix} ${agentId.slice(0, 6)}`;
 }
 
-function isAgentStatus(value: string): value is AgentStatus {
-  return value === "running" || value === "idle" || value === "completed" || value === "error";
-}
-
-function isAgentKind(value: string): value is AgentKind {
-  return value === "local" || value === "remote";
-}

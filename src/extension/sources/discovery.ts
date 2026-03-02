@@ -10,20 +10,13 @@ export function resolveTranscriptSourcePaths(options: TranscriptDiscoveryOptions
   const workspaceTranscriptDirectories = options.workspacePaths.map((workspacePath) =>
     toTranscriptDirectory(workspacePath),
   );
-  const discoveredPaths = collectTranscriptPaths([
-    ...workspaceTranscriptDirectories,
-    toGlobalProjectsDirectory(),
-  ]);
+  const discoveredPaths = collectTranscriptPaths(workspaceTranscriptDirectories);
   return dedupePaths(discoveredPaths);
 }
 
 function toTranscriptDirectory(workspacePath: string): string {
   const workspaceId = workspacePath.trim().replace(/^\/+/, "").split("/").join("-");
   return path.join(homedir(), ".cursor", "projects", workspaceId, "agent-transcripts");
-}
-
-function toGlobalProjectsDirectory(): string {
-  return path.join(homedir(), ".cursor", "projects");
 }
 
 function collectTranscriptPaths(inputPaths: readonly string[]): string[] {

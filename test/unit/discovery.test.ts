@@ -34,7 +34,7 @@ describe("resolveTranscriptSourcePaths", () => {
     }
   });
 
-  it("discovers transcript files across global cursor projects", async () => {
+  it("does not discover global transcript files when workspace paths are empty", async () => {
     const workspaceRoot = await mkdtemp(path.join(tmpdir(), "cursor-cafe-workspace-"));
     const homeRoot = path.join(workspaceRoot, ".cursor-home");
     const globalTranscriptFile = path.join(
@@ -55,7 +55,7 @@ describe("resolveTranscriptSourcePaths", () => {
 
     try {
       const resolved = resolveTranscriptSourcePaths({ workspacePaths: [] });
-      expect(resolved).toEqual([globalTranscriptFile]);
+      expect(resolved).toEqual([]);
     } finally {
       process.env.HOME = originalHome;
       await rm(workspaceRoot, { recursive: true, force: true });

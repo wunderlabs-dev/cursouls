@@ -67,7 +67,7 @@ export function createBridge(): VsCodeBridge {
 
 function parseInboundMessage(value: unknown): InboundMessage | undefined {
   const parsed = inboundMessageSchema.safeParse(value);
-  return parsed.success ? (parsed.data as InboundMessage) : undefined;
+  return parsed.success ? parsed.data : undefined;
 }
 
 const agentStatusSchema = z.enum(["running", "idle", "completed", "error"]);
@@ -112,7 +112,7 @@ const tooltipDataSchema: z.ZodType<TooltipData> = z.object({
   updated: z.string(),
 });
 
-const inboundMessageSchema = z.discriminatedUnion("type", [
+const inboundMessageSchema: z.ZodType<InboundMessage> = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("sceneFrame"),
     frame: sceneFrameSchema,

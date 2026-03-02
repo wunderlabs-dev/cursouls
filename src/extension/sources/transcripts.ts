@@ -2,9 +2,6 @@ import { readFile } from "node:fs/promises";
 import type { AgentKind, AgentSnapshot, AgentSourceReadResult, AgentStatus } from "@shared/types";
 import type { AgentSource } from "./source";
 
-const VALID_STATUSES: ReadonlySet<AgentStatus> = new Set(["running", "idle", "completed", "error"]);
-const VALID_KINDS: ReadonlySet<AgentKind> = new Set(["local", "remote"]);
-
 interface CursorTranscriptRecord {
   agentId: string;
   agentName: string;
@@ -129,7 +126,7 @@ export function createCursorTranscriptSource(
         continue;
       }
 
-      if (!VALID_STATUSES.has(record.status as AgentStatus)) {
+      if (!isAgentStatus(record.status)) {
         warnings.push(formatLineWarning(sourcePath, lineNumber + 1, "Invalid agent status."));
         continue;
       }
@@ -143,7 +140,7 @@ export function createCursorTranscriptSource(
         id: record.agentId,
         name: record.agentName,
         kind: normalizedKind,
-        status: record.status as AgentStatus,
+        status: record.status,
         taskSummary: record.task,
         updatedAt: record.updatedAt,
         source: "cursor-transcripts",
@@ -198,8 +195,8 @@ export function createCursorTranscriptSource(
       return "local";
     }
 
-    if (VALID_KINDS.has(rawKind as AgentKind)) {
-      return rawKind as AgentKind;
+    if (isAgentKind(rawKind)) {
+      return rawKind;
     }
 
     warnings.push(formatLineWarning(sourcePath, lineNumber, "Invalid agent kind."));
@@ -228,4 +225,12 @@ function asNonEmptyString(value: unknown): string | undefined {
 
 function asFiniteNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function isAgentStatus(value: string): value is AgentStatus {
+  return value === "running" || value === "idle" || value === "completed" || value === "error";
+}
+
+function isAgentKind(value: string): value is AgentKind {
+  return value === "local" || value === "remote";
 }

@@ -8,8 +8,8 @@ import type { Logger } from "@ext/logging";
 import type { CafeStore } from "./store";
 
 export interface Scheduler {
-  setTimeout(callback: () => void, delayMs: number): unknown;
-  clearTimeout(handle: unknown): void;
+  setTimeout(callback: () => void, delayMs: number): TimeoutHandle;
+  clearTimeout(handle: TimeoutHandle): void;
 }
 
 export interface PollingControllerOptions {
@@ -26,6 +26,7 @@ export interface PollingControllerOptions {
 export type FrameListener = (frame: SceneFrame) => void;
 export type ErrorListener = (error: unknown) => void;
 type SnapshotListener = (snapshots: AgentSnapshot[]) => void;
+type TimeoutHandle = ReturnType<typeof globalThis.setTimeout> | { cancelled: boolean };
 
 interface AgentSourceLike {
   connect(): Promise<void> | void;
@@ -41,11 +42,15 @@ interface PollingControllerInit extends PollingControllerOptions {
 }
 
 const DEFAULT_SCHEDULER: Scheduler = {
-  setTimeout(callback: () => void, delayMs: number): unknown {
+  setTimeout(callback: () => void, delayMs: number): TimeoutHandle {
     return globalThis.setTimeout(callback, delayMs);
   },
-  clearTimeout(handle: unknown): void {
-    globalThis.clearTimeout(handle as number);
+  clearTimeout(handle: TimeoutHandle): void {
+    if (typeof handle === "object" && handle !== null && "cancelled" in handle) {
+      handle.cancelled = true;
+      return;
+    }
+    globalThis.clearTimeout(handle);
   },
 };
 
@@ -78,7 +83,7 @@ export function createPollingController(
   const errorListeners = new Set<ErrorListener>();
   const snapshotListeners = new Set<SnapshotListener>();
 
-  let timer: unknown | null = null;
+  let timer: TimeoutHandle | null = null;
   let running = false;
   let currentDelayMs = refreshMs;
 

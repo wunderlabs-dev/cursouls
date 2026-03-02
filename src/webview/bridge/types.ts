@@ -1,4 +1,4 @@
-import type { AgentStatus, SceneFrame } from "../../shared/types";
+import type { AgentStatus, SceneFrame } from "@shared/types";
 
 export type AgentAnchor = "seat" | "queue";
 

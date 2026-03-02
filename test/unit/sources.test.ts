@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   createAgentSource,
   type AgentSource,
-} from "../../src/extension/sources";
-import { readCafeConfig } from "../../src/extension/config";
+} from "@ext/sources";
+import { readCafeConfig } from "@ext/config";
 
 describe("createAgentSource", () => {
   it("uses mock source when mode is mock even with transcript paths", () => {

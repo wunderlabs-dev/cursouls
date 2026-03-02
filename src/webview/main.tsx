@@ -1,5 +1,5 @@
-import { mountApp } from "./app/app";
-import { useVsCodeBridge } from "./bridge/bridge";
+import { mountApp } from "@web/app/app";
+import { useVsCodeBridge } from "@web/bridge/bridge";
 
 export function mountWebviewApp(): void {
   const root = document.getElementById("app");

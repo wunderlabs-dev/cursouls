@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import type { AgentSourceReadResult } from "../../src/shared/types";
+import type { AgentSourceReadResult } from "@shared/types";
 
 interface TranscriptSource {
   connect: () => Promise<void> | void;
@@ -17,14 +17,10 @@ function toFixturePath(name: string): string {
 }
 
 async function createSource(sourcePaths: string[]): Promise<TranscriptSource> {
-  const modulePath = path.resolve(
-    path.dirname(fileURLToPath(import.meta.url)),
-    "../../src/extension/sources/transcripts.ts",
-  );
   let loadedModule: Record<string, unknown>;
 
   try {
-    loadedModule = (await import(modulePath)) as Record<string, unknown>;
+    loadedModule = (await import("@ext/sources/transcripts")) as Record<string, unknown>;
   } catch (error) {
     throw new Error(
       `CursorTranscriptSource is not implemented at src/extension/sources/transcripts.ts yet: ${String(error)}`,

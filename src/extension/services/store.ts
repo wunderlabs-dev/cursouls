@@ -1,10 +1,10 @@
-import { DEFAULT_SEAT_COUNT } from "../../shared/constants";
+import { DEFAULT_SEAT_COUNT } from "@shared/constants";
 import type {
   AgentLifecycleEvent,
   AgentSnapshot,
   SceneFrame,
   SourceHealth,
-} from "../../shared/types";
+} from "@shared/types";
 import { createEventMapper, type EventMapper } from "./events";
 import { createSeatAllocator, type SeatAllocator } from "./seats";
 

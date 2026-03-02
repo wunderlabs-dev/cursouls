@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSeatAllocator } from "../../src/extension/services/seats";
+import { createSeatAllocator } from "@ext/services/seats";
 
 type AgentStatus = "running" | "idle" | "completed" | "error";
 

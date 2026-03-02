@@ -5,6 +5,21 @@
     "noEmit": true,
     "sourceMap": true,
     "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@ext/*": [
+        "src/extension/*"
+      ],
+      "@web/*": [
+        "src/webview/*"
+      ],
+      "@shared/*": [
+        "src/shared/*"
+      ],
+      "@test/*": [
+        "test/*"
+      ]
+    },
     "skipLibCheck": true
   },
   "files": [],

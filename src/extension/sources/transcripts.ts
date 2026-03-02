@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import type { AgentKind, AgentSnapshot, AgentSourceReadResult, AgentStatus } from "../../shared/types";
+import type { AgentKind, AgentSnapshot, AgentSourceReadResult, AgentStatus } from "@shared/types";
 import type { AgentSource } from "./source";
 
 const VALID_STATUSES: ReadonlySet<AgentStatus> = new Set(["running", "idle", "completed", "error"]);

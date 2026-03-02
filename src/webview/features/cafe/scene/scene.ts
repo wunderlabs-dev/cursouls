@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import type { SceneFrame } from "../../../../shared/types";
+import type { SceneFrame } from "@shared/types";
 import { buildCafeSceneModel } from "./model";
 import { createSeatSprite, type SeatSprite, updateSeatSprite } from "./sprites";
 

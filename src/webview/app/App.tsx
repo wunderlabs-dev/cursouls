@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import type { SceneFrame } from "../../shared/types";
-import { PhaserCanvas } from "../features/cafe/ui/canvas";
-import type { VsCodeBridge } from "../bridge/bridge";
-import type { TooltipData } from "../bridge/types";
-import { initialsFor, spriteStatusClass } from "../features/cafe/ui/sprites";
+import type { SceneFrame } from "@shared/types";
+import type { VsCodeBridge } from "@web/bridge/bridge";
+import type { TooltipData } from "@web/bridge/types";
+import { PhaserCanvas } from "@web/features/cafe/ui/canvas";
+import { initialsFor, spriteStatusClass } from "@web/features/cafe/ui/sprites";
 
 export interface AppController {
   destroy(): void;

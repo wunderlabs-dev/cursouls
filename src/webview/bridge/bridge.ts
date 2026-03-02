@@ -1,4 +1,4 @@
-import type { SceneFrame } from "../../shared/types";
+import type { SceneFrame } from "@shared/types";
 import type { InboundMessage, OutboundMessage, TooltipData } from "./types";
 
 type MessageListener = (message: InboundMessage) => void;

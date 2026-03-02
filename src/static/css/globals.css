@@ -1,3 +1,31 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  line-height: 1.2;
+  text-rendering: optimizeLegibility;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
 :root {
   --bg: #18130f;
   --panel: #2a221d;
@@ -7,11 +35,6 @@
   --text-dim: #b8aa96;
   --warn: #f06d5e;
   --ok: #77d68d;
-}
-
-body {
-  background: var(--bg);
-  color: var(--text);
 }
 
 #app {
@@ -203,4 +226,69 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+body,
+.cafe-root {
+  font-family: "Courier New", Courier, monospace;
+  image-rendering: pixelated;
+  letter-spacing: 0.02em;
+}
+
+.agent-sprite,
+.queue-chip,
+.cafe-health,
+.cafe-tooltip,
+.table-seat {
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+.status-running .agent-bubble {
+  animation: pulse 0.9s steps(2, end) infinite;
+}
+
+.status-idle .agent-bubble {
+  opacity: 0.75;
+}
+
+.status-completed .agent-bubble {
+  color: var(--ok);
+  animation: pop 0.35s ease-out;
+}
+
+.status-error .agent-bubble {
+  color: var(--warn);
+  animation: blink 0.7s steps(2, end) infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-1px);
+    opacity: 1;
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }

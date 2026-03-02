@@ -5,14 +5,8 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   const scriptUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, "dist", "webview-main.js"),
   );
-  const resetCssUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, "src", "webview", "styles", "reset.css"),
-  );
-  const cafeCssUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, "src", "webview", "styles", "cafe.css"),
-  );
-  const pixelCssUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, "src", "webview", "styles", "pixel.css"),
+  const globalCssUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(extensionUri, "src", "static", "css", "globals.css"),
   );
 
   return `<!DOCTYPE html>
@@ -24,9 +18,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; img-src ${webview.cspSource} data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'nonce-${nonce}';"
     />
-    <link rel="stylesheet" href="${resetCssUri}" />
-    <link rel="stylesheet" href="${cafeCssUri}" />
-    <link rel="stylesheet" href="${pixelCssUri}" />
+    <link rel="stylesheet" href="${globalCssUri}" />
     <title>Cursor Cafe</title>
   </head>
   <body>

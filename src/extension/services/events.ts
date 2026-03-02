@@ -1,4 +1,4 @@
-import type { AgentLifecycleEvent, AgentSnapshot } from "../../shared/types";
+import type { AgentLifecycleEvent, AgentSnapshot } from "@shared/types";
 
 export interface MapStatusInput {
   hasActivityDelta: boolean;

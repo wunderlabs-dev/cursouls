@@ -1,11 +1,18 @@
 import * as esbuild from "esbuild";
+import path from "node:path";
 
 const isWatch = process.argv.includes("--watch");
 
 const sharedOptions = {
   bundle: true,
   sourcemap: true,
-  logLevel: "info"
+  logLevel: "info",
+  alias: {
+    "@ext": path.resolve("src/extension"),
+    "@web": path.resolve("src/webview"),
+    "@shared": path.resolve("src/shared"),
+    "@test": path.resolve("test"),
+  },
 };
 
 const buildOptions = [

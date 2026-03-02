@@ -1,5 +1,5 @@
-import { DEFAULT_SEAT_COUNT } from "../../shared/constants";
-import type { AgentSnapshot, SeatFrame } from "../../shared/types";
+import { DEFAULT_SEAT_COUNT } from "@shared/constants";
+import type { AgentSnapshot, SeatFrame } from "@shared/types";
 
 export interface SeatAllocationResult {
   seats: SeatFrame[];

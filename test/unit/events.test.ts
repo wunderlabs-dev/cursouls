@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { AgentSnapshot } from "../../src/shared/types";
-import { createEventMapper } from "../../src/extension/services/events";
+import type { AgentSnapshot } from "@shared/types";
+import { createEventMapper } from "@ext/services/events";
 
 function agent(id: string, status: AgentSnapshot["status"]): AgentSnapshot {
   return {

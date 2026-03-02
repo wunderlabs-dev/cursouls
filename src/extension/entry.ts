@@ -1,11 +1,11 @@
 import * as vscode from "vscode";
 import { readCafeConfig } from "./config";
 import { createLogger } from "./logging";
-import { CAFE_VIEW_TYPE, createCafeViewProvider } from "./providers/provider";
-import { createAgentSource } from "./sources";
-import { resolveTranscriptSourcePaths } from "./sources/discovery";
-import { createCafeStore } from "./services/store";
-import { createPollingController, type PollingController } from "./services/polling";
+import { CAFE_VIEW_TYPE, createCafeViewProvider } from "@ext/providers/provider";
+import { createAgentSource } from "@ext/sources";
+import { resolveTranscriptSourcePaths } from "@ext/sources/discovery";
+import { createCafeStore } from "@ext/services/store";
+import { createPollingController, type PollingController } from "@ext/services/polling";
 
 let activePollingController: PollingController | undefined;
 

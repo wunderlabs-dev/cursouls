@@ -1,4 +1,4 @@
-import type { SourceMode } from "../config";
+import type { SourceMode } from "@ext/config";
 import type { AgentSource } from "./source";
 import {
   createCursorTranscriptSource,

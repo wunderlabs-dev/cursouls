@@ -8,7 +8,7 @@ import {
   MOCK_AGENT_COUNT_CONFIG_KEY,
   REFRESH_MS_CONFIG_KEY,
   SOURCE_MODE_CONFIG_KEY,
-} from "../shared/constants";
+} from "@shared/constants";
 
 export type SourceMode = "auto" | "mock";
 

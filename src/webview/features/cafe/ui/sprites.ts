@@ -1,4 +1,4 @@
-import type { AgentStatus } from "../../../../shared/types";
+import type { AgentStatus } from "@shared/types";
 
 export function spriteStatusClass(status: AgentStatus): string {
   return `status-${status}`;

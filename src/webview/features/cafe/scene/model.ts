@@ -1,4 +1,4 @@
-import type { AgentSnapshot, SceneFrame } from "../../../../shared/types";
+import type { AgentSnapshot, SceneFrame } from "@shared/types";
 
 export const TABLE_COUNT = 6;
 

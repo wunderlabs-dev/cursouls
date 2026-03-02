@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { SceneFrame } from "../../src/shared/types";
-import type { InboundMessage } from "../../src/webview/bridge/types";
-import { useVsCodeBridge } from "../../src/webview/bridge/bridge";
+import type { SceneFrame } from "@shared/types";
+import { useVsCodeBridge } from "@web/bridge/bridge";
+import type { InboundMessage } from "@web/bridge/types";
 
 type MessageHandler = (event: MessageEvent<unknown>) => void;
 

@@ -2,9 +2,9 @@ import {
   DEFAULT_REFRESH_MS,
   POLLING_BACKOFF_MULTIPLIER,
   POLLING_MAX_BACKOFF_MS,
-} from "../../shared/constants";
-import type { AgentSnapshot, AgentSourceReadResult, SceneFrame } from "../../shared/types";
-import type { Logger } from "../logging";
+} from "@shared/constants";
+import type { AgentSnapshot, AgentSourceReadResult, SceneFrame } from "@shared/types";
+import type { Logger } from "@ext/logging";
 import type { CafeStore } from "./store";
 
 export interface Scheduler {

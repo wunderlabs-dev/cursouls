@@ -5,8 +5,8 @@ import type {
   SceneFrame,
   SourceHealth,
 } from "../../shared/types";
-import { createEventMapper, type EventMapper } from "./EventMapper";
-import { createSeatAllocator, type SeatAllocator } from "./SeatAllocator";
+import { createEventMapper, type EventMapper } from "./events";
+import { createSeatAllocator, type SeatAllocator } from "./seats";
 
 export interface CafeStoreUpdateInput {
   agents: AgentSnapshot[];

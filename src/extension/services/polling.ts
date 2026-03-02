@@ -5,7 +5,7 @@ import {
 } from "../../shared/constants";
 import type { AgentSnapshot, AgentSourceReadResult, SceneFrame } from "../../shared/types";
 import type { Logger } from "../logging";
-import type { CafeStore } from "./CafeStore";
+import type { CafeStore } from "./store";
 
 export interface Scheduler {
   setTimeout(callback: () => void, delayMs: number): unknown;

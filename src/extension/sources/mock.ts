@@ -1,6 +1,6 @@
 import { DEFAULT_MOCK_AGENT_COUNT, STATUS_CYCLE } from "../../shared/constants";
 import type { AgentSnapshot, AgentStatus, AgentSourceReadResult } from "../../shared/types";
-import type { AgentSource } from "./AgentSource";
+import type { AgentSource } from "./source";
 
 const MOCK_NAMES = [
   "Atlas",

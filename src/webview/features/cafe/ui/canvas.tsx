@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import Phaser from "phaser";
 import type { SceneFrame } from "../../../../shared/types";
-import { createCafePhaserScene, type CafePhaserSceneAdapter } from "../scene/CafePhaserScene";
-import { SCENE_HEIGHT, SCENE_WIDTH } from "../scene/sceneModel";
+import { createCafePhaserScene, type CafePhaserSceneAdapter } from "../scene/scene";
+import { SCENE_HEIGHT, SCENE_WIDTH } from "../scene/model";
 
 interface PhaserCanvasProps {
   frame?: SceneFrame;

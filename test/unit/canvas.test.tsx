@@ -42,11 +42,11 @@ vi.mock("phaser", () => ({
   },
 }));
 
-vi.mock("../../src/webview/features/cafe/scene/CafePhaserScene", () => ({
+vi.mock("../../src/webview/features/cafe/scene/scene", () => ({
   createCafePhaserScene: createSceneMock,
 }));
 
-vi.mock("../../src/webview/features/cafe/scene/sceneModel", () => ({
+vi.mock("../../src/webview/features/cafe/scene/model", () => ({
   SCENE_WIDTH: 348,
   SCENE_HEIGHT: 362,
 }));
@@ -79,7 +79,7 @@ describe("PhaserCanvas lifecycle", () => {
   });
 
   it("creates a Phaser game on mount and destroys it on unmount", async () => {
-    const { PhaserCanvas } = await import("../../src/webview/features/cafe/ui/PhaserCanvas");
+    const { PhaserCanvas } = await import("../../src/webview/features/cafe/ui/canvas");
 
     PhaserCanvas({ frame: makeFrame(), onSeatClick: vi.fn() });
 
@@ -96,7 +96,7 @@ describe("PhaserCanvas lifecycle", () => {
 
   it("does not create Phaser game when container ref is unavailable", async () => {
     containerCurrent = null;
-    const { PhaserCanvas } = await import("../../src/webview/features/cafe/ui/PhaserCanvas");
+    const { PhaserCanvas } = await import("../../src/webview/features/cafe/ui/canvas");
 
     PhaserCanvas({ frame: makeFrame(), onSeatClick: vi.fn() });
 

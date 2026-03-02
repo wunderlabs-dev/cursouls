@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import type { SceneFrame } from "../../../../shared/types";
-import { buildCafeSceneModel } from "./sceneModel";
-import { createSeatSprite, type SeatSprite, updateSeatSprite } from "./spriteFactory";
+import { buildCafeSceneModel } from "./model";
+import { createSeatSprite, type SeatSprite, updateSeatSprite } from "./sprites";
 
 interface CafePhaserSceneOptions {
   onSeatClick: (agentId: string) => void;

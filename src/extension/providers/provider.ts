@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import type { AgentSnapshot, AgentStatus, SceneFrame } from "../../shared/types";
-import { getWebviewHtml } from "./webview.html";
+import { getWebviewHtml } from "./html";
 
 type OutboundMessage =
   | { type: "ready" }

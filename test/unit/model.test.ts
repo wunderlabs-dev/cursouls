@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AgentSnapshot, SceneFrame } from "../../src/shared/types";
-import { TABLE_ANCHORS, buildCafeSceneModel } from "../../src/webview/features/cafe/scene/sceneModel";
+import { TABLE_ANCHORS, buildCafeSceneModel } from "../../src/webview/features/cafe/scene/model";
 
 function makeAgent(id: string, status: AgentSnapshot["status"]): AgentSnapshot {
   return {

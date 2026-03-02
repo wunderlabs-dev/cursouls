@@ -19,7 +19,7 @@ function toFixturePath(name: string): string {
 async function createSource(sourcePaths: string[]): Promise<TranscriptSource> {
   const modulePath = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),
-    "../../src/extension/sources/CursorTranscriptSource.ts",
+    "../../src/extension/sources/transcripts.ts",
   );
   let loadedModule: Record<string, unknown>;
 
@@ -27,7 +27,7 @@ async function createSource(sourcePaths: string[]): Promise<TranscriptSource> {
     loadedModule = (await import(modulePath)) as Record<string, unknown>;
   } catch (error) {
     throw new Error(
-      `CursorTranscriptSource is not implemented at src/extension/sources/CursorTranscriptSource.ts yet: ${String(error)}`,
+      `CursorTranscriptSource is not implemented at src/extension/sources/transcripts.ts yet: ${String(error)}`,
     );
   }
 

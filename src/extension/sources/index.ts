@@ -1,14 +1,14 @@
 import type { SourceMode } from "../config";
-import type { AgentSource } from "./AgentSource";
+import type { AgentSource } from "./source";
 import {
   createCursorTranscriptSource,
   type CursorTranscriptSourceOptions,
-} from "./CursorTranscriptSource";
-import { createMockAgentSource, type MockAgentSourceOptions } from "./MockAgentSource";
+} from "./transcripts";
+import { createMockAgentSource, type MockAgentSourceOptions } from "./mock";
 
-export * from "./AgentSource";
-export * from "./CursorTranscriptSource";
-export * from "./MockAgentSource";
+export * from "./source";
+export * from "./transcripts";
+export * from "./mock";
 
 export interface AgentSourceFactoryOptions {
   mode?: SourceMode;

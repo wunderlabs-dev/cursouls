@@ -2,10 +2,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SceneFrame } from "../../src/shared/types";
-import { extractMessageTypesFromSource } from "./helpers/webviewBridgeSource";
+import { extractMessageTypesFromSource } from "./helpers/bridge";
 
 vi.mock("vscode", () => ({}), { virtual: true });
-vi.mock("../../src/extension/providers/webview.html", () => ({
+vi.mock("../../src/extension/providers/html", () => ({
   getWebviewHtml: () => "<html></html>",
 }));
 
@@ -91,7 +91,7 @@ describe("webview bridge compatibility", () => {
     const projectRoot = resolve(__dirname, "../..");
     const webviewTypesSource = readFileSync(resolve(projectRoot, "src/webview/bridge/types.ts"), "utf8");
     const providerSource = readFileSync(
-      resolve(projectRoot, "src/extension/providers/CafeViewProvider.ts"),
+      resolve(projectRoot, "src/extension/providers/provider.ts"),
       "utf8",
     );
 
@@ -112,7 +112,7 @@ describe("webview bridge compatibility", () => {
   });
 
   it("replays the latest scene frame when the webview sends ready", async () => {
-    const { createCafeViewProvider } = await import("../../src/extension/providers/CafeViewProvider");
+    const { createCafeViewProvider } = await import("../../src/extension/providers/provider");
     const provider = createCafeViewProvider({} as never);
     const harness = createWebviewViewMock();
     provider.resolveWebviewView(harness.view as never);
@@ -128,7 +128,7 @@ describe("webview bridge compatibility", () => {
   });
 
   it("sends tooltipData for known agents and hideTooltip for unknown agents", async () => {
-    const { createCafeViewProvider } = await import("../../src/extension/providers/CafeViewProvider");
+    const { createCafeViewProvider } = await import("../../src/extension/providers/provider");
     const provider = createCafeViewProvider({} as never);
     const harness = createWebviewViewMock();
     provider.resolveWebviewView(harness.view as never);
@@ -145,7 +145,7 @@ describe("webview bridge compatibility", () => {
   });
 
   it("stops posting messages after the view is disposed", async () => {
-    const { createCafeViewProvider } = await import("../../src/extension/providers/CafeViewProvider");
+    const { createCafeViewProvider } = await import("../../src/extension/providers/provider");
     const provider = createCafeViewProvider({} as never);
     const harness = createWebviewViewMock();
     provider.resolveWebviewView(harness.view as never);
@@ -157,7 +157,7 @@ describe("webview bridge compatibility", () => {
   });
 
   it("ignores malformed inbound messages without crashing", async () => {
-    const { createCafeViewProvider } = await import("../../src/extension/providers/CafeViewProvider");
+    const { createCafeViewProvider } = await import("../../src/extension/providers/provider");
     const provider = createCafeViewProvider({} as never);
     const harness = createWebviewViewMock();
     provider.resolveWebviewView(harness.view as never);

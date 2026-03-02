@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AgentSourceReadResult, SceneFrame } from "../../src/shared/types";
-import { createPollingController, type Scheduler } from "../../src/extension/services/PollingController";
+import { createPollingController, type Scheduler } from "../../src/extension/services/polling";
 
 interface ScheduledTask {
   callback: () => void;

@@ -4,7 +4,7 @@ import type { SceneFrame } from "@shared/types";
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import type { TooltipData } from "@web/bridge/types";
 import { PhaserCanvas } from "@web/ui/canvas";
-import { initialsFor, spriteStatusClass } from "@web/ui/sprites";
+import { initialsFor, spriteStatusClass } from "@web/present";
 
 export interface AppController {
   destroy(): void;

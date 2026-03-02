@@ -58,6 +58,8 @@
   },
   "devDependencies": {
     "@types/lodash.truncate": "^4.4.9",
+    "@types/lodash.upperfirst": "^4.3.9",
+    "@types/lodash.words": "^4.2.9",
     "@types/node": "^24.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -68,6 +70,8 @@
   },
   "dependencies": {
     "lodash.truncate": "^4.4.2",
+    "lodash.upperfirst": "^4.3.1",
+    "lodash.words": "^4.2.0",
     "phaser": "^3.90.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"

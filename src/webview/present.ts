@@ -1,20 +1,19 @@
 import type { AgentStatus } from "@shared/types";
+import words from "lodash.words";
+import upperFirst from "lodash.upperfirst";
 
 export function spriteStatusClass(status: AgentStatus): string {
   return `status-${status}`;
 }
 
 export function initialsFor(name: string): string {
-  const parts = name
-    .trim()
-    .split(/\s+/)
-    .filter((segment) => segment.length > 0);
+  const parts = words(name.trim());
   if (parts.length === 0) {
     return "??";
   }
   const initials = parts
     .slice(0, 2)
-    .map((segment) => segment.charAt(0).toUpperCase())
+    .map((segment) => upperFirst(segment).charAt(0))
     .join("");
   return initials || "??";
 }

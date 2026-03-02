@@ -29,7 +29,9 @@ function agent(id: string, updatedAt: number): AgentSnapshot {
 describe("SeatAllocator", () => {
   it("assigns first six agents to seats and overflows remainder to queue", () => {
     const allocator = createSeatAllocator(6);
-    const input = Array.from({ length: 8 }, (_, idx) => agent(String(idx + 1), 1_700_000_000_000 + idx));
+    const input = Array.from({ length: 8 }, (_, idx) =>
+      agent(String(idx + 1), 1_700_000_000_000 + idx),
+    );
 
     const result = allocator.allocate(input);
 

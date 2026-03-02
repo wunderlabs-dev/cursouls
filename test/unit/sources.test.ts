@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  createAgentSource,
-  type AgentSource,
-} from "@ext/sources";
+import { createAgentSource, type AgentSource } from "@ext/sources";
 import { readCafeConfig } from "@ext/config";
 
 describe("createAgentSource", () => {

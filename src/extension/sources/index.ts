@@ -1,9 +1,6 @@
 import type { SourceMode } from "@ext/config";
 import type { AgentSource } from "./source";
-import {
-  createCursorTranscriptSource,
-  type CursorTranscriptSourceOptions,
-} from "./transcripts";
+import { createCursorTranscriptSource, type CursorTranscriptSourceOptions } from "./transcripts";
 import { createMockAgentSource, type MockAgentSourceOptions } from "./mock";
 
 export * from "./source";

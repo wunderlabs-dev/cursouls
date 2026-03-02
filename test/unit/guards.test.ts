@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SceneFrame } from "@shared/types";
-import { useVsCodeBridge } from "@web/bridge/bridge";
+import { createBridge } from "@web/bridge/bridge";
 import type { InboundMessage } from "@web/bridge/types";
 
 type MessageHandler = (event: MessageEvent<unknown>) => void;
@@ -59,11 +59,13 @@ describe("useVsCodeBridge inbound parse guards", () => {
   });
 
   function emitInbound(data: unknown): void {
-    messageHandlers.forEach((handler) => handler({ data } as MessageEvent<unknown>));
+    messageHandlers.forEach((handler) => {
+      handler({ data } as MessageEvent<unknown>);
+    });
   }
 
   it("ignores malformed sceneFrame payloads and accepts valid sceneFrame", () => {
-    const bridge = useVsCodeBridge();
+    const bridge = createBridge();
     const seen: InboundMessage[] = [];
     bridge.subscribe((message) => seen.push(message));
 
@@ -80,7 +82,7 @@ describe("useVsCodeBridge inbound parse guards", () => {
   });
 
   it("ignores malformed tooltipData payloads and accepts valid tooltipData", () => {
-    const bridge = useVsCodeBridge();
+    const bridge = createBridge();
     const seen: InboundMessage[] = [];
     bridge.subscribe((message) => seen.push(message));
 

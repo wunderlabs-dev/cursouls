@@ -1,10 +1,5 @@
 import { DEFAULT_SEAT_COUNT } from "@shared/constants";
-import type {
-  AgentLifecycleEvent,
-  AgentSnapshot,
-  SceneFrame,
-  SourceHealth,
-} from "@shared/types";
+import type { AgentLifecycleEvent, AgentSnapshot, SceneFrame, SourceHealth } from "@shared/types";
 import { createEventMapper, type EventMapper } from "./events";
 import { createSeatAllocator, type SeatAllocator } from "./seats";
 
@@ -50,9 +45,7 @@ export function createCafeStore(seatCount: number = DEFAULT_SEAT_COUNT): CafeSto
       health: {
         sourceConnected: input.health?.sourceConnected ?? true,
         sourceLabel:
-          input.health?.sourceLabel ??
-          input.agents[0]?.source ??
-          frame.health.sourceLabel,
+          input.health?.sourceLabel ?? input.agents[0]?.source ?? frame.health.sourceLabel,
         warnings: input.health?.warnings ?? [],
       },
     };

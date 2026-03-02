@@ -31,7 +31,10 @@ describe("EventMapper", () => {
     const mapper = createEventMapper();
     mapper.map([agent("a", "running"), agent("b", "idle"), agent("c", "running")], 1000);
 
-    const events = mapper.map([agent("a", "running"), agent("b", "completed"), agent("d", "error")], 2000);
+    const events = mapper.map(
+      [agent("a", "running"), agent("b", "completed"), agent("d", "error")],
+      2000,
+    );
 
     expect(events).toEqual([
       {

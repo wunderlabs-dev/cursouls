@@ -71,7 +71,9 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
 
   return (
     <main className="cafe-root" aria-label="Cursor Cafe sidebar">
-      <header className={`cafe-health${frame && !frame.health.sourceConnected ? " is-warning" : ""}`}>
+      <header
+        className={`cafe-health${frame && !frame.health.sourceConnected ? " is-warning" : ""}`}
+      >
         {healthLabel}
       </header>
       <section className="cafe-scene" aria-label="Cafe seats">

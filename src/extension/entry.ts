@@ -13,7 +13,9 @@ export function activate(context: vscode.ExtensionContext): void {
   const outputChannel = vscode.window.createOutputChannel("Cursor Cafe");
   const logger = createLogger("extension", outputChannel);
   const config = readCafeConfig(vscode.workspace.getConfiguration());
-  const workspacePaths = (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath);
+  const workspacePaths = (vscode.workspace.workspaceFolders ?? []).map(
+    (folder) => folder.uri.fsPath,
+  );
   const transcriptPaths = resolveTranscriptSourcePaths({
     workspacePaths,
     configuredPaths: config.transcriptPaths,

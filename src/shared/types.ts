@@ -40,11 +40,7 @@ export interface AgentSourceReadResult {
   warnings: string[];
 }
 
-export type AgentLifecycleEventType =
-  | "joined"
-  | "left"
-  | "status-changed"
-  | "heartbeat";
+export type AgentLifecycleEventType = "joined" | "left" | "status-changed" | "heartbeat";
 
 export interface AgentLifecycleEvent {
   type: AgentLifecycleEventType;

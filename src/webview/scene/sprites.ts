@@ -62,7 +62,13 @@ export function createSeatSprite(
     })
     .setOrigin(0, 0);
   const tableSurface = scene.add
-    .rectangle(seat.x + 8, seat.y + seat.height - 12, seat.width - 16, 6, DEFAULT_PALETTE.surfaceFill)
+    .rectangle(
+      seat.x + 8,
+      seat.y + seat.height - 12,
+      seat.width - 16,
+      6,
+      DEFAULT_PALETTE.surfaceFill,
+    )
     .setOrigin(0, 0);
 
   const buttonWidth = seat.width - 12;

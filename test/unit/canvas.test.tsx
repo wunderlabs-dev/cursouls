@@ -5,7 +5,7 @@ let containerCurrent: HTMLDivElement | null;
 let refCallCount = 0;
 let cleanupFns: Array<() => void> = [];
 
-const useEffectMock = vi.fn((effect: () => void | (() => void)) => {
+const useEffectMock = vi.fn((effect: () => undefined | (() => void)) => {
   const cleanup = effect();
   if (typeof cleanup === "function") {
     cleanupFns.push(cleanup);

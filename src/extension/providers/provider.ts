@@ -1,4 +1,4 @@
-import * as vscode from "vscode";
+import type * as vscode from "vscode";
 import type { AgentSnapshot, AgentStatus, SceneFrame } from "@shared/types";
 import { getWebviewHtml } from "./html";
 
@@ -128,8 +128,7 @@ function isOutboundMessage(value: unknown): value is OutboundMessage {
 
   if (value.type === "agentClick") {
     return (
-      typeof value.agentId === "string" &&
-      (value.anchor === "seat" || value.anchor === "queue")
+      typeof value.agentId === "string" && (value.anchor === "seat" || value.anchor === "queue")
     );
   }
 

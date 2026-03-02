@@ -100,7 +100,11 @@ export function createCursorTranscriptSource(
     };
   }
 
-  function parseTranscriptFile(contents: string, sourcePath: string, warnings: string[]): AgentSnapshot[] {
+  function parseTranscriptFile(
+    contents: string,
+    sourcePath: string,
+    warnings: string[],
+  ): AgentSnapshot[] {
     const lines = contents.split(/\r?\n/);
     const agents: AgentSnapshot[] = [];
 

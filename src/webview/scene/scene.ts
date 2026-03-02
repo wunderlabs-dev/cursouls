@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import type Phaser from "phaser";
 import type { SceneFrame } from "@shared/types";
 import { buildCafeSceneModel } from "./model";
 import { createSeatSprite, type SeatSprite, updateSeatSprite } from "./sprites";
@@ -40,7 +40,9 @@ function renderFrame(state: CafePhaserSceneState, frame?: SceneFrame): void {
   });
 }
 
-export function createCafePhaserScene({ onSeatClick }: CafePhaserSceneOptions): CafePhaserSceneAdapter {
+export function createCafePhaserScene({
+  onSeatClick,
+}: CafePhaserSceneOptions): CafePhaserSceneAdapter {
   const state: CafePhaserSceneState = {
     onSeatClick,
     seatSprites: new Map<number, SeatSprite>(),

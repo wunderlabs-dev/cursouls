@@ -51,12 +51,16 @@
     "build": "npm run compile",
     "compile": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
+    "format": "biome format --write ./src ./test",
+    "lint": "biome lint ./src ./test",
+    "check": "biome check ./src ./test",
     "typecheck": "npm run typecheck:extension && npm run typecheck:webview",
     "typecheck:extension": "tsc -p tsconfig.extension.json --noEmit",
     "typecheck:webview": "tsc -p tsconfig.webview.json --noEmit",
     "test": "vitest run"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.5",
     "@types/lodash.truncate": "^4.4.9",
     "@types/lodash.upperfirst": "^4.3.9",
     "@types/lodash.words": "^4.2.9",

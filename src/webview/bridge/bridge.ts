@@ -16,7 +16,7 @@ export interface VsCodeBridge {
   dispose(): void;
 }
 
-export function useVsCodeBridge(): VsCodeBridge {
+export function createBridge(): VsCodeBridge {
   const vscode = acquireVsCodeApi();
   const listeners = new Set<MessageListener>();
   const pendingQueue: InboundMessage[] = [];
@@ -30,7 +30,9 @@ export function useVsCodeBridge(): VsCodeBridge {
       pendingQueue.push(message);
       return;
     }
-    listeners.forEach((listener) => listener(message));
+    listeners.forEach((listener) => {
+      listener(message);
+    });
   };
 
   window.addEventListener("message", onWindowMessage);
@@ -46,7 +48,9 @@ export function useVsCodeBridge(): VsCodeBridge {
       listeners.add(listener);
       if (pendingQueue.length > 0) {
         const queued = pendingQueue.splice(0, pendingQueue.length);
-        queued.forEach((message) => listener(message));
+        queued.forEach((message) => {
+          listener(message);
+        });
       }
       return () => {
         listeners.delete(listener);

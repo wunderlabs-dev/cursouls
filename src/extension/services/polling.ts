@@ -30,7 +30,9 @@ type SnapshotListener = (snapshots: AgentSnapshot[]) => void;
 interface AgentSourceLike {
   connect(): Promise<void> | void;
   disconnect(): Promise<void> | void;
-  readSnapshot(now?: number): Promise<AgentSnapshot[] | AgentSourceReadResult> | AgentSnapshot[] | AgentSourceReadResult;
+  readSnapshot(
+    now?: number,
+  ): Promise<AgentSnapshot[] | AgentSourceReadResult> | AgentSnapshot[] | AgentSourceReadResult;
 }
 
 interface PollingControllerInit extends PollingControllerOptions {
@@ -214,10 +216,7 @@ export function createPollingController(
       if (!running) {
         return;
       }
-      currentDelayMs = Math.min(
-        maxBackoffMs,
-        Math.round(currentDelayMs * backoffMultiplier),
-      );
+      currentDelayMs = Math.min(maxBackoffMs, Math.round(currentDelayMs * backoffMultiplier));
       logger?.warn(`Polling failed; backing off to ${currentDelayMs}ms.`);
       for (const listener of errorListeners) {
         listener(error);
@@ -259,11 +258,15 @@ function resolveInit(
   };
 }
 
-function isInitObject(value: AgentSourceLike | PollingControllerInit): value is PollingControllerInit {
+function isInitObject(
+  value: AgentSourceLike | PollingControllerInit,
+): value is PollingControllerInit {
   return typeof value === "object" && value !== null && "source" in value;
 }
 
-function normalizeReadResult(result: AgentSnapshot[] | AgentSourceReadResult): AgentSourceReadResult {
+function normalizeReadResult(
+  result: AgentSnapshot[] | AgentSourceReadResult,
+): AgentSourceReadResult {
   if (Array.isArray(result)) {
     return {
       agents: result,

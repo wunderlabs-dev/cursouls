@@ -65,5 +65,5 @@ export function PhaserCanvas({ frame, onSeatClick }: PhaserCanvasProps) {
     sceneRef.current?.applyFrame(frame);
   }, [frame]);
 
-  return <div className="phaser-canvas-root" ref={containerRef} aria-label="Cafe phaser scene" />;
+  return <div className="phaser-canvas-root" ref={containerRef} />;
 }

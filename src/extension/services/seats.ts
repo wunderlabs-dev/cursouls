@@ -15,7 +15,7 @@ export function createSeatAllocator(
   seatCount: number | { maxTables?: number } = DEFAULT_SEAT_COUNT,
 ): SeatAllocator {
   const resolvedSeatCount =
-    typeof seatCount === "number" ? seatCount : seatCount.maxTables ?? DEFAULT_SEAT_COUNT;
+    typeof seatCount === "number" ? seatCount : (seatCount.maxTables ?? DEFAULT_SEAT_COUNT);
   const normalizedSeatCount = Math.max(1, Math.floor(resolvedSeatCount));
   const seatByAgentId = new Map<string, number>();
   const agentIdBySeat: Array<string | null> = new Array(normalizedSeatCount).fill(null);

@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from "node:fs";
+import { readdirSync, statSync, type Dirent, type Stats } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -29,7 +29,7 @@ function collectTranscriptPaths(inputPaths: readonly string[]): string[] {
       continue;
     }
 
-    let stats;
+    let stats: Stats;
     try {
       stats = statSync(normalizedPath);
     } catch {
@@ -45,7 +45,7 @@ function collectTranscriptPaths(inputPaths: readonly string[]): string[] {
       continue;
     }
 
-    let entries;
+    let entries: Dirent[];
     try {
       entries = readdirSync(normalizedPath, { withFileTypes: true });
     } catch {

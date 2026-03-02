@@ -38,17 +38,33 @@ describe("scene model mapping", () => {
 
     expect(view.seats).toHaveLength(6);
     expect(view.seats.map((seat) => seat.tableIndex)).toEqual([0, 1, 2, 3, 4, 5]);
-    expect(view.seats.map((seat) => seat.agent?.id ?? null)).toEqual(["a-0", "a-1", null, null, "a-4", null]);
+    expect(view.seats.map((seat) => seat.agent?.id ?? null)).toEqual([
+      "a-0",
+      "a-1",
+      null,
+      null,
+      "a-4",
+      null,
+    ]);
   });
 
   it("preserves fixed table anchor geometry while assigning occupants", () => {
     const view = buildCafeSceneModel(makeFrame());
 
-    expect(view.seats[0]).toMatchObject({ ...TABLE_ANCHORS[0], agent: expect.objectContaining({ id: "a-0" }) });
-    expect(view.seats[1]).toMatchObject({ ...TABLE_ANCHORS[1], agent: expect.objectContaining({ id: "a-1" }) });
+    expect(view.seats[0]).toMatchObject({
+      ...TABLE_ANCHORS[0],
+      agent: expect.objectContaining({ id: "a-0" }),
+    });
+    expect(view.seats[1]).toMatchObject({
+      ...TABLE_ANCHORS[1],
+      agent: expect.objectContaining({ id: "a-1" }),
+    });
     expect(view.seats[2]).toMatchObject({ ...TABLE_ANCHORS[2], agent: null });
     expect(view.seats[3]).toMatchObject({ ...TABLE_ANCHORS[3], agent: null });
-    expect(view.seats[4]).toMatchObject({ ...TABLE_ANCHORS[4], agent: expect.objectContaining({ id: "a-4" }) });
+    expect(view.seats[4]).toMatchObject({
+      ...TABLE_ANCHORS[4],
+      agent: expect.objectContaining({ id: "a-4" }),
+    });
     expect(view.seats[5]).toMatchObject({ ...TABLE_ANCHORS[5], agent: null });
   });
 

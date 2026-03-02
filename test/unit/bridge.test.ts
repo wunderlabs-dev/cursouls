@@ -9,10 +9,6 @@ vi.mock("@ext/providers/html", () => ({
   getWebviewHtml: () => "<html></html>",
 }));
 
-type BridgeMessage =
-  | { type: "ready" }
-  | { type: "agentClick"; agentId: string; anchor: "seat" | "queue" };
-
 function buildFrame(): SceneFrame {
   return {
     generatedAt: 1_700_000_000_000,
@@ -89,23 +85,31 @@ describe("webview bridge compatibility", () => {
 
   it("uses compatible inbound and outbound message type envelopes", () => {
     const projectRoot = resolve(__dirname, "../..");
-    const webviewTypesSource = readFileSync(resolve(projectRoot, "src/webview/bridge/types.ts"), "utf8");
+    const webviewTypesSource = readFileSync(
+      resolve(projectRoot, "src/webview/bridge/types.ts"),
+      "utf8",
+    );
     const providerSource = readFileSync(
       resolve(projectRoot, "src/extension/providers/provider.ts"),
       "utf8",
     );
 
-    const outboundSection = webviewTypesSource
-      .split("export type OutboundMessage =")[1]
-      ?.split("export type InboundMessage =")[0] ?? "";
-    const inboundSection = webviewTypesSource
-      .split("export type InboundMessage =")[1]
-      ?.split("export type InboundMessageType")[0] ?? "";
+    const outboundSection =
+      webviewTypesSource
+        .split("export type OutboundMessage =")[1]
+        ?.split("export type InboundMessage =")[0] ?? "";
+    const inboundSection =
+      webviewTypesSource
+        .split("export type InboundMessage =")[1]
+        ?.split("export type InboundMessageType")[0] ?? "";
 
     const webviewOutboundTypes = extractMessageTypesFromSource(outboundSection, "type:");
     const webviewInboundTypes = extractMessageTypesFromSource(inboundSection, "type:");
     const providerInboundTypes = extractMessageTypesFromSource(providerSource, "message.type ===");
-    const providerOutboundTypes = extractMessageTypesFromSource(providerSource, "postMessage({ type:");
+    const providerOutboundTypes = extractMessageTypesFromSource(
+      providerSource,
+      "postMessage({ type:",
+    );
 
     expect(providerOutboundTypes).toEqual(webviewInboundTypes);
     expect(providerInboundTypes).toEqual(webviewOutboundTypes);
@@ -137,7 +141,10 @@ describe("webview bridge compatibility", () => {
     harness.sendInboundMessage({ type: "agentClick", agentId: "a-1", anchor: "seat" });
     harness.sendInboundMessage({ type: "agentClick", agentId: "missing", anchor: "queue" });
 
-    const tooltipEnvelope = harness.postedMessages[1] as { type: string; tooltip: { id: string; task: string } };
+    const tooltipEnvelope = harness.postedMessages[1] as {
+      type: string;
+      tooltip: { id: string; task: string };
+    };
     expect(tooltipEnvelope.type).toBe("tooltipData");
     expect(tooltipEnvelope.tooltip.id).toBe("a-1");
     expect(tooltipEnvelope.tooltip.task).toBe("Reviewing bridge");
@@ -170,7 +177,9 @@ describe("webview bridge compatibility", () => {
     expect(() => harness.sendInboundMessage("ready")).not.toThrow();
     expect(() => harness.sendInboundMessage({})).not.toThrow();
     expect(() => harness.sendInboundMessage({ type: "agentClick" })).not.toThrow();
-    expect(() => harness.sendInboundMessage({ type: "agentClick", agentId: 123, anchor: "seat" })).not.toThrow();
+    expect(() =>
+      harness.sendInboundMessage({ type: "agentClick", agentId: 123, anchor: "seat" }),
+    ).not.toThrow();
     expect(() => harness.sendInboundMessage({ type: "unexpected" })).not.toThrow();
 
     expect(harness.postedMessages).toEqual([{ type: "sceneFrame", frame: buildFrame() }]);

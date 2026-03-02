@@ -1,5 +1,5 @@
 import { mountApp } from "@web/app/app";
-import { useVsCodeBridge } from "@web/bridge/bridge";
+import { createBridge } from "@web/bridge/bridge";
 
 export function mountWebviewApp(): void {
   const root = document.getElementById("app");
@@ -7,7 +7,7 @@ export function mountWebviewApp(): void {
     throw new Error("Missing #app root");
   }
 
-  const bridge = useVsCodeBridge();
+  const bridge = createBridge();
   let appController = mountApp(root, bridge);
 
   window.addEventListener("beforeunload", () => {

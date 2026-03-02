@@ -1,24 +1,15 @@
-import type { SourceMode } from "@ext/config";
 import type { AgentSource } from "./source";
 import { createCursorTranscriptSource, type CursorTranscriptSourceOptions } from "./transcripts";
-import { createMockAgentSource, type MockAgentSourceOptions } from "./mock";
 
 export * from "./source";
 export * from "./transcripts";
-export * from "./mock";
 
 export interface AgentSourceFactoryOptions {
-  mode?: SourceMode;
   preferredSource?: AgentSource;
-  mockOptions?: MockAgentSourceOptions;
   transcriptOptions?: Partial<CursorTranscriptSourceOptions>;
 }
 
 export function createAgentSource(options: AgentSourceFactoryOptions = {}): AgentSource {
-  if (options.mode === "mock") {
-    return createMockAgentSource(options.mockOptions);
-  }
-
   if (options.preferredSource) {
     return options.preferredSource;
   }

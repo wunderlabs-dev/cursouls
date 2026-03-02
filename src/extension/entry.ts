@@ -21,12 +21,8 @@ export function activate(context: vscode.ExtensionContext): void {
   });
   const store = createCafeStore(config.seatCount);
   const source = createAgentSource({
-    mode: config.sourceMode,
     transcriptOptions: {
       sourcePaths: transcriptPaths,
-    },
-    mockOptions: {
-      agentCount: config.mockAgentCount,
     },
   });
   const viewProvider = createCafeViewProvider(context.extensionUri);

@@ -145,13 +145,26 @@ function findAgentTooltip(frame: SceneFrame | undefined, agentId: string): Toolt
   if (!agent) {
     return undefined;
   }
+
+  const elapsed = agent.startedAt
+    ? (() => {
+        const { hours = 0, minutes = 0 } = intervalToDuration({
+          start: agent.startedAt,
+          end: Date.now(),
+        });
+        return hours > 0 ? `${hours}h ${minutes}m` : `${Math.max(0, minutes)}m`;
+      })()
+    : "-";
+
+  const updated = formatDistanceToNowStrict(agent.updatedAt, { addSuffix: true });
+
   return {
     id: agent.id,
     name: agent.name,
     status: agent.status,
     task: agent.taskSummary || "No active task",
-    elapsed: formatElapsed(agent.startedAt),
-    updated: formatRelative(agent.updatedAt),
+    elapsed,
+    updated,
   };
 }
 
@@ -162,19 +175,4 @@ function buildHealthLabel(frame: SceneFrame): string {
     return source;
   }
   return `${source} (${warnings} warning${warnings === 1 ? "" : "s"})`;
-}
-
-function formatElapsed(startedAt?: number): string {
-  if (!startedAt) {
-    return "-";
-  }
-  const { hours = 0, minutes = 0 } = intervalToDuration({
-    start: startedAt,
-    end: Date.now(),
-  });
-  return hours > 0 ? `${hours}h ${minutes}m` : `${Math.max(0, minutes)}m`;
-}
-
-function formatRelative(updatedAt: number): string {
-  return formatDistanceToNowStrict(updatedAt, { addSuffix: true });
 }

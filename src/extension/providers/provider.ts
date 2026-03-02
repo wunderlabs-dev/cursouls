@@ -87,13 +87,25 @@ export function createCafeViewProvider(extensionUri: vscode.Uri): CafeViewProvid
       return undefined;
     }
 
+    const elapsed = agent.startedAt
+      ? (() => {
+          const { hours = 0, minutes = 0 } = intervalToDuration({
+            start: agent.startedAt,
+            end: Date.now(),
+          });
+          return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+        })()
+      : "-";
+
+    const updated = formatDistanceToNowStrict(agent.updatedAt, { addSuffix: true });
+
     return {
       id: agent.id,
       name: agent.name,
       status: agent.status,
       task: agent.taskSummary || "No active task",
-      elapsed: formatElapsed(agent.startedAt),
-      updated: formatRelative(agent.updatedAt),
+      elapsed,
+      updated,
     };
   }
 
@@ -134,23 +146,4 @@ function isOutboundMessage(value: unknown): value is OutboundMessage {
   }
 
   return false;
-}
-
-function formatElapsed(startedAt?: number): string {
-  if (!startedAt) {
-    return "-";
-  }
-
-  const { hours = 0, minutes = 0 } = intervalToDuration({
-    start: startedAt,
-    end: Date.now(),
-  });
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  return `${minutes}m`;
-}
-
-function formatRelative(updatedAt: number): string {
-  return formatDistanceToNowStrict(updatedAt, { addSuffix: true });
 }

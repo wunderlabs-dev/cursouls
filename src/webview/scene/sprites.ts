@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { AgentStatus } from "@shared/types";
-import { initialsFor, statusGlyph } from "@web/features/cafe/ui/sprites";
+import { initialsFor, statusGlyph } from "@web/ui/sprites";
 import type { SeatRenderModel } from "./model";
 
 interface SeatPalette {

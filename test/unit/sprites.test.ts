@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AgentSnapshot } from "@shared/types";
-import type { SeatRenderModel } from "@web/features/cafe/scene/model";
-import { updateSeatSprite } from "@web/features/cafe/scene/sprites";
+import type { SeatRenderModel } from "@web/scene/model";
+import { updateSeatSprite } from "@web/scene/sprites";
 
 vi.mock("phaser", () => ({
   default: {},

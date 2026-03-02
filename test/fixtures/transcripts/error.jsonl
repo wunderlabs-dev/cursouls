@@ -1,0 +1,3 @@
+{"agentId":"agent-7","agentName":"Edsger","kind":"local","status":"error","task":"Recover parser","startedAt":1700000006000,"updatedAt":1700000018000,"error":"Unexpected token"}
+this is not valid json
+{"agentId":"agent-8","agentName":"Barbara","kind":"local","status":"running","task":"Continue after malformed line","startedAt":1700000007000,"updatedAt":1700000019000}

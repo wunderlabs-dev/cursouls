@@ -1,0 +1,2 @@
+{"agentId":"agent-3","agentName":"Grace","kind":"local","status":"idle","task":"Waiting for feedback","startedAt":1700000002000,"updatedAt":1700000010000}
+{"agentId":"agent-4","agentName":"Ken","kind":"remote","status":"idle","task":"Monitoring queue","startedAt":1700000003000,"updatedAt":1700000011000}

@@ -1,0 +1,2 @@
+{"agentId":"agent-1","agentName":"Ada","kind":"local","status":"running","task":"Implement seat allocator","startedAt":1700000000000,"updatedAt":1700000005000}
+{"agentId":"agent-2","agentName":"Linus","kind":"local","status":"running","task":"Review polling loop","startedAt":1700000001000,"updatedAt":1700000006000}

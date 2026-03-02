@@ -1,0 +1,64 @@
+{
+  "name": "cursor-cafe",
+  "displayName": "Cursor Cafe",
+  "description": "A minimal VS Code extension with a custom activity bar sidebar.",
+  "version": "0.0.1",
+  "publisher": "cursor-cafe",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cursorCafe.refresh",
+        "title": "Cursor Cafe: Refresh"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cursorCafe",
+          "title": "Cursor Cafe",
+          "icon": "media/cafe.svg"
+        }
+      ]
+    },
+    "views": {
+      "cursorCafe": [
+        {
+          "id": "cursorCafe.sidebar",
+          "name": "Cafe Sidebar"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "cursorCafe.refresh",
+          "when": "view == cursorCafe.sidebar",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "build": "npm run compile",
+    "compile": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/vscode": "^1.90.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0"
+  }
+}

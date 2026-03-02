@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import type { AgentSourceReadResult } from "../../src/types";
+import type { AgentSourceReadResult } from "../../src/shared/types";
 
 interface TranscriptSource {
   connect: () => Promise<void> | void;
@@ -19,7 +19,7 @@ function toFixturePath(name: string): string {
 async function createSource(sourcePaths: string[]): Promise<TranscriptSource> {
   const modulePath = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),
-    "../../src/agent-source/CursorTranscriptSource.ts",
+    "../../src/extension/sources/CursorTranscriptSource.ts",
   );
   let loadedModule: Record<string, unknown>;
 
@@ -27,12 +27,17 @@ async function createSource(sourcePaths: string[]): Promise<TranscriptSource> {
     loadedModule = (await import(modulePath)) as Record<string, unknown>;
   } catch (error) {
     throw new Error(
-      `CursorTranscriptSource is not implemented at src/agent-source/CursorTranscriptSource.ts yet: ${String(error)}`,
+      `CursorTranscriptSource is not implemented at src/extension/sources/CursorTranscriptSource.ts yet: ${String(error)}`,
     );
   }
 
-  const Ctor = loadedModule.CursorTranscriptSource as (new (options: { sourcePaths: string[] }) => TranscriptSource);
-  return new Ctor({ sourcePaths });
+  const create = loadedModule.createCursorTranscriptSource as
+    | ((options: { sourcePaths: string[] }) => TranscriptSource)
+    | undefined;
+  if (!create) {
+    throw new Error("createCursorTranscriptSource export is missing.");
+  }
+  return create({ sourcePaths });
 }
 
 describe("CursorTranscriptSource", () => {

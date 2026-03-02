@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import type { AgentKind, AgentSnapshot, AgentSourceReadResult, AgentStatus } from "../types";
+import type { AgentKind, AgentSnapshot, AgentSourceReadResult, AgentStatus } from "../../shared/types";
 import type { AgentSource } from "./AgentSource";
 
 const VALID_STATUSES: ReadonlySet<AgentStatus> = new Set(["running", "idle", "completed", "error"]);
@@ -20,41 +20,40 @@ export interface CursorTranscriptSourceOptions {
   sourceLabel?: string;
 }
 
-export class CursorTranscriptSource implements AgentSource {
-  public readonly sourceKind = "cursor-transcripts" as const;
+export interface CursorTranscriptSource extends AgentSource {
+  readonly sourceKind: "cursor-transcripts";
+}
 
-  private readonly sourcePaths: string[];
-  private readonly sourceLabel: string;
-  private connected = false;
+export function createCursorTranscriptSource(
+  options: CursorTranscriptSourceOptions,
+): CursorTranscriptSource {
+  const sourcePaths = Array.isArray(options.sourcePaths) ? [...options.sourcePaths] : [];
+  const sourceLabel = options.sourceLabel ?? "cursor-transcripts";
+  let connected = false;
 
-  public constructor(options: CursorTranscriptSourceOptions) {
-    this.sourcePaths = Array.isArray(options.sourcePaths) ? [...options.sourcePaths] : [];
-    this.sourceLabel = options.sourceLabel ?? "cursor-transcripts";
+  function connect(): void {
+    connected = true;
   }
 
-  public connect(): void {
-    this.connected = true;
+  function disconnect(): void {
+    connected = false;
   }
 
-  public disconnect(): void {
-    this.connected = false;
-  }
-
-  public async readSnapshot(_now: number = Date.now()): Promise<AgentSourceReadResult> {
-    if (!this.connected) {
+  async function readSnapshot(_now: number = Date.now()): Promise<AgentSourceReadResult> {
+    if (!connected) {
       return {
         agents: [],
         connected: false,
-        sourceLabel: this.sourceLabel,
+        sourceLabel,
         warnings: ["Cursor transcript source is disconnected."],
       };
     }
 
-    if (this.sourcePaths.length === 0) {
+    if (sourcePaths.length === 0) {
       return {
         agents: [],
         connected: false,
-        sourceLabel: this.sourceLabel,
+        sourceLabel,
         warnings: ["No transcript paths configured."],
       };
     }
@@ -64,7 +63,7 @@ export class CursorTranscriptSource implements AgentSource {
     const latestById = new Map<string, AgentSnapshot>();
     let hasReadError = false;
 
-    for (const sourcePath of this.sourcePaths) {
+    for (const sourcePath of sourcePaths) {
       let contents: string;
       try {
         contents = await readFile(sourcePath, "utf8");
@@ -74,7 +73,7 @@ export class CursorTranscriptSource implements AgentSource {
         continue;
       }
 
-      const parsedAgents = this.parseTranscriptFile(contents, sourcePath, warnings);
+      const parsedAgents = parseTranscriptFile(contents, sourcePath, warnings);
       for (const parsedAgent of parsedAgents) {
         const existing = latestById.get(parsedAgent.id);
         if (!existing) {
@@ -96,12 +95,12 @@ export class CursorTranscriptSource implements AgentSource {
     return {
       agents,
       connected: !hasReadError,
-      sourceLabel: this.sourceLabel,
+      sourceLabel,
       warnings,
     };
   }
 
-  private parseTranscriptFile(contents: string, sourcePath: string, warnings: string[]): AgentSnapshot[] {
+  function parseTranscriptFile(contents: string, sourcePath: string, warnings: string[]): AgentSnapshot[] {
     const lines = contents.split(/\r?\n/);
     const agents: AgentSnapshot[] = [];
 
@@ -116,22 +115,22 @@ export class CursorTranscriptSource implements AgentSource {
       try {
         parsed = JSON.parse(line);
       } catch {
-        warnings.push(this.formatLineWarning(sourcePath, lineNumber + 1, "Invalid JSON line."));
+        warnings.push(formatLineWarning(sourcePath, lineNumber + 1, "Invalid JSON line."));
         continue;
       }
 
-      const record = this.asRecord(parsed);
+      const record = asRecord(parsed);
       if (!record) {
-        warnings.push(this.formatLineWarning(sourcePath, lineNumber + 1, "Invalid transcript shape."));
+        warnings.push(formatLineWarning(sourcePath, lineNumber + 1, "Invalid transcript shape."));
         continue;
       }
 
       if (!VALID_STATUSES.has(record.status as AgentStatus)) {
-        warnings.push(this.formatLineWarning(sourcePath, lineNumber + 1, "Invalid agent status."));
+        warnings.push(formatLineWarning(sourcePath, lineNumber + 1, "Invalid agent status."));
         continue;
       }
 
-      const normalizedKind = this.normalizeKind(record.kind, sourcePath, lineNumber + 1, warnings);
+      const normalizedKind = normalizeKind(record.kind, sourcePath, lineNumber + 1, warnings);
       if (!normalizedKind) {
         continue;
       }
@@ -156,7 +155,7 @@ export class CursorTranscriptSource implements AgentSource {
     return agents;
   }
 
-  private asRecord(value: unknown): CursorTranscriptRecord | null {
+  function asRecord(value: unknown): CursorTranscriptRecord | null {
     if (!isRecord(value)) {
       return null;
     }
@@ -185,7 +184,7 @@ export class CursorTranscriptSource implements AgentSource {
     };
   }
 
-  private normalizeKind(
+  function normalizeKind(
     rawKind: string | undefined,
     sourcePath: string,
     lineNumber: number,
@@ -199,13 +198,20 @@ export class CursorTranscriptSource implements AgentSource {
       return rawKind as AgentKind;
     }
 
-    warnings.push(this.formatLineWarning(sourcePath, lineNumber, "Invalid agent kind."));
+    warnings.push(formatLineWarning(sourcePath, lineNumber, "Invalid agent kind."));
     return null;
   }
 
-  private formatLineWarning(sourcePath: string, lineNumber: number, reason: string): string {
+  function formatLineWarning(sourcePath: string, lineNumber: number, reason: string): string {
     return `${sourcePath}:${lineNumber} ${reason}`;
   }
+
+  return {
+    sourceKind: "cursor-transcripts",
+    connect,
+    disconnect,
+    readSnapshot,
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

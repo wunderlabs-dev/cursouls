@@ -44,10 +44,14 @@ body {
   background: linear-gradient(180deg, #221b16 0%, #1c1713 100%);
   border: 1px solid var(--panel-border);
   border-radius: 10px;
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  justify-content: center;
   padding: 8px;
+}
+
+.phaser-canvas-root {
+  min-height: 362px;
+  width: 100%;
 }
 
 .table-seat {

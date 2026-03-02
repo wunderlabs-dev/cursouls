@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { AgentSnapshot } from "../../src/types";
-import { EventMapper } from "../../src/state/EventMapper";
+import type { AgentSnapshot } from "../../src/shared/types";
+import { createEventMapper } from "../../src/extension/services/EventMapper";
 
 function agent(id: string, status: AgentSnapshot["status"]): AgentSnapshot {
   return {
@@ -16,7 +16,7 @@ function agent(id: string, status: AgentSnapshot["status"]): AgentSnapshot {
 
 describe("EventMapper", () => {
   it("emits joined events for first-seen agents in input order", () => {
-    const mapper = new EventMapper();
+    const mapper = createEventMapper();
     const at = 1_700_000_001_000;
 
     const events = mapper.map([agent("a", "running"), agent("b", "idle")], at);
@@ -28,7 +28,7 @@ describe("EventMapper", () => {
   });
 
   it("emits heartbeat/status-changed/left transitions between snapshots", () => {
-    const mapper = new EventMapper();
+    const mapper = createEventMapper();
     mapper.map([agent("a", "running"), agent("b", "idle"), agent("c", "running")], 1000);
 
     const events = mapper.map([agent("a", "running"), agent("b", "completed"), agent("d", "error")], 2000);
@@ -64,7 +64,7 @@ describe("EventMapper", () => {
   });
 
   it("forgets history after reset", () => {
-    const mapper = new EventMapper();
+    const mapper = createEventMapper();
     mapper.map([agent("a", "running")], 1000);
     mapper.reset();
 

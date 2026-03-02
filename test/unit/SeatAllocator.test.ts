@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SeatAllocator } from "../../src/state/SeatAllocator";
+import { createSeatAllocator } from "../../src/extension/services/SeatAllocator";
 
 type AgentStatus = "running" | "idle" | "completed" | "error";
 
@@ -28,7 +28,7 @@ function agent(id: string, updatedAt: number): AgentSnapshot {
 
 describe("SeatAllocator", () => {
   it("assigns first six agents to seats and overflows remainder to queue", () => {
-    const allocator = new SeatAllocator(6);
+    const allocator = createSeatAllocator(6);
     const input = Array.from({ length: 8 }, (_, idx) => agent(String(idx + 1), 1_700_000_000_000 + idx));
 
     const result = allocator.allocate(input);
@@ -39,7 +39,7 @@ describe("SeatAllocator", () => {
   });
 
   it("keeps sticky seat assignments when agent order changes across polls", () => {
-    const allocator = new SeatAllocator(6);
+    const allocator = createSeatAllocator(6);
 
     allocator.allocate([agent("a", 1000), agent("b", 1001), agent("c", 1002)]);
     const second = allocator.allocate([agent("c", 2002), agent("a", 2000), agent("b", 2001)]);
@@ -48,7 +48,7 @@ describe("SeatAllocator", () => {
   });
 
   it("frees departed seat and promotes the earliest queued agent", () => {
-    const allocator = new SeatAllocator(2);
+    const allocator = createSeatAllocator(2);
 
     allocator.allocate([agent("a", 1000), agent("b", 1001), agent("c", 1002)]);
     const next = allocator.allocate([agent("a", 2000), agent("c", 2002)]);
@@ -58,7 +58,7 @@ describe("SeatAllocator", () => {
   });
 
   it("restores empty seats after reset", () => {
-    const allocator = new SeatAllocator(2);
+    const allocator = createSeatAllocator(2);
     allocator.allocate([agent("a", 1000), agent("b", 1001)]);
 
     allocator.reset();

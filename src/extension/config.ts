@@ -8,7 +8,7 @@ import {
   MOCK_AGENT_COUNT_CONFIG_KEY,
   REFRESH_MS_CONFIG_KEY,
   SOURCE_MODE_CONFIG_KEY,
-} from "./constants";
+} from "../shared/constants";
 
 export type SourceMode = "auto" | "mock";
 
@@ -21,6 +21,7 @@ export interface CafeConfig {
   seatCount: number;
   sourceMode: SourceMode;
   mockAgentCount: number;
+  transcriptPaths: string[];
 }
 
 export function clampInt(
@@ -57,6 +58,10 @@ export function readCafeConfig(
     `${EXTENSION_CONFIG_SECTION}.${MOCK_AGENT_COUNT_CONFIG_KEY}`,
     defaults.mockAgentCount ?? DEFAULT_MOCK_AGENT_COUNT,
   );
+  const transcriptPathsRaw = config?.get<string[] | string>(
+    `${EXTENSION_CONFIG_SECTION}.transcriptPaths`,
+    defaults.transcriptPaths ?? [],
+  );
 
   return {
     refreshMs: clampInt(
@@ -73,5 +78,23 @@ export function readCafeConfig(
       100,
       defaults.mockAgentCount ?? DEFAULT_MOCK_AGENT_COUNT,
     ),
+    transcriptPaths: normalizeTranscriptPaths(transcriptPathsRaw ?? defaults.transcriptPaths ?? []),
   };
+}
+
+function normalizeTranscriptPaths(value: string[] | string): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+      .filter((entry) => entry.length > 0);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(/[\n,]/)
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+  }
+
+  return [];
 }

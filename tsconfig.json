@@ -1,22 +1,19 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "Node16",
-    "moduleResolution": "Node16",
-    "lib": [
-      "ES2020"
-    ],
     "strict": true,
     "noEmit": true,
     "sourceMap": true,
     "rootDir": "src",
-    "types": [
-      "node",
-      "vscode"
-    ],
     "skipLibCheck": true
   },
-  "include": [
-    "src/extension.ts"
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.extension.json"
+    },
+    {
+      "path": "./tsconfig.webview.json"
+    }
   ]
 }

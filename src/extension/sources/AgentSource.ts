@@ -1,4 +1,4 @@
-import type { AgentSourceKind, AgentSourceReadResult } from "../types";
+import type { AgentSourceKind, AgentSourceReadResult } from "../../shared/types";
 
 export interface AgentSource {
   readonly sourceKind: AgentSourceKind;

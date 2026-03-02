@@ -1,10 +1,11 @@
 import * as vscode from "vscode";
-import { createAgentSource } from "./agent-source";
 import { readCafeConfig } from "./config";
 import { createLogger } from "./logging";
-import { CafeStore } from "./state/CafeStore";
-import { PollingController } from "./state/PollingController";
-import { CafeViewProvider } from "./webview/CafeViewProvider";
+import { CAFE_VIEW_TYPE, createCafeViewProvider } from "./providers/CafeViewProvider";
+import { createAgentSource } from "./sources";
+import { resolveTranscriptSourcePaths } from "./sources/discovery";
+import { createCafeStore } from "./services/CafeStore";
+import { createPollingController, type PollingController } from "./services/PollingController";
 
 let activePollingController: PollingController | undefined;
 
@@ -12,15 +13,23 @@ export function activate(context: vscode.ExtensionContext): void {
   const outputChannel = vscode.window.createOutputChannel("Cursor Cafe");
   const logger = createLogger("extension", outputChannel);
   const config = readCafeConfig(vscode.workspace.getConfiguration());
-  const store = new CafeStore(config.seatCount);
+  const workspacePaths = (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath);
+  const transcriptPaths = resolveTranscriptSourcePaths({
+    workspacePaths,
+    configuredPaths: config.transcriptPaths,
+  });
+  const store = createCafeStore(config.seatCount);
   const source = createAgentSource({
     mode: config.sourceMode,
+    transcriptOptions: {
+      sourcePaths: transcriptPaths,
+    },
     mockOptions: {
       agentCount: config.mockAgentCount,
     },
   });
-  const viewProvider = new CafeViewProvider(context.extensionUri);
-  const pollingController = new PollingController({
+  const viewProvider = createCafeViewProvider(context.extensionUri);
+  const pollingController = createPollingController({
     source,
     store,
     refreshMs: config.refreshMs,
@@ -36,7 +45,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     outputChannel,
-    vscode.window.registerWebviewViewProvider(CafeViewProvider.viewType, viewProvider),
+    vscode.window.registerWebviewViewProvider(CAFE_VIEW_TYPE, viewProvider),
     new vscode.Disposable(disposeFrameListener),
     new vscode.Disposable(disposeErrorListener),
     vscode.commands.registerCommand("cursorCafe.refresh", async () => {

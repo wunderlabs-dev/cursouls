@@ -1,0 +1,74 @@
+import { describe, expect, it } from "vitest";
+import {
+  createAgentSource,
+  type AgentSource,
+} from "../../src/extension/sources";
+import { readCafeConfig } from "../../src/extension/config";
+
+describe("createAgentSource", () => {
+  it("uses mock source when mode is mock even with transcript paths", () => {
+    const source = createAgentSource({
+      mode: "mock",
+      transcriptOptions: {
+        sourcePaths: ["/tmp/transcript.jsonl"],
+      },
+    });
+
+    expect(source.sourceKind).toBe("mock");
+  });
+
+  it("uses transcript source in auto mode when transcript paths are provided", () => {
+    const source = createAgentSource({
+      mode: "auto",
+      transcriptOptions: {
+        sourcePaths: ["/tmp/transcript.jsonl"],
+      },
+    });
+
+    expect(source.sourceKind).toBe("cursor-transcripts");
+  });
+
+  it("falls back to mock source in auto mode when transcript paths are missing", () => {
+    const source = createAgentSource({
+      mode: "auto",
+      transcriptOptions: {} as never,
+    });
+
+    expect(source.sourceKind).toBe("mock");
+  });
+
+  it("uses preferred source before mock fallback in auto mode", () => {
+    const preferredSource: AgentSource = {
+      sourceKind: "mock",
+      connect() {},
+      disconnect() {},
+      readSnapshot() {
+        return { agents: [], connected: true, sourceLabel: "preferred", warnings: [] };
+      },
+    };
+    const source = createAgentSource({
+      mode: "auto",
+      preferredSource,
+      transcriptOptions: {} as never,
+    });
+
+    expect(source).toBe(preferredSource);
+  });
+});
+
+describe("readCafeConfig", () => {
+  it("reads optional transcript paths from config", () => {
+    const config = {
+      get<T>(key: string): T | undefined {
+        if (key === "cursorCafe.transcriptPaths") {
+          return ["/tmp/a.jsonl", " ", "/tmp/b.jsonl"] as T;
+        }
+        return undefined;
+      },
+    };
+
+    const parsed = readCafeConfig(config);
+
+    expect(parsed.transcriptPaths).toEqual(["/tmp/a.jsonl", "/tmp/b.jsonl"]);
+  });
+});

@@ -11,16 +11,18 @@ const sharedOptions = {
 const buildOptions = [
   {
     ...sharedOptions,
-    entryPoints: ["src/extension.ts"],
+    entryPoints: ["src/extension/entry.ts"],
     outfile: "dist/extension.js",
+    tsconfig: "tsconfig.extension.json",
     platform: "node",
     format: "cjs",
     external: ["vscode"],
   },
   {
     ...sharedOptions,
-    entryPoints: ["src/webview/webview-main.ts"],
+    entryPoints: ["src/webview/main.tsx"],
     outfile: "dist/webview-main.js",
+    tsconfig: "tsconfig.webview.json",
     platform: "browser",
     format: "esm",
   },

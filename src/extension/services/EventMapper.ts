@@ -1,4 +1,4 @@
-import type { AgentLifecycleEvent, AgentSnapshot } from "../types";
+import type { AgentLifecycleEvent, AgentSnapshot } from "../../shared/types";
 
 export interface MapStatusInput {
   hasActivityDelta: boolean;
@@ -33,22 +33,28 @@ export function mapStatus(
   return ageMs >= idleAfterMs ? "idle" : "running";
 }
 
-export class EventMapper {
-  private previousById = new Map<string, AgentSnapshot>();
+export interface EventMapper {
+  mapStatus(input: MapStatusInput, options: MapStatusOptions): AgentSnapshot["status"];
+  map(currentAgents: AgentSnapshot[], at?: number): AgentLifecycleEvent[];
+  reset(): void;
+}
 
-  public mapStatus(
+export function createEventMapper(): EventMapper {
+  let previousById = new Map<string, AgentSnapshot>();
+
+  function mapStatusFromInput(
     input: MapStatusInput,
     options: MapStatusOptions,
   ): AgentSnapshot["status"] {
     return mapStatus(input, options);
   }
 
-  public map(currentAgents: AgentSnapshot[], at: number = Date.now()): AgentLifecycleEvent[] {
+  function map(currentAgents: AgentSnapshot[], at: number = Date.now()): AgentLifecycleEvent[] {
     const events: AgentLifecycleEvent[] = [];
     const nextById = new Map<string, AgentSnapshot>();
 
     for (const agent of currentAgents) {
-      const previous = this.previousById.get(agent.id);
+      const previous = previousById.get(agent.id);
       nextById.set(agent.id, agent);
 
       if (!previous) {
@@ -81,7 +87,7 @@ export class EventMapper {
       });
     }
 
-    for (const [agentId, previous] of this.previousById.entries()) {
+    for (const [agentId, previous] of previousById.entries()) {
       if (!nextById.has(agentId)) {
         events.push({
           type: "left",
@@ -92,11 +98,17 @@ export class EventMapper {
       }
     }
 
-    this.previousById = nextById;
+    previousById = nextById;
     return events;
   }
 
-  public reset(): void {
-    this.previousById.clear();
+  function reset(): void {
+    previousById.clear();
   }
+
+  return {
+    mapStatus: mapStatusFromInput,
+    map,
+    reset,
+  };
 }

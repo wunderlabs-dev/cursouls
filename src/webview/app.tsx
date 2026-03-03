@@ -46,6 +46,12 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
       switch (message.type) {
         case BRIDGE_INBOUND_TYPE.sceneFrame:
           setFrame(message.frame);
+          setTooltip((current) => {
+            if (!current) {
+              return current;
+            }
+            return findAgentTooltip(message.frame, current.id);
+          });
           return;
         case BRIDGE_INBOUND_TYPE.tooltipData:
           setTooltip(message.tooltip);
@@ -182,13 +188,7 @@ function findAgentTooltip(frame: SceneFrame | undefined, agentId: string): Toolt
   }
 
   const elapsed = agent.startedAt
-    ? (() => {
-        const { hours = 0, minutes = 0 } = intervalToDuration({
-          start: agent.startedAt,
-          end: Date.now(),
-        });
-        return hours > 0 ? `${hours}h ${minutes}m` : `${Math.max(0, minutes)}m`;
-      })()
+    ? formatElapsed(agent.startedAt)
     : EMPTY_ELAPSED_LABEL;
 
   const updated = formatDistanceToNowStrict(agent.updatedAt, { addSuffix: true });
@@ -211,4 +211,12 @@ function buildHealthLabel(frame: SceneFrame): string {
   }
   const label = warnings === 1 ? WARNING_LABEL_SINGULAR : WARNING_LABEL_PLURAL;
   return `${source} (${warnings} ${label})`;
+}
+
+function formatElapsed(startedAt: number): string {
+  const { hours = 0, minutes = 0 } = intervalToDuration({
+    start: startedAt,
+    end: Date.now(),
+  });
+  return hours > 0 ? `${hours}h ${minutes}m` : `${Math.max(0, minutes)}m`;
 }

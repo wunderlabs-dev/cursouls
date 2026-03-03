@@ -18,7 +18,10 @@ export interface CafeViewProvider extends vscode.WebviewViewProvider {
   updateLifecycleEvents(events: AgentLifecycleEvent[]): void;
 }
 
-export function createCafeViewProvider(extensionUri: vscode.Uri): CafeViewProvider {
+export function createCafeViewProvider(
+  extensionUri: vscode.Uri,
+  logger?: { warn(message: string): void },
+): CafeViewProvider {
   const MAX_LIFECYCLE_REPLAY_EVENTS = 200;
   let view: vscode.WebviewView | undefined;
   let latestFrame: SceneFrame | undefined;
@@ -38,7 +41,12 @@ export function createCafeViewProvider(extensionUri: vscode.Uri): CafeViewProvid
 
     nextView.webview.onDidReceiveMessage((message: unknown) => {
       if (!isOutboundMessage(message)) {
-        console.warn("[cursor-cafe] Ignoring malformed webview message", message);
+        const details = `[cursor-cafe] Ignoring malformed webview message: ${formatUnknown(message)}`;
+        if (logger) {
+          logger.warn(details);
+        } else {
+          console.warn(details);
+        }
         return;
       }
 
@@ -160,4 +168,15 @@ function formatElapsed(startedAt: number | undefined): string {
     end: Date.now(),
   });
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+}
+
+function formatUnknown(value: unknown): string {
+  if (value instanceof Error) {
+    return value.message;
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }

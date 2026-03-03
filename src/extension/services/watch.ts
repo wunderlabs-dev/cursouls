@@ -26,6 +26,7 @@ interface AgentSourceLike {
 
 export interface WatchControllerOptions {
   projectPath: string;
+  projectPaths?: string[];
   store?: CafeStore;
   logger?: Logger;
   now?: () => number;
@@ -66,6 +67,7 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
 
   const subscription = createAgentSubscription({
     projectPath: options.projectPath,
+    projectPaths: options.projectPaths,
     debounceMs,
     now,
     sourceFactory,
@@ -239,10 +241,14 @@ function formatUnknownError(error: unknown): string {
 }
 
 function createDefaultWatcher(watchPath: string, onEvent: () => void): WatcherLike {
-  const watcher = watch(watchPath, { persistent: false }, () => {
+  const onChange = (): void => {
     onEvent();
-  });
-  return watcher;
+  };
+  try {
+    return watch(watchPath, { persistent: false, recursive: true }, onChange);
+  } catch {
+    return watch(watchPath, { persistent: false }, onChange);
+  }
 }
 
 function applySnapshot(snapshot: AgentStateSnapshot, at: number, store?: CafeStore): SceneFrame {

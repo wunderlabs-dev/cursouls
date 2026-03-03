@@ -23,6 +23,16 @@ type VsCodeApi = {
 
 declare function acquireVsCodeApi(): VsCodeApi;
 
+const MAX_PENDING_LIFECYCLE_EVENTS = 200;
+const MAX_INVALID_MESSAGE_LOGS = 5;
+
+type PendingMessageBuffer = {
+  latestFrame: InboundMessage | undefined;
+  latestTooltip: InboundMessage | undefined;
+  hideTooltip: InboundMessage | undefined;
+  lifecycleEvents: AgentLifecycleEvent[];
+};
+
 export interface VsCodeBridge {
   postReady(): void;
   postAgentClick(agentId: string, anchor: AgentAnchor): void;
@@ -33,15 +43,27 @@ export interface VsCodeBridge {
 export function createBridge(): VsCodeBridge {
   const vscode = acquireVsCodeApi();
   const listeners = new Set<MessageListener>();
-  const pendingQueue: InboundMessage[] = [];
+  const pending: PendingMessageBuffer = {
+    latestFrame: undefined,
+    latestTooltip: undefined,
+    hideTooltip: undefined,
+    lifecycleEvents: [],
+  };
+  let invalidMessageLogCount = 0;
 
   const onWindowMessage = (event: MessageEvent<unknown>): void => {
-    const message = parseInboundMessage(event.data);
+    const message = parseInboundMessage(event.data, (reason) => {
+      if (invalidMessageLogCount >= MAX_INVALID_MESSAGE_LOGS) {
+        return;
+      }
+      invalidMessageLogCount += 1;
+      console.warn(`[cursor-cafe] Ignoring malformed inbound message: ${reason}`);
+    });
     if (!message) {
       return;
     }
     if (listeners.size === 0) {
-      pendingQueue.push(message);
+      bufferMessage(pending, message);
       return;
     }
     listeners.forEach((listener) => {
@@ -60,27 +82,76 @@ export function createBridge(): VsCodeBridge {
     },
     subscribe(listener: MessageListener): () => void {
       listeners.add(listener);
-      if (pendingQueue.length > 0) {
-        const queued = pendingQueue.splice(0, pendingQueue.length);
-        queued.forEach((message) => {
-          listener(message);
-        });
-      }
+      flushBufferedMessages(listener, pending);
       return () => {
         listeners.delete(listener);
       };
     },
     dispose(): void {
       listeners.clear();
-      pendingQueue.length = 0;
+      clearBufferedMessages(pending);
       window.removeEventListener("message", onWindowMessage);
     },
   };
 }
 
-function parseInboundMessage(value: unknown): InboundMessage | undefined {
+function parseInboundMessage(
+  value: unknown,
+  onInvalid: (reason: string) => void,
+): InboundMessage | undefined {
   const parsed = inboundMessageSchema.safeParse(value);
+  if (!parsed.success) {
+    const reason = parsed.error.issues.map((issue) => issue.message).join("; ");
+    onInvalid(reason || "schema validation failed");
+  }
   return parsed.success ? parsed.data : undefined;
+}
+
+function bufferMessage(buffer: PendingMessageBuffer, message: InboundMessage): void {
+  if (message.type === BRIDGE_INBOUND_TYPE.sceneFrame) {
+    buffer.latestFrame = message;
+    return;
+  }
+
+  if (message.type === BRIDGE_INBOUND_TYPE.tooltipData) {
+    buffer.latestTooltip = message;
+    buffer.hideTooltip = undefined;
+    return;
+  }
+
+  if (message.type === BRIDGE_INBOUND_TYPE.hideTooltip) {
+    buffer.latestTooltip = undefined;
+    buffer.hideTooltip = message;
+    return;
+  }
+
+  const mergedEvents = [...buffer.lifecycleEvents, ...message.events];
+  buffer.lifecycleEvents = mergedEvents.slice(-MAX_PENDING_LIFECYCLE_EVENTS);
+}
+
+function flushBufferedMessages(listener: MessageListener, buffer: PendingMessageBuffer): void {
+  if (buffer.latestFrame) {
+    listener(buffer.latestFrame);
+  }
+  if (buffer.lifecycleEvents.length > 0) {
+    listener({
+      type: BRIDGE_INBOUND_TYPE.lifecycleEvents,
+      events: buffer.lifecycleEvents,
+    });
+  }
+  if (buffer.latestTooltip) {
+    listener(buffer.latestTooltip);
+  } else if (buffer.hideTooltip) {
+    listener(buffer.hideTooltip);
+  }
+  clearBufferedMessages(buffer);
+}
+
+function clearBufferedMessages(buffer: PendingMessageBuffer): void {
+  buffer.latestFrame = undefined;
+  buffer.latestTooltip = undefined;
+  buffer.hideTooltip = undefined;
+  buffer.lifecycleEvents = [];
 }
 
 const agentStatusSchema = z.nativeEnum(AGENT_STATUS);

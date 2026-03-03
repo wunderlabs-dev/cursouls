@@ -4,6 +4,7 @@ import { createLogger } from "./logging";
 import { CAFE_VIEW_TYPE, createCafeViewProvider } from "@ext/providers/provider";
 import { createCafeStore } from "@ext/services/store";
 import { createWatchController, type WatchController } from "@ext/services/watch";
+import { AGENT_SOURCE_KIND } from "@shared/types";
 
 let activeWatchController: WatchController | undefined;
 let activeWatchStartPromise: Promise<void> | undefined;
@@ -12,60 +13,128 @@ export function activate(context: vscode.ExtensionContext): void {
   const outputChannel = vscode.window.createOutputChannel("Cursor Cafe");
   const logger = createLogger("extension", outputChannel);
   const config = readCafeConfig(vscode.workspace.getConfiguration());
-  const workspacePaths = (vscode.workspace.workspaceFolders ?? []).map(
-    (folder) => folder.uri.fsPath,
-  );
-  const projectPath = workspacePaths[0] ?? "";
   const store = createCafeStore(config.seatCount);
-  const viewProvider = createCafeViewProvider(context.extensionUri);
-  const watchController = createWatchController({
-    projectPath,
-    store,
-    debounceMs: config.refreshMs,
-    logger,
-  });
-  activeWatchController = watchController;
-  const disposeFrameListener = watchController.onFrame((frame) => {
-    viewProvider.updateFrame(frame);
-  });
-  const disposeLifecycleListener = watchController.onLifecycleEvents((events) => {
-    viewProvider.updateLifecycleEvents(events);
-  });
-  const disposeErrorListener = watchController.onError((error) => {
-    logger.error(`Watch refresh error: ${formatUnknownError(error)}`);
-  });
+  const viewProvider = createCafeViewProvider(context.extensionUri, logger);
+  let currentController: WatchController | undefined;
+  let disposeFrameListener: () => void = () => undefined;
+  let disposeLifecycleListener: () => void = () => undefined;
+  let disposeErrorListener: () => void = () => undefined;
+  let replacePromise: Promise<void> = Promise.resolve();
+
+  function detachControllerListeners(): void {
+    disposeFrameListener();
+    disposeLifecycleListener();
+    disposeErrorListener();
+    disposeFrameListener = () => undefined;
+    disposeLifecycleListener = () => undefined;
+    disposeErrorListener = () => undefined;
+  }
+
+  async function replaceWatchController(): Promise<void> {
+    const previousController = currentController;
+    if (previousController) {
+      detachControllerListeners();
+      await stopWatchController(previousController, logger);
+      if (currentController === previousController) {
+        currentController = undefined;
+      }
+    }
+
+    const workspacePaths = (vscode.workspace.workspaceFolders ?? []).map(
+      (folder) => folder.uri.fsPath,
+    );
+    const projectPath = workspacePaths[0] ?? "";
+
+    if (workspacePaths.length === 0) {
+      logger.warn("Cursor Cafe watch is idle: open a workspace folder to start watching agents.");
+      viewProvider.updateFrame(
+        store.update(
+          {
+            agents: [],
+            health: {
+              sourceConnected: false,
+              sourceLabel: AGENT_SOURCE_KIND.cursorTranscripts,
+              warnings: ["Open a workspace folder to enable transcript watching."],
+            },
+          },
+          Date.now(),
+        ),
+      );
+      activeWatchController = undefined;
+      activeWatchStartPromise = undefined;
+      return;
+    }
+
+    const nextController = createWatchController({
+      projectPath,
+      projectPaths: workspacePaths,
+      store,
+      debounceMs: config.refreshMs,
+      logger,
+    });
+    currentController = nextController;
+    activeWatchController = nextController;
+    disposeFrameListener = nextController.onFrame((frame) => {
+      viewProvider.updateFrame(frame);
+    });
+    disposeLifecycleListener = nextController.onLifecycleEvents((events) => {
+      viewProvider.updateLifecycleEvents(events);
+    });
+    disposeErrorListener = nextController.onError((error) => {
+      logger.error(`Watch refresh error: ${formatUnknownError(error)}`);
+    });
+    activeWatchStartPromise = nextController
+      .start()
+      .catch((error: unknown) => {
+        logger.error(`Failed to start transcript watch: ${formatUnknownError(error)}`);
+      })
+      .finally(() => {
+        if (activeWatchController === nextController) {
+          activeWatchStartPromise = undefined;
+        }
+      });
+  }
+
+  function scheduleWatchControllerReplace(): void {
+    replacePromise = replacePromise
+      .then(() => replaceWatchController())
+      .catch((error: unknown) => {
+        logger.error(`Failed to update transcript watch: ${formatUnknownError(error)}`);
+      });
+  }
 
   context.subscriptions.push(
     outputChannel,
     vscode.window.registerWebviewViewProvider(CAFE_VIEW_TYPE, viewProvider),
-    new vscode.Disposable(disposeFrameListener),
-    new vscode.Disposable(disposeLifecycleListener),
-    new vscode.Disposable(disposeErrorListener),
     vscode.commands.registerCommand("cursorCafe.refresh", async () => {
+      if (!currentController) {
+        const message = "Open a workspace folder to enable Cursor Cafe refresh.";
+        logger.warn(message);
+        void vscode.window.showWarningMessage(message);
+        return;
+      }
       try {
-        await watchController.refreshNow();
+        await currentController.refreshNow();
       } catch (error) {
         const message = `Cursor Cafe refresh failed: ${formatUnknownError(error)}`;
         logger.error(message);
         void vscode.window.showErrorMessage(message);
       }
     }),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      scheduleWatchControllerReplace();
+    }),
     new vscode.Disposable(() => {
-      void stopWatchController(watchController, logger);
+      detachControllerListeners();
+      if (currentController) {
+        void stopWatchController(currentController, logger);
+      }
     }),
   );
 
   viewProvider.updateFrame(store.getFrame());
   viewProvider.updateLifecycleEvents([]);
-  activeWatchStartPromise = watchController.start()
-    .catch((error: unknown) => {
-      logger.error(`Failed to start transcript watch: ${formatUnknownError(error)}`);
-    })
-    .finally(() => {
-      if (activeWatchController === watchController) {
-        activeWatchStartPromise = undefined;
-      }
-    });
+  scheduleWatchControllerReplace();
 }
 
 export function deactivate(): Thenable<void> | void {

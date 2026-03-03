@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
 import { createRoot } from "react-dom/client";
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
-import { BRIDGE_AGENT_ANCHOR } from "@shared/bridge";
+import { BRIDGE_AGENT_ANCHOR, BRIDGE_INBOUND_TYPE } from "@shared/bridge";
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import type { TooltipData } from "@web/bridge/types";
 import { PhaserCanvas } from "@web/ui/canvas";
@@ -43,19 +43,22 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
 
   useEffect(() => {
     const unsubscribe = bridge.subscribe((message) => {
-      if (message.type === "sceneFrame") {
-        setFrame(message.frame);
-        return;
+      switch (message.type) {
+        case BRIDGE_INBOUND_TYPE.sceneFrame:
+          setFrame(message.frame);
+          return;
+        case BRIDGE_INBOUND_TYPE.tooltipData:
+          setTooltip(message.tooltip);
+          return;
+        case BRIDGE_INBOUND_TYPE.lifecycleEvents:
+          setLifecycleEvents(message.events);
+          return;
+        case BRIDGE_INBOUND_TYPE.hideTooltip:
+          setTooltip(undefined);
+          return;
+        default:
+          assertNever(message);
       }
-      if (message.type === "tooltipData") {
-        setTooltip(message.tooltip);
-        return;
-      }
-      if (message.type === "lifecycleEvents") {
-        setLifecycleEvents(message.events);
-        return;
-      }
-      setTooltip(undefined);
     });
     bridge.postReady();
     return () => {
@@ -159,6 +162,10 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
       </aside>
     </main>
   );
+}
+
+function assertNever(_value: never): never {
+  throw new Error("Unhandled inbound bridge message.");
 }
 
 function findAgentTooltip(frame: SceneFrame | undefined, agentId: string): TooltipData | undefined {

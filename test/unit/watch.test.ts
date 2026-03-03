@@ -117,6 +117,55 @@ describe("watch controller", () => {
     expect(frame).toEqual(expectedFrame);
   });
 
+  it("emits frame updates even when snapshot has no agent lifecycle changes", async () => {
+    const source = {
+      sourceKind: "cursor-transcripts" as const,
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      readSnapshot: vi
+        .fn()
+        .mockResolvedValueOnce({
+          agents: [],
+          connected: true,
+          sourceLabel: "cursor-transcripts",
+          warnings: [],
+        })
+        .mockResolvedValueOnce({
+          agents: [],
+          connected: false,
+          sourceLabel: "cursor-transcripts",
+          warnings: ["source unavailable"],
+        }),
+      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
+    };
+
+    const controller = createWatchController({
+      projectPath: "/tmp/project",
+      now: () => 1234,
+      sourceFactory: () => source,
+      watchFactory: (_path, _onEvent) => ({
+        close: vi.fn(),
+        on: vi.fn(),
+      }),
+    });
+    const onFrame = vi.fn();
+    const onLifecycle = vi.fn();
+    controller.onFrame(onFrame);
+    controller.onLifecycleEvents(onLifecycle);
+
+    await controller.start();
+    await vi.waitFor(() => {
+      expect(onFrame).toHaveBeenCalled();
+    });
+
+    const refreshed = await controller.refreshNow();
+
+    expect(refreshed.health.sourceConnected).toBe(false);
+    expect(refreshed.health.warnings).toContain("source unavailable");
+    expect(onLifecycle).not.toHaveBeenCalled();
+    await controller.stop();
+  });
+
   it("forwards lifecycle updates through onLifecycleEvents", async () => {
     const source = {
       sourceKind: "cursor-transcripts" as const,
@@ -306,7 +355,11 @@ describe("watch controller", () => {
     const initialFrame = createFrame();
     const refreshedFrame = createFrame();
     const store = {
-      update: vi.fn().mockReturnValueOnce(initialFrame).mockReturnValueOnce(refreshedFrame),
+      update: vi
+        .fn()
+        .mockReturnValueOnce(initialFrame)
+        .mockReturnValueOnce(refreshedFrame)
+        .mockReturnValue(refreshedFrame),
     };
 
     const controller = createWatchController({

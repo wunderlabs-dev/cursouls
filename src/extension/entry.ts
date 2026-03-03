@@ -6,6 +6,7 @@ import { createCafeStore } from "@ext/services/store";
 import { createWatchController, type WatchController } from "@ext/services/watch";
 
 let activeWatchController: WatchController | undefined;
+let activeWatchStartPromise: Promise<void> | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   const outputChannel = vscode.window.createOutputChannel("Cursor Cafe");
@@ -50,18 +51,21 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     }),
     new vscode.Disposable(() => {
-      void watchController.stop();
-      if (activeWatchController === watchController) {
-        activeWatchController = undefined;
-      }
+      void stopWatchController(watchController, logger);
     }),
   );
 
   viewProvider.updateFrame(store.getFrame());
   viewProvider.updateLifecycleEvents([]);
-  void watchController.start().catch((error: unknown) => {
-    logger.error(`Failed to start transcript watch: ${formatUnknownError(error)}`);
-  });
+  activeWatchStartPromise = watchController.start()
+    .catch((error: unknown) => {
+      logger.error(`Failed to start transcript watch: ${formatUnknownError(error)}`);
+    })
+    .finally(() => {
+      if (activeWatchController === watchController) {
+        activeWatchStartPromise = undefined;
+      }
+    });
 }
 
 export function deactivate(): Thenable<void> | void {
@@ -69,8 +73,7 @@ export function deactivate(): Thenable<void> | void {
     return;
   }
   const controller = activeWatchController;
-  activeWatchController = undefined;
-  return controller.stop();
+  return stopWatchController(controller);
 }
 
 function formatUnknownError(error: unknown): string {
@@ -78,4 +81,26 @@ function formatUnknownError(error: unknown): string {
     return error.message;
   }
   return String(error);
+}
+
+async function stopWatchController(controller: WatchController, logger?: { error(message: string): void }): Promise<void> {
+  if (activeWatchController === controller) {
+    activeWatchController = undefined;
+  }
+
+  if (activeWatchStartPromise) {
+    try {
+      await activeWatchStartPromise;
+    } catch {
+      // Start failures are already handled during activation.
+    } finally {
+      activeWatchStartPromise = undefined;
+    }
+  }
+
+  try {
+    await controller.stop();
+  } catch (error) {
+    logger?.error(`Failed to stop transcript watch: ${formatUnknownError(error)}`);
+  }
 }

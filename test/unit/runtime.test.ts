@@ -65,4 +65,61 @@ describe("shared watch runtime start cleanup", () => {
     await expect(runtime.start()).rejects.toBe(startError);
     expect(source.disconnect).toHaveBeenCalledTimes(1);
   });
+
+  it("continues notifying other listeners when one listener throws", async () => {
+    const source = {
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      readSnapshot: vi.fn().mockResolvedValue({
+        agents: [createAgent()],
+        health: { connected: true, sourceLabel: "test", warnings: [] },
+      }),
+    };
+
+    const runtime = createWatchRuntime<TestAgent, TestAgent["status"]>({
+      source,
+      lifecycle: {
+        getId: (agent) => agent.id,
+        getStatus: (agent) => agent.status,
+      },
+    });
+
+    runtime.subscribe((event) => {
+      if (event.type === "snapshot") {
+        throw new Error("listener blew up");
+      }
+    });
+    const healthyListener = vi.fn();
+    runtime.subscribe(healthyListener);
+
+    await runtime.start();
+    await runtime.refreshNow();
+    await runtime.stop();
+
+    expect(healthyListener).toHaveBeenCalled();
+  });
+
+  it("rejects refresh when runtime is not started", async () => {
+    const source = {
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      readSnapshot: vi.fn().mockResolvedValue({
+        agents: [createAgent()],
+        health: { connected: true, sourceLabel: "test", warnings: [] },
+      }),
+    };
+
+    const runtime = createWatchRuntime<TestAgent, TestAgent["status"]>({
+      source,
+      lifecycle: {
+        getId: (agent) => agent.id,
+        getStatus: (agent) => agent.status,
+      },
+    });
+
+    await expect(runtime.refreshNow()).rejects.toMatchObject({
+      name: "WatchRuntimeError",
+      code: "NOT_RUNNING",
+    });
+  });
 });

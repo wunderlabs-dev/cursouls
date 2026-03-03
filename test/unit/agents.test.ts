@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { AGENT_LIFECYCLE_EVENT_KIND } from "@shared/types";
 import { createAgentSubscription } from "@shared/watch";
 
 interface TestAgent {
@@ -36,7 +37,7 @@ describe("agent subscription facade", () => {
       seen.push({ type: event.type });
       if (event.type === "updated") {
         expect(event.snapshot.agents[0]?.id).toBe("a-1");
-        expect(event.change.kind).toBe("joined");
+        expect(event.change.kind).toBe(AGENT_LIFECYCLE_EVENT_KIND.joined);
         expect(event.agent.id).toBe("a-1");
       }
     });
@@ -76,7 +77,36 @@ describe("agent subscription facade", () => {
     await Promise.resolve();
     await subscription.stop();
 
-    expect(kinds).toContain("joined");
+    expect(kinds).toContain(AGENT_LIFECYCLE_EVENT_KIND.joined);
+  });
+
+  it("emits snapshot events even with empty agent lists", async () => {
+    const source = {
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      readSnapshot: vi.fn().mockResolvedValue({
+        agents: [],
+        connected: false,
+        sourceLabel: "test-source",
+        warnings: ["empty"],
+      }),
+      getWatchPaths: vi.fn().mockReturnValue([]),
+    };
+
+    const subscription = createAgentSubscription({
+      projectPath: "/tmp/project",
+      now: () => 1234,
+      sourceFactory: () => source as never,
+      watchFactory: () => ({ close: vi.fn(), on: vi.fn() }),
+    });
+    const onSnapshot = vi.fn();
+    subscription.subscribeToSnapshots(onSnapshot);
+
+    await subscription.start();
+    await vi.waitFor(() => {
+      expect(onSnapshot).toHaveBeenCalled();
+    });
+    await subscription.stop();
   });
 
   it("tracks latest snapshot across refreshNow", async () => {

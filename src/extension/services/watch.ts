@@ -1,8 +1,10 @@
 import { watch } from "node:fs";
 import {
   AGENT_SUBSCRIPTION_EVENT_TYPES,
+  WATCH_RUNTIME_ERROR_CODES,
   WATCH_RUNTIME_ERROR_MESSAGES,
   createAgentSubscription,
+  isWatchRuntimeError,
   type AgentStateSnapshot,
 } from "@shared/watch";
 import type { AgentLifecycleEvent, AgentSourceReadResult, SceneFrame } from "@shared/types";
@@ -57,7 +59,9 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
   const frameListeners = new Set<FrameListener>();
   const lifecycleListeners = new Set<LifecycleListener>();
   const errorListeners = new Set<ErrorListener>();
-  let running = false;
+  let state: "stopped" | "starting" | "started" | "stopping" = "stopped";
+  let startPromise: Promise<void> | null = null;
+  let stopPromise: Promise<void> | null = null;
   let latestFrame: SceneFrame | undefined;
 
   const subscription = createAgentSubscription({
@@ -72,58 +76,105 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
     },
   });
 
-  subscription.subscribeToAgentChanges((event) => {
+  subscription.subscribeToSnapshots((event) => {
     const frame = applySnapshot(event.snapshot, event.snapshot.at, store);
     latestFrame = frame;
-    for (const listener of frameListeners) {
-      listener(frame);
-    }
-    for (const listener of lifecycleListeners) {
-      listener([event.change]);
-    }
+    notifyListeners(frameListeners, frame);
+  });
+
+  subscription.subscribeToAgentChanges((event) => {
+    notifyListeners(lifecycleListeners, [event.change]);
   });
 
   subscription.subscribe((event) => {
     if (event.type === AGENT_SUBSCRIPTION_EVENT_TYPES.errored) {
-      for (const listener of errorListeners) {
-        listener(event.error);
-      }
+      notifyListeners(errorListeners, event.error);
     }
   });
 
   async function start(): Promise<void> {
-    if (running) {
+    if (state === "started") {
       return;
     }
+    if (state === "starting" && startPromise) {
+      return startPromise;
+    }
+    if (state === "stopping" && stopPromise) {
+      await stopPromise;
+    }
 
-    running = true;
+    state = "starting";
+    const operation = (async () => {
+      try {
+        await subscription.start();
+        state = "started";
+      } catch (error) {
+        state = "stopped";
+        throw error;
+      }
+    })();
+    startPromise = operation;
     try {
-      await subscription.start();
-    } catch (error) {
-      running = false;
-      throw error;
+      await operation;
+    } finally {
+      if (startPromise === operation) {
+        startPromise = null;
+      }
     }
   }
 
   async function stop(): Promise<void> {
-    if (!running) {
+    if (state === "stopped") {
       return;
     }
+    if (state === "stopping" && stopPromise) {
+      return stopPromise;
+    }
+    if (state === "starting" && startPromise) {
+      try {
+        await startPromise;
+      } catch {
+        // Continue stopping after failed startup.
+      }
+    }
 
-    running = false;
-    await subscription.stop();
+    state = "stopping";
+    const operation = (async () => {
+      try {
+        await subscription.stop();
+      } finally {
+        state = "stopped";
+      }
+    })();
+    stopPromise = operation;
+    try {
+      await operation;
+    } finally {
+      if (stopPromise === operation) {
+        stopPromise = null;
+      }
+    }
   }
 
-  function refreshNow(): Promise<SceneFrame> {
-    if (!running) {
+  async function refreshNow(): Promise<SceneFrame> {
+    if (state === "starting" && startPromise) {
+      await startPromise;
+    }
+    if (state !== "started") {
       return Promise.reject(new Error("Watch controller is not running."));
     }
-    return subscription.refreshNow().then((snapshot) => {
-      if (latestFrame) {
-        return latestFrame;
+    try {
+      const snapshot = await subscription.refreshNow();
+      const frame = applySnapshot(snapshot, snapshot.at, store);
+      latestFrame = frame;
+      return frame;
+    } catch (error: unknown) {
+      if (
+        isWatchRuntimeError(error) &&
+        error.code === WATCH_RUNTIME_ERROR_CODES.stoppedBeforeRefreshCompleted
+      ) {
+        throw new Error("Watch controller stopped before refresh completed.");
       }
-      return toFrame(snapshot, snapshot.at);
-    }).catch((error: unknown) => {
       if (
         error instanceof Error &&
         error.message === WATCH_RUNTIME_ERROR_MESSAGES.stoppedBeforeRefreshCompleted
@@ -131,7 +182,7 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
         throw new Error("Watch controller stopped before refresh completed.");
       }
       throw error;
-    });
+    }
   }
 
   function onFrame(listener: FrameListener): () => void {
@@ -163,6 +214,16 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
     onLifecycleEvents,
     onError,
   };
+}
+
+function notifyListeners<T>(listeners: Set<(value: T) => void>, payload: T): void {
+  for (const listener of listeners) {
+    try {
+      listener(payload);
+    } catch {
+      // Keep notification fan-out resilient to listener failures.
+    }
+  }
 }
 
 function createDefaultWatcher(watchPath: string, onEvent: () => void): WatcherLike {

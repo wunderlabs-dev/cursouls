@@ -39,10 +39,11 @@ function buildFrame(): SceneFrame {
 function buildLifecycleEvents(): AgentLifecycleEvent[] {
   return [
     {
-      type: "joined",
+      kind: "joined",
       agentId: "a-1",
       at: 1_700_000_000_000,
-      nextStatus: "running",
+      fromStatus: null,
+      toStatus: "running",
     },
   ];
 }

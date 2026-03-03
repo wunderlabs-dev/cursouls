@@ -2,6 +2,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createWatchController } from "@ext/services/watch";
 import type { AgentSourceReadResult, SceneFrame } from "@shared/types";
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 function createReadResult(): AgentSourceReadResult {
   return {
     agents: [
@@ -41,14 +51,15 @@ describe("watch controller", () => {
       connect: vi.fn(),
       disconnect: vi.fn(),
       readSnapshot: vi.fn().mockResolvedValue(createReadResult()),
+      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
     };
     const store = { update: vi.fn().mockReturnValue(createFrame()) };
 
     const controller = createWatchController({
-      source,
+      projectPath: "/tmp/project",
       store,
       now: () => 1234,
-      watchPaths: ["/tmp/agent.jsonl"],
+      sourceFactory: () => source,
       watchFactory: (_path, _onEvent) => ({
         close: vi.fn(),
         on: vi.fn(),
@@ -81,15 +92,16 @@ describe("watch controller", () => {
       connect: vi.fn(),
       disconnect: vi.fn(),
       readSnapshot: vi.fn().mockResolvedValue(createReadResult()),
+      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
     };
     const expectedFrame = createFrame();
     const store = { update: vi.fn().mockReturnValue(expectedFrame) };
 
     const controller = createWatchController({
-      source,
+      projectPath: "/tmp/project",
       store,
       now: () => 1234,
-      watchPaths: ["/tmp/agent.jsonl"],
+      sourceFactory: () => source,
       watchFactory: (_path, _onEvent) => ({
         close: vi.fn(),
         on: vi.fn(),
@@ -116,15 +128,16 @@ describe("watch controller", () => {
         .fn()
         .mockResolvedValueOnce(createReadResult())
         .mockResolvedValueOnce(createReadResult()),
+      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
     };
     const store = { update: vi.fn().mockReturnValue(createFrame()) };
     const watchedCallbacks: Array<() => void> = [];
     const controller = createWatchController({
-      source,
+      projectPath: "/tmp/project",
       store,
       now: () => 1234,
       debounceMs: 150,
-      watchPaths: ["/tmp/agent.jsonl"],
+      sourceFactory: () => source,
       watchFactory: (_path, onEvent) => {
         watchedCallbacks.push(onEvent);
         return {
@@ -156,5 +169,151 @@ describe("watch controller", () => {
     expect(source.readSnapshot).toHaveBeenCalledTimes(2);
 
     await controller.stop();
+  });
+
+  it("serializes refreshes so reads never overlap", async () => {
+    const reads: Array<ReturnType<typeof createDeferred<AgentSourceReadResult>>> = [];
+    let inFlight = 0;
+    let maxInFlight = 0;
+
+    const source = {
+      sourceKind: "cursor-transcripts" as const,
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      readSnapshot: vi.fn().mockImplementation(async () => {
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        const deferred = createDeferred<AgentSourceReadResult>();
+        reads.push(deferred);
+        try {
+          return await deferred.promise;
+        } finally {
+          inFlight -= 1;
+        }
+      }),
+      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
+    };
+    const store = { update: vi.fn().mockReturnValue(createFrame()) };
+
+    const controller = createWatchController({
+      projectPath: "/tmp/project",
+      store,
+      now: () => 1234,
+      sourceFactory: () => source,
+      watchFactory: (_path, _onEvent) => ({
+        close: vi.fn(),
+        on: vi.fn(),
+      }),
+    });
+
+    await controller.start();
+    await Promise.resolve();
+
+    expect(source.readSnapshot).toHaveBeenCalledTimes(1);
+    expect(maxInFlight).toBe(1);
+
+    const firstWaiter = controller.refreshNow();
+    const secondWaiter = controller.refreshNow();
+    await Promise.resolve();
+    expect(source.readSnapshot).toHaveBeenCalledTimes(1);
+
+    reads[0].resolve(createReadResult());
+    await vi.waitFor(() => {
+      expect(source.readSnapshot).toHaveBeenCalledTimes(2);
+    });
+    expect(maxInFlight).toBe(1);
+
+    reads[1].resolve(createReadResult());
+    await Promise.all([firstWaiter, secondWaiter]);
+    await controller.stop();
+  });
+
+  it("coalesces refreshNow waiters into the same refresh cycle", async () => {
+    const reads: Array<ReturnType<typeof createDeferred<AgentSourceReadResult>>> = [];
+    const source = {
+      sourceKind: "cursor-transcripts" as const,
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      readSnapshot: vi.fn().mockImplementation(() => {
+        const deferred = createDeferred<AgentSourceReadResult>();
+        reads.push(deferred);
+        return deferred.promise;
+      }),
+      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
+    };
+    const initialFrame = createFrame();
+    const refreshedFrame = createFrame();
+    const store = {
+      update: vi.fn().mockReturnValueOnce(initialFrame).mockReturnValueOnce(refreshedFrame),
+    };
+
+    const controller = createWatchController({
+      projectPath: "/tmp/project",
+      store,
+      now: () => 1234,
+      sourceFactory: () => source,
+      watchFactory: (_path, _onEvent) => ({
+        close: vi.fn(),
+        on: vi.fn(),
+      }),
+    });
+
+    await controller.start();
+    await Promise.resolve();
+    expect(source.readSnapshot).toHaveBeenCalledTimes(1);
+
+    const firstWaiter = controller.refreshNow();
+    const secondWaiter = controller.refreshNow();
+    await Promise.resolve();
+    expect(source.readSnapshot).toHaveBeenCalledTimes(1);
+
+    reads[0].resolve(createReadResult());
+    await vi.waitFor(() => {
+      expect(source.readSnapshot).toHaveBeenCalledTimes(2);
+    });
+
+    reads[1].resolve(createReadResult());
+
+    const [first, second] = await Promise.all([firstWaiter, secondWaiter]);
+    expect(source.readSnapshot).toHaveBeenCalledTimes(2);
+    expect(first).toBe(refreshedFrame);
+    expect(second).toBe(refreshedFrame);
+
+    await controller.stop();
+  });
+
+  it("rejects queued refreshNow waiters when stopped", async () => {
+    const firstRead = createDeferred<AgentSourceReadResult>();
+    const source = {
+      sourceKind: "cursor-transcripts" as const,
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      readSnapshot: vi.fn().mockImplementation(() => firstRead.promise),
+      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
+    };
+    const store = { update: vi.fn().mockReturnValue(createFrame()) };
+
+    const controller = createWatchController({
+      projectPath: "/tmp/project",
+      store,
+      now: () => 1234,
+      sourceFactory: () => source,
+      watchFactory: (_path, _onEvent) => ({
+        close: vi.fn(),
+        on: vi.fn(),
+      }),
+    });
+
+    await controller.start();
+    await Promise.resolve();
+    expect(source.readSnapshot).toHaveBeenCalledTimes(1);
+
+    const waiter = controller.refreshNow();
+    await controller.stop();
+
+    await expect(waiter).rejects.toThrow("Watch controller stopped before refresh completed.");
+
+    firstRead.resolve(createReadResult());
+    await Promise.resolve();
   });
 });

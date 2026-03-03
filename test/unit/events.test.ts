@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AgentSnapshot } from "@shared/types";
-import { createEventMapper } from "@ext/services/events";
+import { createLifecycleMapper } from "@shared/watch/lifecycle";
 
 function agent(id: string, status: AgentSnapshot["status"]): AgentSnapshot {
   return {
@@ -14,21 +14,27 @@ function agent(id: string, status: AgentSnapshot["status"]): AgentSnapshot {
   };
 }
 
-describe("EventMapper", () => {
+describe("LifecycleMapper", () => {
   it("emits joined events for first-seen agents in input order", () => {
-    const mapper = createEventMapper();
+    const mapper = createLifecycleMapper<AgentSnapshot, AgentSnapshot["status"]>({
+      getId: (value) => value.id,
+      getStatus: (value) => value.status,
+    });
     const at = 1_700_000_001_000;
 
     const events = mapper.map([agent("a", "running"), agent("b", "idle")], at);
 
     expect(events).toEqual([
-      { type: "joined", agentId: "a", at, nextStatus: "running" },
-      { type: "joined", agentId: "b", at, nextStatus: "idle" },
+      { kind: "joined", agentId: "a", at, fromStatus: null, toStatus: "running" },
+      { kind: "joined", agentId: "b", at, fromStatus: null, toStatus: "idle" },
     ]);
   });
 
   it("emits heartbeat/status-changed/left transitions between snapshots", () => {
-    const mapper = createEventMapper();
+    const mapper = createLifecycleMapper<AgentSnapshot, AgentSnapshot["status"]>({
+      getId: (value) => value.id,
+      getStatus: (value) => value.status,
+    });
     mapper.map([agent("a", "running"), agent("b", "idle"), agent("c", "running")], 1000);
 
     const events = mapper.map(
@@ -38,41 +44,48 @@ describe("EventMapper", () => {
 
     expect(events).toEqual([
       {
-        type: "heartbeat",
+        kind: "heartbeat",
         agentId: "a",
         at: 2000,
-        previousStatus: "running",
-        nextStatus: "running",
+        fromStatus: "running",
+        toStatus: "running",
       },
       {
-        type: "status-changed",
+        kind: "statusChanged",
         agentId: "b",
         at: 2000,
-        previousStatus: "idle",
-        nextStatus: "completed",
+        fromStatus: "idle",
+        toStatus: "completed",
       },
       {
-        type: "joined",
+        kind: "joined",
         agentId: "d",
         at: 2000,
-        nextStatus: "error",
+        fromStatus: null,
+        toStatus: "error",
       },
       {
-        type: "left",
+        kind: "left",
         agentId: "c",
         at: 2000,
-        previousStatus: "running",
+        fromStatus: "running",
+        toStatus: null,
       },
     ]);
   });
 
   it("forgets history after reset", () => {
-    const mapper = createEventMapper();
+    const mapper = createLifecycleMapper<AgentSnapshot, AgentSnapshot["status"]>({
+      getId: (value) => value.id,
+      getStatus: (value) => value.status,
+    });
     mapper.map([agent("a", "running")], 1000);
     mapper.reset();
 
     const events = mapper.map([agent("a", "running")], 2000);
 
-    expect(events).toEqual([{ type: "joined", agentId: "a", at: 2000, nextStatus: "running" }]);
+    expect(events).toEqual([
+      { kind: "joined", agentId: "a", at: 2000, fromStatus: null, toStatus: "running" },
+    ]);
   });
 });

@@ -40,12 +40,12 @@ export interface AgentSourceReadResult {
   warnings: string[];
 }
 
-export type AgentLifecycleEventType = "joined" | "left" | "status-changed" | "heartbeat";
+export type AgentLifecycleEventType = "joined" | "left" | "statusChanged" | "heartbeat";
 
 export interface AgentLifecycleEvent {
-  type: AgentLifecycleEventType;
+  kind: AgentLifecycleEventType;
   agentId: string;
   at: number;
-  previousStatus?: AgentStatus;
-  nextStatus?: AgentStatus;
+  fromStatus: AgentStatus | null;
+  toStatus: AgentStatus | null;
 }

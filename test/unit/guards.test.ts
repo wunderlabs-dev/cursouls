@@ -35,16 +35,18 @@ function buildFrame(): SceneFrame {
 function buildLifecycleEvents(): AgentLifecycleEvent[] {
   return [
     {
-      type: "joined",
+      kind: "joined",
       agentId: "a-1",
       at: 1_700_000_000_000,
-      nextStatus: "running",
+      fromStatus: null,
+      toStatus: "running",
     },
     {
-      type: "left",
+      kind: "left",
       agentId: "a-2",
       at: 1_700_000_001_000,
-      previousStatus: "idle",
+      fromStatus: "idle",
+      toStatus: null,
     },
   ];
 }
@@ -151,7 +153,7 @@ describe("useVsCodeBridge inbound parse guards", () => {
     emitInbound({ type: "lifecycleEvents", events: {} });
     emitInbound({
       type: "lifecycleEvents",
-      events: [{ type: "joined", agentId: "a-1", at: "bad" }],
+      events: [{ kind: "joined", agentId: "a-1", at: "bad" }],
     });
     expect(seen).toEqual([]);
 

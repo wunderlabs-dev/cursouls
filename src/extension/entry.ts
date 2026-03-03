@@ -2,8 +2,6 @@ import * as vscode from "vscode";
 import { readCafeConfig } from "./config";
 import { createLogger } from "./logging";
 import { CAFE_VIEW_TYPE, createCafeViewProvider } from "@ext/providers/provider";
-import { createAgentSource } from "@ext/sources";
-import { resolveTranscriptSourcePaths } from "@ext/sources/discovery";
 import { createCafeStore } from "@ext/services/store";
 import { createWatchController, type WatchController } from "@ext/services/watch";
 
@@ -16,27 +14,21 @@ export function activate(context: vscode.ExtensionContext): void {
   const workspacePaths = (vscode.workspace.workspaceFolders ?? []).map(
     (folder) => folder.uri.fsPath,
   );
-  const transcriptPaths = resolveTranscriptSourcePaths({
-    workspacePaths,
-  });
+  const projectPath = workspacePaths[0] ?? "";
   const store = createCafeStore(config.seatCount);
-  const source = createAgentSource({
-    transcriptOptions: {
-      sourcePaths: transcriptPaths,
-    },
-  });
   const viewProvider = createCafeViewProvider(context.extensionUri);
   const watchController = createWatchController({
-    source,
+    projectPath,
     store,
-    watchPaths: transcriptPaths,
     debounceMs: config.refreshMs,
     logger,
   });
   activeWatchController = watchController;
   const disposeFrameListener = watchController.onFrame((frame) => {
     viewProvider.updateFrame(frame);
-    viewProvider.updateLifecycleEvents(store.getLastEvents());
+  });
+  const disposeLifecycleListener = watchController.onLifecycleEvents((events) => {
+    viewProvider.updateLifecycleEvents(events);
   });
   const disposeErrorListener = watchController.onError((error) => {
     logger.error(`Watch refresh error: ${formatUnknownError(error)}`);
@@ -46,6 +38,7 @@ export function activate(context: vscode.ExtensionContext): void {
     outputChannel,
     vscode.window.registerWebviewViewProvider(CAFE_VIEW_TYPE, viewProvider),
     new vscode.Disposable(disposeFrameListener),
+    new vscode.Disposable(disposeLifecycleListener),
     new vscode.Disposable(disposeErrorListener),
     vscode.commands.registerCommand("cursorCafe.refresh", async () => {
       try {
@@ -65,7 +58,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   viewProvider.updateFrame(store.getFrame());
-  viewProvider.updateLifecycleEvents(store.getLastEvents());
+  viewProvider.updateLifecycleEvents([]);
   void watchController.start().catch((error: unknown) => {
     logger.error(`Failed to start transcript watch: ${formatUnknownError(error)}`);
   });

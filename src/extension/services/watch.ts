@@ -1,31 +1,30 @@
 import { watch } from "node:fs";
-import { stat } from "node:fs/promises";
-import path from "node:path";
-import type { AgentSnapshot, AgentSourceReadResult, SceneFrame } from "@shared/types";
+import { createAgentSubscription } from "@shared/watch/agents";
+import type { WatchSnapshot } from "@shared/watch/types";
+import type { AgentLifecycleEvent, AgentSnapshot, AgentSourceReadResult, SceneFrame } from "@shared/types";
 import type { Logger } from "@ext/logging";
 import type { CafeStore } from "./store";
 
 const DEFAULT_DEBOUNCE_MS = 150;
 
 export type FrameListener = (frame: SceneFrame) => void;
+export type LifecycleListener = (events: AgentLifecycleEvent[]) => void;
 export type ErrorListener = (error: unknown) => void;
 
 interface AgentSourceLike {
   connect(): Promise<void> | void;
   disconnect(): Promise<void> | void;
-  readSnapshot(
-    now?: number,
-  ): Promise<AgentSnapshot[] | AgentSourceReadResult> | AgentSnapshot[] | AgentSourceReadResult;
+  readSnapshot(now?: number): Promise<AgentSourceReadResult> | AgentSourceReadResult;
   getWatchPaths?(): string[];
 }
 
 export interface WatchControllerOptions {
-  source: AgentSourceLike;
+  projectPath: string;
   store?: CafeStore;
   logger?: Logger;
   now?: () => number;
   debounceMs?: number;
-  watchPaths?: string[];
+  sourceFactory?: (projectPath: string) => AgentSourceLike;
   watchFactory?: (watchPath: string, onEvent: () => void) => WatcherLike;
 }
 
@@ -39,30 +38,56 @@ export interface WatchController {
   stop(): Promise<void>;
   refreshNow(): Promise<SceneFrame>;
   onFrame(listener: FrameListener): () => void;
+  onLifecycleEvents(listener: LifecycleListener): () => void;
   onError(listener: ErrorListener): () => void;
 }
 
 export function createWatchController(options: WatchControllerOptions): WatchController {
-  const source = options.source;
   const store = options.store;
   const logger = options.logger;
   const now = options.now ?? (() => Date.now());
-  const debounceMs = Math.max(10, options.debounceMs ?? DEFAULT_DEBOUNCE_MS);
+  const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
   const watchFactory = options.watchFactory ?? createDefaultWatcher;
-  const sourceWatchPaths = source.getWatchPaths?.() ?? [];
-  const configuredWatchPaths =
-    options.watchPaths && options.watchPaths.length > 0 ? options.watchPaths : sourceWatchPaths;
+  const sourceFactory = options.sourceFactory;
 
   const frameListeners = new Set<FrameListener>();
+  const lifecycleListeners = new Set<LifecycleListener>();
   const errorListeners = new Set<ErrorListener>();
-  const watchers: WatcherLike[] = [];
-
   let running = false;
-  let pendingRefresh = false;
-  let refreshLoop: Promise<void> | null = null;
-  let debounceTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
-  let manualWaiters: Array<{ resolve: (frame: SceneFrame) => void; reject: (error: unknown) => void }> =
-    [];
+  let latestFrame: SceneFrame | undefined;
+
+  const subscription = createAgentSubscription({
+    projectPath: options.projectPath,
+    debounceMs,
+    now,
+    sourceFactory,
+    watchFactory: (watchPath, onEvent) => {
+      const watcher = watchFactory(watchPath, onEvent);
+      logger?.info(`Watching transcript path: ${watchPath}`);
+      return watcher;
+    },
+  });
+
+  subscription.subscribe((event) => {
+    if (event.type === "updated") {
+      const frame = applySnapshot(event.snapshot, event.snapshot.at, store);
+      latestFrame = frame;
+      for (const listener of frameListeners) {
+        listener(frame);
+      }
+      for (const listener of lifecycleListeners) {
+        listener([event.change]);
+      }
+      return;
+    }
+
+    if (event.type === "errored") {
+      for (const listener of errorListeners) {
+        listener(event.error);
+      }
+      return;
+    }
+  });
 
   async function start(): Promise<void> {
     if (running) {
@@ -71,12 +96,9 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
 
     running = true;
     try {
-      await source.connect();
-      await initializeWatchers();
-      queueRefresh();
+      await subscription.start();
     } catch (error) {
       running = false;
-      await closeWatchers();
       throw error;
     }
   }
@@ -87,21 +109,46 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
     }
 
     running = false;
-    if (debounceTimer) {
-      globalThis.clearTimeout(debounceTimer);
-      debounceTimer = null;
+    await subscription.stop();
+  }
+
+  function refreshNow(): Promise<SceneFrame> {
+    if (!running) {
+      return Promise.reject(new Error("Watch controller is not running."));
     }
-    await closeWatchers();
-    const waiters = manualWaiters;
-    manualWaiters = [];
-    rejectWaiters(waiters, new Error("Watch controller stopped before refresh completed."));
-    await source.disconnect();
+    return subscription.refreshNow().then((snapshot) => {
+      if (latestFrame) {
+        return latestFrame;
+      }
+      return toFrame(
+        {
+          agents: snapshot.agents,
+          health: snapshot.health,
+        },
+        snapshot.at,
+      );
+    }).catch((error: unknown) => {
+      if (
+        error instanceof Error &&
+        error.message === "Watch runtime stopped before refresh completed."
+      ) {
+        throw new Error("Watch controller stopped before refresh completed.");
+      }
+      throw error;
+    });
   }
 
   function onFrame(listener: FrameListener): () => void {
     frameListeners.add(listener);
     return () => {
       frameListeners.delete(listener);
+    };
+  }
+
+  function onLifecycleEvents(listener: LifecycleListener): () => void {
+    lifecycleListeners.add(listener);
+    return () => {
+      lifecycleListeners.delete(listener);
     };
   }
 
@@ -112,126 +159,12 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
     };
   }
 
-  function refreshNow(): Promise<SceneFrame> {
-    if (!running) {
-      return Promise.reject(new Error("Watch controller is not running."));
-    }
-    return new Promise<SceneFrame>((resolve, reject) => {
-      manualWaiters.push({ resolve, reject });
-      queueRefresh();
-    });
-  }
-
-  function queueRefresh(): void {
-    if (!running) {
-      return;
-    }
-
-    pendingRefresh = true;
-    if (!refreshLoop) {
-      refreshLoop = runRefreshLoop().finally(() => {
-        refreshLoop = null;
-        if (running && pendingRefresh) {
-          queueRefresh();
-        }
-      });
-    }
-  }
-
-  async function runRefreshLoop(): Promise<void> {
-    while (running && pendingRefresh) {
-      pendingRefresh = false;
-      const waitersForCycle = manualWaiters;
-      manualWaiters = [];
-
-      try {
-        const frame = await readFrame();
-        if (!running) {
-          rejectWaiters(waitersForCycle, new Error("Watch controller stopped before refresh completed."));
-          return;
-        }
-        for (const listener of frameListeners) {
-          listener(frame);
-        }
-        resolveWaiters(waitersForCycle, frame);
-      } catch (error) {
-        for (const listener of errorListeners) {
-          listener(error);
-        }
-        rejectWaiters(waitersForCycle, error);
-      }
-    }
-  }
-
-  async function readFrame(): Promise<SceneFrame> {
-    const currentTime = now();
-    const readResult = await source.readSnapshot(currentTime);
-    const normalized = normalizeReadResult(readResult);
-    if (!store) {
-      return {
-        generatedAt: currentTime,
-        seats: [],
-        queue: [],
-        health: {
-          sourceConnected: normalized.connected,
-          sourceLabel: normalized.sourceLabel,
-          warnings: normalized.warnings,
-        },
-      };
-    }
-
-    return store.update(
-      {
-        agents: normalized.agents,
-        health: {
-          sourceConnected: normalized.connected,
-          sourceLabel: normalized.sourceLabel,
-          warnings: normalized.warnings,
-        },
-      },
-      currentTime,
-    );
-  }
-
-  async function initializeWatchers(): Promise<void> {
-    const roots = await resolveWatchRoots(configuredWatchPaths);
-    for (const root of roots) {
-      const watcher = watchFactory(root, onWatchedChange);
-      watcher.on("error", (error) => {
-        for (const listener of errorListeners) {
-          listener(error);
-        }
-      });
-      watchers.push(watcher);
-      logger?.info(`Watching transcript path: ${root}`);
-    }
-  }
-
-  function onWatchedChange(): void {
-    if (!running) {
-      return;
-    }
-    if (debounceTimer) {
-      globalThis.clearTimeout(debounceTimer);
-    }
-    debounceTimer = globalThis.setTimeout(() => {
-      debounceTimer = null;
-      queueRefresh();
-    }, debounceMs);
-  }
-
-  async function closeWatchers(): Promise<void> {
-    const activeWatchers = watchers.splice(0, watchers.length);
-    for (const watcher of activeWatchers) {
-      watcher.close();
-    }
-  }
-
   return {
     start,
     stop,
     refreshNow,
     onFrame,
+    onLifecycleEvents,
     onError,
   };
 }
@@ -243,61 +176,33 @@ function createDefaultWatcher(watchPath: string, onEvent: () => void): WatcherLi
   return watcher;
 }
 
-async function resolveWatchRoots(sourcePaths: readonly string[]): Promise<string[]> {
-  const roots = new Set<string>();
-  for (const sourcePath of sourcePaths) {
-    const trimmed = sourcePath.trim();
-    if (trimmed.length === 0) {
-      continue;
-    }
-
-    let isDirectory = false;
-    try {
-      const stats = await stat(trimmed);
-      isDirectory = stats.isDirectory();
-    } catch {
-      // Fall back to parent directory when stat fails.
-    }
-
-    roots.add(isDirectory ? trimmed : path.dirname(trimmed));
+function applySnapshot(snapshot: WatchSnapshot<AgentSnapshot>, at: number, store?: CafeStore): SceneFrame {
+  if (!store) {
+    return toFrame(snapshot, at);
   }
-  return Array.from(roots);
+  return store.update(
+    {
+      agents: snapshot.agents,
+      health: {
+        sourceConnected: snapshot.health.connected,
+        sourceLabel: snapshot.health.sourceLabel,
+        warnings: snapshot.health.warnings,
+      },
+    },
+    at,
+  );
 }
 
-function normalizeReadResult(
-  result: AgentSnapshot[] | AgentSourceReadResult,
-): AgentSourceReadResult {
-  if (Array.isArray(result)) {
-    return {
-      agents: result,
-      connected: true,
-      sourceLabel: "direct",
-      warnings: [],
-    };
-  }
+function toFrame(snapshot: WatchSnapshot<AgentSnapshot>, at: number): SceneFrame {
   return {
-    agents: result.agents ?? [],
-    connected: result.connected,
-    sourceLabel: result.sourceLabel,
-    warnings: result.warnings ?? [],
+    generatedAt: at,
+    seats: [],
+    queue: [],
+    health: {
+      sourceConnected: snapshot.health.connected,
+      sourceLabel: snapshot.health.sourceLabel,
+      warnings: snapshot.health.warnings,
+    },
   };
-}
-
-function resolveWaiters(
-  waiters: Array<{ resolve: (frame: SceneFrame) => void; reject: (error: unknown) => void }>,
-  frame: SceneFrame,
-): void {
-  for (const waiter of waiters) {
-    waiter.resolve(frame);
-  }
-}
-
-function rejectWaiters(
-  waiters: Array<{ resolve: (frame: SceneFrame) => void; reject: (error: unknown) => void }>,
-  error: unknown,
-): void {
-  for (const waiter of waiters) {
-    waiter.reject(error);
-  }
 }
 

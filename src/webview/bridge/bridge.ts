@@ -82,7 +82,7 @@ function parseInboundMessage(value: unknown): InboundMessage | undefined {
 const agentStatusSchema = z.enum(AGENT_STATUS_VALUES);
 const agentKindSchema = z.enum(AGENT_KIND_VALUES);
 const sourceKindSchema = z.enum(SOURCE_KIND_VALUES);
-const lifecycleEventTypeSchema = z.enum(["joined", "left", "status-changed", "heartbeat"]);
+const lifecycleEventTypeSchema = z.enum(["joined", "left", "statusChanged", "heartbeat"]);
 
 const agentSnapshotSchema = z.object({
   id: z.string(),
@@ -123,11 +123,11 @@ const tooltipDataSchema: z.ZodType<TooltipData> = z.object({
 });
 
 const lifecycleEventSchema: z.ZodType<AgentLifecycleEvent> = z.object({
-  type: lifecycleEventTypeSchema,
+  kind: lifecycleEventTypeSchema,
   agentId: z.string(),
   at: z.number(),
-  previousStatus: agentStatusSchema.optional(),
-  nextStatus: agentStatusSchema.optional(),
+  fromStatus: z.union([agentStatusSchema, z.null()]),
+  toStatus: z.union([agentStatusSchema, z.null()]),
 });
 
 const inboundMessageSchema: z.ZodType<InboundMessage> = z.discriminatedUnion("type", [

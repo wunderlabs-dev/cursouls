@@ -97,25 +97,25 @@ const agentSnapshotSchema = z.object({
   startedAt: z.number().optional(),
   updatedAt: z.number(),
   source: sourceKindSchema,
-});
+}).strict();
 
 const seatFrameSchema = z.object({
   tableIndex: z.number(),
   agent: z.union([agentSnapshotSchema, z.null()]),
-});
+}).strict();
 
 const sourceHealthSchema = z.object({
   sourceConnected: z.boolean(),
   sourceLabel: z.string(),
   warnings: z.array(z.string()),
-});
+}).strict();
 
 const sceneFrameSchema: z.ZodType<SceneFrame> = z.object({
   generatedAt: z.number(),
   seats: z.array(seatFrameSchema),
   queue: z.array(agentSnapshotSchema),
   health: sourceHealthSchema,
-});
+}).strict();
 
 const tooltipDataSchema: z.ZodType<TooltipData> = z.object({
   id: z.string(),
@@ -124,7 +124,7 @@ const tooltipDataSchema: z.ZodType<TooltipData> = z.object({
   task: z.string(),
   elapsed: z.string(),
   updated: z.string(),
-});
+}).strict();
 
 const lifecycleEventSchema: z.ZodType<AgentLifecycleEvent> = z.object({
   kind: lifecycleEventTypeSchema,
@@ -132,22 +132,22 @@ const lifecycleEventSchema: z.ZodType<AgentLifecycleEvent> = z.object({
   at: z.number(),
   fromStatus: z.union([agentStatusSchema, z.null()]),
   toStatus: z.union([agentStatusSchema, z.null()]),
-});
+}).strict();
 
 const inboundMessageSchema: z.ZodType<InboundMessage> = z.discriminatedUnion("type", [
   z.object({
     type: z.literal(BRIDGE_INBOUND_TYPE.sceneFrame),
     frame: sceneFrameSchema,
-  }),
+  }).strict(),
   z.object({
     type: z.literal(BRIDGE_INBOUND_TYPE.lifecycleEvents),
     events: z.array(lifecycleEventSchema),
-  }),
+  }).strict(),
   z.object({
     type: z.literal(BRIDGE_INBOUND_TYPE.tooltipData),
     tooltip: tooltipDataSchema,
-  }),
+  }).strict(),
   z.object({
     type: z.literal(BRIDGE_INBOUND_TYPE.hideTooltip),
-  }),
+  }).strict(),
 ]);

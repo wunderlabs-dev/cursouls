@@ -19,9 +19,10 @@ export interface CafeViewProvider extends vscode.WebviewViewProvider {
 }
 
 export function createCafeViewProvider(extensionUri: vscode.Uri): CafeViewProvider {
+  const MAX_LIFECYCLE_REPLAY_EVENTS = 200;
   let view: vscode.WebviewView | undefined;
   let latestFrame: SceneFrame | undefined;
-  let latestLifecycleEvents: AgentLifecycleEvent[] | undefined;
+  let lifecycleReplayEvents: AgentLifecycleEvent[] = [];
 
   function resolveWebviewView(nextView: vscode.WebviewView): void {
     view = nextView;
@@ -45,8 +46,11 @@ export function createCafeViewProvider(extensionUri: vscode.Uri): CafeViewProvid
         if (latestFrame) {
           postMessage({ type: BRIDGE_INBOUND_TYPE.sceneFrame, frame: latestFrame });
         }
-        if (latestLifecycleEvents) {
-          postMessage({ type: BRIDGE_INBOUND_TYPE.lifecycleEvents, events: latestLifecycleEvents });
+        if (lifecycleReplayEvents.length > 0) {
+          postMessage({
+            type: BRIDGE_INBOUND_TYPE.lifecycleEvents,
+            events: lifecycleReplayEvents,
+          });
         }
         return;
       }
@@ -68,7 +72,12 @@ export function createCafeViewProvider(extensionUri: vscode.Uri): CafeViewProvid
   }
 
   function updateLifecycleEvents(events: AgentLifecycleEvent[]): void {
-    latestLifecycleEvents = events;
+    lifecycleReplayEvents = [...lifecycleReplayEvents, ...events];
+    if (lifecycleReplayEvents.length > MAX_LIFECYCLE_REPLAY_EVENTS) {
+      lifecycleReplayEvents = lifecycleReplayEvents.slice(
+        lifecycleReplayEvents.length - MAX_LIFECYCLE_REPLAY_EVENTS,
+      );
+    }
     postMessage({ type: BRIDGE_INBOUND_TYPE.lifecycleEvents, events });
   }
 

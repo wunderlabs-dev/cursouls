@@ -110,6 +110,7 @@ export function createCursorTranscriptSource(
     const orderedIds: string[] = [];
     const latestById = new Map<string, AgentSnapshot>();
     let hasReadError = false;
+    let successfulReads = 0;
 
     for (const sourcePath of sourcePaths) {
       let contents: string;
@@ -122,6 +123,7 @@ export function createCursorTranscriptSource(
       }
       try {
         contents = await readFile(sourcePath, "utf8");
+        successfulReads += 1;
       } catch {
         hasReadError = true;
         warnings.push(`Failed to read transcript path: ${sourcePath}`);
@@ -149,7 +151,7 @@ export function createCursorTranscriptSource(
 
     return {
       agents,
-      connected: !hasReadError,
+      connected: successfulReads > 0 || !hasReadError,
       sourceLabel,
       warnings,
     };

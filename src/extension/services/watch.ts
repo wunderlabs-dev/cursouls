@@ -79,16 +79,16 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
   subscription.subscribeToSnapshots((event) => {
     const frame = applySnapshot(event.snapshot, event.snapshot.at, store);
     latestFrame = frame;
-    notifyListeners(frameListeners, frame);
+    notifyListeners(frameListeners, frame, "frame", logger);
   });
 
   subscription.subscribeToAgentChanges((event) => {
-    notifyListeners(lifecycleListeners, [event.change]);
+    notifyListeners(lifecycleListeners, [event.change], "lifecycle", logger);
   });
 
   subscription.subscribe((event) => {
     if (event.type === AGENT_SUBSCRIPTION_EVENT_TYPES.errored) {
-      notifyListeners(errorListeners, event.error);
+      notifyListeners(errorListeners, event.error, "error", logger);
     }
   });
 
@@ -216,14 +216,26 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
   };
 }
 
-function notifyListeners<T>(listeners: Set<(value: T) => void>, payload: T): void {
+function notifyListeners<T>(
+  listeners: Set<(value: T) => void>,
+  payload: T,
+  channel: "frame" | "lifecycle" | "error",
+  logger?: Logger,
+): void {
   for (const listener of listeners) {
     try {
       listener(payload);
-    } catch {
-      // Keep notification fan-out resilient to listener failures.
+    } catch (error) {
+      logger?.error(`Watch ${channel} listener failed: ${formatUnknownError(error)}`);
     }
   }
+}
+
+function formatUnknownError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
 }
 
 function createDefaultWatcher(watchPath: string, onEvent: () => void): WatcherLike {

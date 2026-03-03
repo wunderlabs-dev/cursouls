@@ -1,4 +1,4 @@
-import type { AgentStatus } from "@shared/types";
+import { AGENT_STATUS, type AgentStatus } from "@shared/types";
 import words from "lodash.words";
 import upperFirst from "lodash.upperfirst";
 
@@ -20,13 +20,13 @@ export function initialsFor(name: string): string {
 
 export function statusGlyph(status: AgentStatus): string {
   switch (status) {
-    case "running":
+    case AGENT_STATUS.running:
       return "⌨";
-    case "idle":
+    case AGENT_STATUS.idle:
       return "☕";
-    case "completed":
+    case AGENT_STATUS.completed:
       return "✓";
-    case "error":
+    case AGENT_STATUS.error:
       return "⚠";
     default:
       return "•";

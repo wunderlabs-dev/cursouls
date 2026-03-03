@@ -1,7 +1,11 @@
 import { watch } from "node:fs";
-import { createAgentSubscription } from "@shared/watch/agents";
-import type { WatchSnapshot } from "@shared/watch/types";
-import type { AgentLifecycleEvent, AgentSnapshot, AgentSourceReadResult, SceneFrame } from "@shared/types";
+import {
+  AGENT_SUBSCRIPTION_EVENT_TYPES,
+  WATCH_RUNTIME_ERROR_MESSAGES,
+  createAgentSubscription,
+  type AgentStateSnapshot,
+} from "@shared/watch";
+import type { AgentLifecycleEvent, AgentSourceReadResult, SceneFrame } from "@shared/types";
 import type { Logger } from "@ext/logging";
 import type { CafeStore } from "./store";
 
@@ -68,24 +72,22 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
     },
   });
 
-  subscription.subscribe((event) => {
-    if (event.type === "updated") {
-      const frame = applySnapshot(event.snapshot, event.snapshot.at, store);
-      latestFrame = frame;
-      for (const listener of frameListeners) {
-        listener(frame);
-      }
-      for (const listener of lifecycleListeners) {
-        listener([event.change]);
-      }
-      return;
+  subscription.subscribeToAgentChanges((event) => {
+    const frame = applySnapshot(event.snapshot, event.snapshot.at, store);
+    latestFrame = frame;
+    for (const listener of frameListeners) {
+      listener(frame);
     }
+    for (const listener of lifecycleListeners) {
+      listener([event.change]);
+    }
+  });
 
-    if (event.type === "errored") {
+  subscription.subscribe((event) => {
+    if (event.type === AGENT_SUBSCRIPTION_EVENT_TYPES.errored) {
       for (const listener of errorListeners) {
         listener(event.error);
       }
-      return;
     }
   });
 
@@ -120,17 +122,11 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
       if (latestFrame) {
         return latestFrame;
       }
-      return toFrame(
-        {
-          agents: snapshot.agents,
-          health: snapshot.health,
-        },
-        snapshot.at,
-      );
+      return toFrame(snapshot, snapshot.at);
     }).catch((error: unknown) => {
       if (
         error instanceof Error &&
-        error.message === "Watch runtime stopped before refresh completed."
+        error.message === WATCH_RUNTIME_ERROR_MESSAGES.stoppedBeforeRefreshCompleted
       ) {
         throw new Error("Watch controller stopped before refresh completed.");
       }
@@ -176,7 +172,7 @@ function createDefaultWatcher(watchPath: string, onEvent: () => void): WatcherLi
   return watcher;
 }
 
-function applySnapshot(snapshot: WatchSnapshot<AgentSnapshot>, at: number, store?: CafeStore): SceneFrame {
+function applySnapshot(snapshot: AgentStateSnapshot, at: number, store?: CafeStore): SceneFrame {
   if (!store) {
     return toFrame(snapshot, at);
   }
@@ -193,7 +189,7 @@ function applySnapshot(snapshot: WatchSnapshot<AgentSnapshot>, at: number, store
   );
 }
 
-function toFrame(snapshot: WatchSnapshot<AgentSnapshot>, at: number): SceneFrame {
+function toFrame(snapshot: AgentStateSnapshot, at: number): SceneFrame {
   return {
     generatedAt: at,
     seats: [],

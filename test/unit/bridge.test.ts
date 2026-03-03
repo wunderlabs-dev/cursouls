@@ -1,8 +1,13 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  BRIDGE_AGENT_ANCHOR,
+  BRIDGE_INBOUND_TYPE,
+  BRIDGE_OUTBOUND_TYPE,
+  type InboundMessage,
+  type OutboundMessage,
+} from "@shared/bridge";
+import { AGENT_KIND, AGENT_LIFECYCLE_EVENT_KIND, AGENT_SOURCE_KIND, AGENT_STATUS } from "@shared/types";
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
-import { extractMessageTypesFromSource } from "@test/unit/helpers/bridge";
 
 vi.mock("vscode", () => ({}), { virtual: true });
 vi.mock("@ext/providers/html", () => ({
@@ -18,12 +23,12 @@ function buildFrame(): SceneFrame {
         agent: {
           id: "a-1",
           name: "Ada",
-          kind: "local",
-          status: "running",
+          kind: AGENT_KIND.local,
+          status: AGENT_STATUS.running,
           taskSummary: "Reviewing bridge",
           startedAt: 1_700_000_000_000 - 180_000,
           updatedAt: 1_700_000_000_000 - 15_000,
-          source: "mock",
+          source: AGENT_SOURCE_KIND.mock,
         },
       },
     ],
@@ -39,11 +44,11 @@ function buildFrame(): SceneFrame {
 function buildLifecycleEvents(): AgentLifecycleEvent[] {
   return [
     {
-      kind: "joined",
+      kind: AGENT_LIFECYCLE_EVENT_KIND.joined,
       agentId: "a-1",
       at: 1_700_000_000_000,
       fromStatus: null,
-      toStatus: "running",
+      toStatus: AGENT_STATUS.running,
     },
   ];
 }
@@ -95,36 +100,25 @@ describe("webview bridge compatibility", () => {
     vi.setSystemTime(1_700_000_000_000);
   });
 
-  it("uses compatible inbound and outbound message type envelopes", () => {
-    const projectRoot = resolve(__dirname, "../..");
-    const webviewTypesSource = readFileSync(
-      resolve(projectRoot, "src/webview/bridge/types.ts"),
-      "utf8",
-    );
-    const providerSource = readFileSync(
-      resolve(projectRoot, "src/extension/providers/provider.ts"),
-      "utf8",
-    );
+  it("uses shared bridge contracts for message envelopes", () => {
+    const outboundReady: OutboundMessage = { type: BRIDGE_OUTBOUND_TYPE.ready };
+    const outboundClick: OutboundMessage = {
+      type: BRIDGE_OUTBOUND_TYPE.agentClick,
+      agentId: "a-1",
+      anchor: BRIDGE_AGENT_ANCHOR.seat,
+    };
+    const inboundFrame: InboundMessage = {
+      type: BRIDGE_INBOUND_TYPE.sceneFrame,
+      frame: buildFrame(),
+    };
 
-    const outboundSection =
-      webviewTypesSource
-        .split("export type OutboundMessage =")[1]
-        ?.split("export type InboundMessage =")[0] ?? "";
-    const inboundSection =
-      webviewTypesSource
-        .split("export type InboundMessage =")[1]
-        ?.split("export type InboundMessageType")[0] ?? "";
-
-    const webviewOutboundTypes = extractMessageTypesFromSource(outboundSection, "type:");
-    const webviewInboundTypes = extractMessageTypesFromSource(inboundSection, "type:");
-    const providerInboundTypes = extractMessageTypesFromSource(providerSource, "message.type ===");
-    const providerOutboundTypes = extractMessageTypesFromSource(
-      providerSource,
-      "postMessage({ type:",
-    );
-
-    expect(providerOutboundTypes).toEqual(webviewInboundTypes);
-    expect(providerInboundTypes).toEqual(webviewOutboundTypes);
+    expect(outboundReady.type).toBe("ready");
+    expect(outboundClick.type).toBe("agentClick");
+    expect(inboundFrame.type).toBe("sceneFrame");
+    expect(AGENT_STATUS.running).toBe("running");
+    expect(AGENT_KIND.local).toBe("local");
+    expect(AGENT_SOURCE_KIND.mock).toBe("mock");
+    expect(AGENT_LIFECYCLE_EVENT_KIND.joined).toBe("joined");
   });
 
   it("replays the latest scene frame when the webview sends ready", async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createAgentSubscription } from "@shared/watch/agents";
+import { createAgentSubscription } from "@shared/watch";
 
 interface TestAgent {
   id: string;

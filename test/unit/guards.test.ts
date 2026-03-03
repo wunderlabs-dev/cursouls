@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { BRIDGE_INBOUND_TYPE } from "@shared/bridge";
+import { AGENT_KIND, AGENT_LIFECYCLE_EVENT_KIND, AGENT_SOURCE_KIND, AGENT_STATUS } from "@shared/types";
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import { createBridge } from "@web/bridge/bridge";
 import type { InboundMessage } from "@web/bridge/types";
@@ -14,12 +16,12 @@ function buildFrame(): SceneFrame {
         agent: {
           id: "a-1",
           name: "Ada",
-          kind: "local",
-          status: "running",
+          kind: AGENT_KIND.local,
+          status: AGENT_STATUS.running,
           taskSummary: "Reviewing bridge",
           startedAt: 1_700_000_000_000 - 180_000,
           updatedAt: 1_700_000_000_000 - 15_000,
-          source: "mock",
+          source: AGENT_SOURCE_KIND.mock,
         },
       },
     ],
@@ -35,17 +37,17 @@ function buildFrame(): SceneFrame {
 function buildLifecycleEvents(): AgentLifecycleEvent[] {
   return [
     {
-      kind: "joined",
+      kind: AGENT_LIFECYCLE_EVENT_KIND.joined,
       agentId: "a-1",
       at: 1_700_000_000_000,
       fromStatus: null,
-      toStatus: "running",
+      toStatus: AGENT_STATUS.running,
     },
     {
-      kind: "left",
+      kind: AGENT_LIFECYCLE_EVENT_KIND.left,
       agentId: "a-2",
       at: 1_700_000_001_000,
-      fromStatus: "idle",
+      fromStatus: AGENT_STATUS.idle,
       toStatus: null,
     },
   ];
@@ -88,16 +90,16 @@ describe("useVsCodeBridge inbound parse guards", () => {
     const seen: InboundMessage[] = [];
     bridge.subscribe((message) => seen.push(message));
 
-    emitInbound({ type: "sceneFrame", frame: {} });
+    emitInbound({ type: BRIDGE_INBOUND_TYPE.sceneFrame, frame: {} });
     emitInbound({
-      type: "sceneFrame",
+      type: BRIDGE_INBOUND_TYPE.sceneFrame,
       frame: { generatedAt: Date.now(), seats: [], queue: [] },
     });
     expect(seen).toEqual([]);
 
     const frame = buildFrame();
-    emitInbound({ type: "sceneFrame", frame });
-    expect(seen).toEqual([{ type: "sceneFrame", frame }]);
+    emitInbound({ type: BRIDGE_INBOUND_TYPE.sceneFrame, frame });
+    expect(seen).toEqual([{ type: BRIDGE_INBOUND_TYPE.sceneFrame, frame }]);
   });
 
   it("ignores malformed tooltipData payloads and accepts valid tooltipData", () => {
@@ -105,13 +107,13 @@ describe("useVsCodeBridge inbound parse guards", () => {
     const seen: InboundMessage[] = [];
     bridge.subscribe((message) => seen.push(message));
 
-    emitInbound({ type: "tooltipData", tooltip: { id: "a-1" } });
+    emitInbound({ type: BRIDGE_INBOUND_TYPE.tooltipData, tooltip: { id: "a-1" } });
     emitInbound({
-      type: "tooltipData",
+      type: BRIDGE_INBOUND_TYPE.tooltipData,
       tooltip: {
         id: "a-1",
         name: "Ada",
-        status: "running",
+        status: AGENT_STATUS.running,
         task: "Reviewing bridge",
         elapsed: "3m",
       },
@@ -119,11 +121,11 @@ describe("useVsCodeBridge inbound parse guards", () => {
     expect(seen).toEqual([]);
 
     emitInbound({
-      type: "tooltipData",
+      type: BRIDGE_INBOUND_TYPE.tooltipData,
       tooltip: {
         id: "a-1",
         name: "Ada",
-        status: "running",
+        status: AGENT_STATUS.running,
         task: "Reviewing bridge",
         elapsed: "3m",
         updated: "just now",
@@ -131,11 +133,11 @@ describe("useVsCodeBridge inbound parse guards", () => {
     });
     expect(seen).toEqual([
       {
-        type: "tooltipData",
+        type: BRIDGE_INBOUND_TYPE.tooltipData,
         tooltip: {
           id: "a-1",
           name: "Ada",
-          status: "running",
+          status: AGENT_STATUS.running,
           task: "Reviewing bridge",
           elapsed: "3m",
           updated: "just now",
@@ -149,16 +151,16 @@ describe("useVsCodeBridge inbound parse guards", () => {
     const seen: InboundMessage[] = [];
     bridge.subscribe((message) => seen.push(message));
 
-    emitInbound({ type: "lifecycleEvents" });
-    emitInbound({ type: "lifecycleEvents", events: {} });
+    emitInbound({ type: BRIDGE_INBOUND_TYPE.lifecycleEvents });
+    emitInbound({ type: BRIDGE_INBOUND_TYPE.lifecycleEvents, events: {} });
     emitInbound({
-      type: "lifecycleEvents",
-      events: [{ kind: "joined", agentId: "a-1", at: "bad" }],
+      type: BRIDGE_INBOUND_TYPE.lifecycleEvents,
+      events: [{ kind: AGENT_LIFECYCLE_EVENT_KIND.joined, agentId: "a-1", at: "bad" }],
     });
     expect(seen).toEqual([]);
 
     const events = buildLifecycleEvents();
-    emitInbound({ type: "lifecycleEvents", events });
-    expect(seen).toEqual([{ type: "lifecycleEvents", events }]);
+    emitInbound({ type: BRIDGE_INBOUND_TYPE.lifecycleEvents, events });
+    expect(seen).toEqual([{ type: BRIDGE_INBOUND_TYPE.lifecycleEvents, events }]);
   });
 });

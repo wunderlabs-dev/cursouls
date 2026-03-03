@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
 import { createRoot } from "react-dom/client";
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
+import { BRIDGE_AGENT_ANCHOR } from "@shared/bridge";
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import type { TooltipData } from "@web/bridge/types";
 import { PhaserCanvas } from "@web/ui/canvas";
@@ -77,7 +78,7 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
       if (fallback) {
         setTooltip(fallback);
       }
-      bridge.postAgentClick(agentId, "seat");
+      bridge.postAgentClick(agentId, BRIDGE_AGENT_ANCHOR.seat);
     },
     [bridge, frame],
   );
@@ -88,7 +89,7 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
       if (fallback) {
         setTooltip(fallback);
       }
-      bridge.postAgentClick(agentId, "queue");
+      bridge.postAgentClick(agentId, BRIDGE_AGENT_ANCHOR.queue);
     },
     [bridge, frame],
   );

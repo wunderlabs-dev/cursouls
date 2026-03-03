@@ -1,26 +1,15 @@
 import type * as vscode from "vscode";
 import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
-import type { AgentLifecycleEvent, AgentSnapshot, AgentStatus, SceneFrame } from "@shared/types";
+import type { AgentLifecycleEvent, AgentSnapshot, SceneFrame } from "@shared/types";
+import {
+  BRIDGE_AGENT_ANCHOR,
+  BRIDGE_INBOUND_TYPE,
+  BRIDGE_OUTBOUND_TYPE,
+  type InboundMessage,
+  type OutboundMessage,
+  type TooltipData,
+} from "@shared/bridge";
 import { getWebviewHtml } from "./html";
-
-type OutboundMessage =
-  | { type: "ready" }
-  | { type: "agentClick"; agentId: string; anchor: "seat" | "queue" };
-
-type InboundMessage =
-  | { type: "sceneFrame"; frame: SceneFrame }
-  | { type: "lifecycleEvents"; events: AgentLifecycleEvent[] }
-  | { type: "tooltipData"; tooltip: TooltipPayload }
-  | { type: "hideTooltip" };
-
-export interface TooltipPayload {
-  id: string;
-  name: string;
-  status: AgentStatus;
-  task: string;
-  elapsed: string;
-  updated: string;
-}
 
 export const CAFE_VIEW_TYPE = "cursorCafe.sidebar";
 
@@ -52,22 +41,22 @@ export function createCafeViewProvider(extensionUri: vscode.Uri): CafeViewProvid
         return;
       }
 
-      if (message.type === "ready") {
+      if (message.type === BRIDGE_OUTBOUND_TYPE.ready) {
         if (latestFrame) {
-          postMessage({ type: "sceneFrame", frame: latestFrame });
+          postMessage({ type: BRIDGE_INBOUND_TYPE.sceneFrame, frame: latestFrame });
         }
         if (latestLifecycleEvents) {
-          postMessage({ type: "lifecycleEvents", events: latestLifecycleEvents });
+          postMessage({ type: BRIDGE_INBOUND_TYPE.lifecycleEvents, events: latestLifecycleEvents });
         }
         return;
       }
 
-      if (message.type === "agentClick") {
+      if (message.type === BRIDGE_OUTBOUND_TYPE.agentClick) {
         const tooltip = buildTooltip(message.agentId);
         if (tooltip) {
-          postMessage({ type: "tooltipData", tooltip });
+          postMessage({ type: BRIDGE_INBOUND_TYPE.tooltipData, tooltip });
         } else {
-          postMessage({ type: "hideTooltip" });
+          postMessage({ type: BRIDGE_INBOUND_TYPE.hideTooltip });
         }
       }
     });
@@ -75,15 +64,15 @@ export function createCafeViewProvider(extensionUri: vscode.Uri): CafeViewProvid
 
   function updateFrame(frame: SceneFrame): void {
     latestFrame = frame;
-    postMessage({ type: "sceneFrame", frame });
+    postMessage({ type: BRIDGE_INBOUND_TYPE.sceneFrame, frame });
   }
 
   function updateLifecycleEvents(events: AgentLifecycleEvent[]): void {
     latestLifecycleEvents = events;
-    postMessage({ type: "lifecycleEvents", events });
+    postMessage({ type: BRIDGE_INBOUND_TYPE.lifecycleEvents, events });
   }
 
-  function buildTooltip(agentId: string): TooltipPayload | undefined {
+  function buildTooltip(agentId: string): TooltipData | undefined {
     if (!latestFrame) {
       return undefined;
     }
@@ -139,13 +128,14 @@ function isOutboundMessage(value: unknown): value is OutboundMessage {
     return false;
   }
 
-  if (value.type === "ready") {
+  if (value.type === BRIDGE_OUTBOUND_TYPE.ready) {
     return true;
   }
 
-  if (value.type === "agentClick") {
+  if (value.type === BRIDGE_OUTBOUND_TYPE.agentClick) {
     return (
-      typeof value.agentId === "string" && (value.anchor === "seat" || value.anchor === "queue")
+      typeof value.agentId === "string" &&
+      (value.anchor === BRIDGE_AGENT_ANCHOR.seat || value.anchor === BRIDGE_AGENT_ANCHOR.queue)
     );
   }
 

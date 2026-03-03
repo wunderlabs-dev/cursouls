@@ -1,17 +1,21 @@
-import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
+import {
+  AGENT_KIND,
+  AGENT_LIFECYCLE_EVENT_KIND,
+  AGENT_SOURCE_KIND,
+  AGENT_STATUS,
+  type AgentLifecycleEvent,
+  type SceneFrame,
+} from "@shared/types";
+import {
+  BRIDGE_AGENT_ANCHOR,
+  BRIDGE_INBOUND_TYPE,
+  BRIDGE_OUTBOUND_TYPE,
+  type AgentAnchor,
+} from "@shared/bridge";
 import { z } from "zod";
 import type { InboundMessage, OutboundMessage, TooltipData } from "./types";
 
 type MessageListener = (message: InboundMessage) => void;
-
-const AGENT_STATUS_VALUES = ["running", "idle", "completed", "error"] as const;
-const AGENT_KIND_VALUES = ["local", "remote"] as const;
-const SOURCE_KIND_VALUES = ["cursor-transcripts", "mock"] as const;
-const INBOUND_SCENE_FRAME_TYPE = "sceneFrame";
-const INBOUND_LIFECYCLE_EVENTS_TYPE = "lifecycleEvents";
-const INBOUND_TOOLTIP_DATA_TYPE = "tooltipData";
-const INBOUND_HIDE_TOOLTIP_TYPE = "hideTooltip";
-const OUTBOUND_READY_TYPE = "ready";
 
 type VsCodeApi = {
   postMessage(message: OutboundMessage): void;
@@ -21,7 +25,7 @@ declare function acquireVsCodeApi(): VsCodeApi;
 
 export interface VsCodeBridge {
   postReady(): void;
-  postAgentClick(agentId: string, anchor: "seat" | "queue"): void;
+  postAgentClick(agentId: string, anchor: AgentAnchor): void;
   subscribe(listener: MessageListener): () => void;
   dispose(): void;
 }
@@ -49,10 +53,10 @@ export function createBridge(): VsCodeBridge {
 
   return {
     postReady(): void {
-      vscode.postMessage({ type: OUTBOUND_READY_TYPE });
+      vscode.postMessage({ type: BRIDGE_OUTBOUND_TYPE.ready });
     },
-    postAgentClick(agentId: string, anchor: "seat" | "queue"): void {
-      vscode.postMessage({ type: "agentClick", agentId, anchor });
+    postAgentClick(agentId: string, anchor: AgentAnchor): void {
+      vscode.postMessage({ type: BRIDGE_OUTBOUND_TYPE.agentClick, agentId, anchor });
     },
     subscribe(listener: MessageListener): () => void {
       listeners.add(listener);
@@ -79,10 +83,10 @@ function parseInboundMessage(value: unknown): InboundMessage | undefined {
   return parsed.success ? parsed.data : undefined;
 }
 
-const agentStatusSchema = z.enum(AGENT_STATUS_VALUES);
-const agentKindSchema = z.enum(AGENT_KIND_VALUES);
-const sourceKindSchema = z.enum(SOURCE_KIND_VALUES);
-const lifecycleEventTypeSchema = z.enum(["joined", "left", "statusChanged", "heartbeat"]);
+const agentStatusSchema = z.nativeEnum(AGENT_STATUS);
+const agentKindSchema = z.nativeEnum(AGENT_KIND);
+const sourceKindSchema = z.nativeEnum(AGENT_SOURCE_KIND);
+const lifecycleEventTypeSchema = z.nativeEnum(AGENT_LIFECYCLE_EVENT_KIND);
 
 const agentSnapshotSchema = z.object({
   id: z.string(),
@@ -132,18 +136,18 @@ const lifecycleEventSchema: z.ZodType<AgentLifecycleEvent> = z.object({
 
 const inboundMessageSchema: z.ZodType<InboundMessage> = z.discriminatedUnion("type", [
   z.object({
-    type: z.literal(INBOUND_SCENE_FRAME_TYPE),
+    type: z.literal(BRIDGE_INBOUND_TYPE.sceneFrame),
     frame: sceneFrameSchema,
   }),
   z.object({
-    type: z.literal(INBOUND_LIFECYCLE_EVENTS_TYPE),
+    type: z.literal(BRIDGE_INBOUND_TYPE.lifecycleEvents),
     events: z.array(lifecycleEventSchema),
   }),
   z.object({
-    type: z.literal(INBOUND_TOOLTIP_DATA_TYPE),
+    type: z.literal(BRIDGE_INBOUND_TYPE.tooltipData),
     tooltip: tooltipDataSchema,
   }),
   z.object({
-    type: z.literal(INBOUND_HIDE_TOOLTIP_TYPE),
+    type: z.literal(BRIDGE_INBOUND_TYPE.hideTooltip),
   }),
 ]);

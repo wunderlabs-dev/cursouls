@@ -1,6 +1,14 @@
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
-import type { AgentKind, AgentSnapshot, AgentSourceReadResult, AgentStatus } from "@shared/types";
+import {
+  AGENT_KIND,
+  AGENT_SOURCE_KIND,
+  AGENT_STATUS,
+  type AgentKind,
+  type AgentSnapshot,
+  type AgentSourceReadResult,
+  type AgentStatus,
+} from "@shared/types";
 import { z } from "zod";
 import type { AgentSource } from "./source";
 
@@ -25,8 +33,8 @@ const nonEmptyStringSchema = z
   .pipe(z.string().min(1));
 
 const finiteNumberSchema = z.number().refine(Number.isFinite);
-const agentStatusSchema = z.enum(["running", "idle", "completed", "error"]);
-const agentKindSchema = z.enum(["local", "remote"]);
+const agentStatusSchema = z.nativeEnum(AGENT_STATUS);
+const agentKindSchema = z.nativeEnum(AGENT_KIND);
 
 const flatTranscriptRecordSchema = z.object({
   agentId: nonEmptyStringSchema,
@@ -61,14 +69,14 @@ export interface CursorTranscriptSourceOptions {
 }
 
 export interface CursorTranscriptSource extends AgentSource {
-  readonly sourceKind: "cursor-transcripts";
+  readonly sourceKind: typeof AGENT_SOURCE_KIND.cursorTranscripts;
 }
 
 export function createCursorTranscriptSource(
   options: CursorTranscriptSourceOptions,
 ): CursorTranscriptSource {
   const sourcePaths = Array.isArray(options.sourcePaths) ? [...options.sourcePaths] : [];
-  const sourceLabel = options.sourceLabel ?? "cursor-transcripts";
+  const sourceLabel = options.sourceLabel ?? AGENT_SOURCE_KIND.cursorTranscripts;
   let connected = false;
 
   function connect(): void {
@@ -210,7 +218,7 @@ export function createCursorTranscriptSource(
         status: statusResult.data,
         taskSummary: record.task,
         updatedAt: record.updatedAt,
-        source: "cursor-transcripts",
+        source: AGENT_SOURCE_KIND.cursorTranscripts,
       };
 
       if (typeof record.startedAt === "number") {
@@ -229,11 +237,11 @@ export function createCursorTranscriptSource(
       {
         id: agentId,
         name: deriveAgentName(agentId, sourcePath),
-        kind: "local",
+        kind: AGENT_KIND.local,
         status: deriveConversationStatus(now, fileUpdatedAt, sawErrorMarker),
         taskSummary: latestUserTask ?? "Working",
         updatedAt: fileUpdatedAt,
-        source: "cursor-transcripts",
+        source: AGENT_SOURCE_KIND.cursorTranscripts,
       },
     ];
   }
@@ -243,7 +251,7 @@ export function createCursorTranscriptSource(
   }
 
   return {
-    sourceKind: "cursor-transcripts",
+    sourceKind: AGENT_SOURCE_KIND.cursorTranscripts,
     connect,
     disconnect,
     readSnapshot,
@@ -260,7 +268,7 @@ function parseFlatRecord(value: unknown): CursorTranscriptRecord | null {
 
 function parseAgentKind(value: string | undefined): { success: true; value: AgentKind } | { success: false } {
   if (value === undefined) {
-    return { success: true, value: "local" };
+    return { success: true, value: AGENT_KIND.local };
   }
   const parsed = agentKindSchema.safeParse(value);
   return parsed.success ? { success: true, value: parsed.data } : { success: false };
@@ -301,16 +309,16 @@ function deriveConversationStatus(
   sawErrorMarker: boolean,
 ): AgentStatus {
   if (sawErrorMarker) {
-    return "error";
+    return AGENT_STATUS.error;
   }
   const ageMs = Math.max(0, now - updatedAt);
   if (ageMs <= RUNNING_WINDOW_MS) {
-    return "running";
+    return AGENT_STATUS.running;
   }
   if (ageMs <= IDLE_WINDOW_MS) {
-    return "idle";
+    return AGENT_STATUS.idle;
   }
-  return "completed";
+  return AGENT_STATUS.completed;
 }
 
 function deriveAgentId(sourcePath: string): string {

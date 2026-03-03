@@ -117,6 +117,68 @@ describe("watch controller", () => {
     expect(frame).toEqual(expectedFrame);
   });
 
+  it("forwards lifecycle updates through onLifecycleEvents", async () => {
+    const source = {
+      sourceKind: "cursor-transcripts" as const,
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      readSnapshot: vi.fn().mockResolvedValue(createReadResult()),
+      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
+    };
+    const store = { update: vi.fn().mockReturnValue(createFrame()) };
+    const onLifecycle = vi.fn();
+
+    const controller = createWatchController({
+      projectPath: "/tmp/project",
+      store,
+      now: () => 1234,
+      sourceFactory: () => source,
+      watchFactory: (_path, _onEvent) => ({
+        close: vi.fn(),
+        on: vi.fn(),
+      }),
+    });
+
+    controller.onLifecycleEvents(onLifecycle);
+    await controller.start();
+    await Promise.resolve();
+    await Promise.resolve();
+    await controller.stop();
+
+    expect(onLifecycle).toHaveBeenCalled();
+    expect(onLifecycle.mock.calls[0]?.[0]?.[0]?.kind).toBe("joined");
+  });
+
+  it("forwards source errors through onError", async () => {
+    const source = {
+      sourceKind: "cursor-transcripts" as const,
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+      readSnapshot: vi.fn().mockRejectedValue(new Error("boom")),
+      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
+    };
+    const onError = vi.fn();
+
+    const controller = createWatchController({
+      projectPath: "/tmp/project",
+      now: () => 1234,
+      sourceFactory: () => source,
+      watchFactory: (_path, _onEvent) => ({
+        close: vi.fn(),
+        on: vi.fn(),
+      }),
+    });
+
+    controller.onError(onError);
+    await controller.start();
+    await Promise.resolve();
+    await Promise.resolve();
+    await controller.stop();
+
+    expect(onError).toHaveBeenCalled();
+    expect(onError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
+  });
+
   it("debounces file-change bursts into one refresh", async () => {
     vi.useFakeTimers();
 

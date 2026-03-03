@@ -20,10 +20,10 @@ async function createSource(sourcePaths: string[]): Promise<TranscriptSource> {
   let loadedModule: Record<string, unknown>;
 
   try {
-    loadedModule = (await import("@ext/sources/transcripts")) as Record<string, unknown>;
+    loadedModule = (await import("@shared/watch/transcripts")) as Record<string, unknown>;
   } catch (error) {
     throw new Error(
-      `CursorTranscriptSource is not implemented at src/extension/sources/transcripts.ts yet: ${String(error)}`,
+      `CursorTranscriptSource is not implemented at src/shared/watch/transcripts.ts yet: ${String(error)}`,
     );
   }
 

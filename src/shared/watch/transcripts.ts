@@ -10,7 +10,6 @@ import {
   type AgentStatus,
 } from "@shared/types";
 import { z } from "zod";
-import type { AgentSource } from "./source";
 
 interface CursorTranscriptRecord {
   agentId: string;
@@ -68,8 +67,12 @@ export interface CursorTranscriptSourceOptions {
   sourceLabel?: string;
 }
 
-export interface CursorTranscriptSource extends AgentSource {
+export interface CursorTranscriptSource {
   readonly sourceKind: typeof AGENT_SOURCE_KIND.cursorTranscripts;
+  connect(): Promise<void> | void;
+  disconnect(): Promise<void> | void;
+  readSnapshot(now?: number): Promise<AgentSourceReadResult> | AgentSourceReadResult;
+  getWatchPaths?(): string[];
 }
 
 export function createCursorTranscriptSource(
@@ -332,4 +335,3 @@ function deriveAgentName(agentId: string, sourcePath: string): string {
   const prefix = sourcePath.includes("/subagents/") ? "Subagent" : "Agent";
   return `${prefix} ${agentId.slice(0, 6)}`;
 }
-

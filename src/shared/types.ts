@@ -1,8 +1,22 @@
-export type AgentStatus = "running" | "idle" | "completed" | "error";
+export const AGENT_STATUS = {
+  running: "running",
+  idle: "idle",
+  completed: "completed",
+  error: "error",
+} as const;
+export type AgentStatus = (typeof AGENT_STATUS)[keyof typeof AGENT_STATUS];
 
-export type AgentKind = "local" | "remote";
+export const AGENT_KIND = {
+  local: "local",
+  remote: "remote",
+} as const;
+export type AgentKind = (typeof AGENT_KIND)[keyof typeof AGENT_KIND];
 
-export type AgentSourceKind = "cursor-transcripts" | "mock";
+export const AGENT_SOURCE_KIND = {
+  cursorTranscripts: "cursor-transcripts",
+  mock: "mock",
+} as const;
+export type AgentSourceKind = (typeof AGENT_SOURCE_KIND)[keyof typeof AGENT_SOURCE_KIND];
 
 export interface AgentSnapshot {
   id: string;
@@ -40,7 +54,14 @@ export interface AgentSourceReadResult {
   warnings: string[];
 }
 
-export type AgentLifecycleEventType = "joined" | "left" | "statusChanged" | "heartbeat";
+export const AGENT_LIFECYCLE_EVENT_KIND = {
+  joined: "joined",
+  left: "left",
+  statusChanged: "statusChanged",
+  heartbeat: "heartbeat",
+} as const;
+export type AgentLifecycleEventType =
+  (typeof AGENT_LIFECYCLE_EVENT_KIND)[keyof typeof AGENT_LIFECYCLE_EVENT_KIND];
 
 export interface AgentLifecycleEvent {
   kind: AgentLifecycleEventType;

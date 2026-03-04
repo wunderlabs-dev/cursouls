@@ -1,6 +1,6 @@
 import type * as vscode from "vscode";
 import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
-import type { AgentLifecycleEvent, AgentSnapshot, SceneFrame } from "@shared/types";
+import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import {
   BRIDGE_AGENT_ANCHOR,
   BRIDGE_INBOUND_TYPE,
@@ -9,6 +9,7 @@ import {
   type OutboundMessage,
   type TooltipData,
 } from "@shared/bridge";
+import { findAgentInFrame } from "@shared/frame";
 import { getWebviewHtml } from "./html";
 
 export const CAFE_VIEW_TYPE = "cursorCafe.sidebar";
@@ -86,7 +87,7 @@ export function createCafeViewProvider(
         lifecycleReplayEvents.length - MAX_LIFECYCLE_REPLAY_EVENTS,
       );
     }
-    postMessage({ type: BRIDGE_INBOUND_TYPE.lifecycleEvents, events });
+    postMessage({ type: BRIDGE_INBOUND_TYPE.lifecycleEvents, events: lifecycleReplayEvents });
   }
 
   function buildTooltip(agentId: string): TooltipData | undefined {
@@ -94,11 +95,7 @@ export function createCafeViewProvider(
       return undefined;
     }
 
-    const seated = latestFrame.seats
-      .map((seat) => seat.agent)
-      .find((agent): agent is AgentSnapshot => Boolean(agent && agent.id === agentId));
-    const queued = latestFrame.queue.find((agent) => agent.id === agentId);
-    const agent = seated ?? queued;
+    const agent = findAgentInFrame(latestFrame, agentId);
 
     if (!agent) {
       return undefined;

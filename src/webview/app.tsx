@@ -3,6 +3,7 @@ import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
 import { createRoot } from "react-dom/client";
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import { BRIDGE_AGENT_ANCHOR, BRIDGE_INBOUND_TYPE } from "@shared/bridge";
+import { findAgentInFrame } from "@shared/frame";
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import type { TooltipData } from "@web/bridge/types";
 import { PhaserCanvas } from "@web/ui/canvas";
@@ -178,11 +179,7 @@ function findAgentTooltip(frame: SceneFrame | undefined, agentId: string): Toolt
   if (!frame) {
     return undefined;
   }
-  const seated = frame.seats
-    .map((seat) => seat.agent)
-    .find((agent) => Boolean(agent && agent.id === agentId));
-  const queued = frame.queue.find((agent) => agent.id === agentId);
-  const agent = seated ?? queued;
+  const agent = findAgentInFrame(frame, agentId);
   if (!agent) {
     return undefined;
   }

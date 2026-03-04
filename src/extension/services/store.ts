@@ -1,5 +1,5 @@
 import { DEFAULT_SEAT_COUNT } from "@shared/constants";
-import type { AgentSnapshot, SceneFrame, SourceHealth } from "@shared/types";
+import { AGENT_STATUS, type AgentSnapshot, type SceneFrame, type SourceHealth } from "@shared/types";
 import { createSeatAllocator, type SeatAllocator } from "./seats";
 
 export interface CafeStoreUpdateInput {
@@ -31,7 +31,8 @@ export function createCafeStore(seatCount: number = DEFAULT_SEAT_COUNT): CafeSto
   };
 
   function update(input: CafeStoreUpdateInput, at: number = Date.now()): SceneFrame {
-    const allocation = allocator.allocate(input.agents);
+    const activeAgents = input.agents.filter(isSeatEligibleAgent);
+    const allocation = allocator.allocate(activeAgents);
 
     frame = {
       generatedAt: at,
@@ -71,4 +72,18 @@ export function createCafeStore(seatCount: number = DEFAULT_SEAT_COUNT): CafeSto
     getFrame,
     reset,
   };
+}
+
+function isSeatEligibleAgent(agent: AgentSnapshot): boolean {
+  if (agent.status === AGENT_STATUS.running) {
+    return true;
+  }
+  if (agent.status !== AGENT_STATUS.idle) {
+    return false;
+  }
+  return !isSubagent(agent);
+}
+
+function isSubagent(agent: AgentSnapshot): boolean {
+  return agent.name.trim().toLowerCase().startsWith("subagent");
 }

@@ -1,4 +1,3 @@
-import { watch } from "node:fs";
 import {
   AGENT_SUBSCRIPTION_EVENT_TYPES,
   WATCH_RUNTIME_ERROR_CODES,
@@ -54,7 +53,7 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
   const logger = options.logger;
   const now = options.now ?? (() => Date.now());
   const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
-  const watchFactory = options.watchFactory ?? createDefaultWatcher;
+  const watchFactory = options.watchFactory;
   const sourceFactory = options.sourceFactory;
 
   const frameListeners = new Set<FrameListener>();
@@ -71,11 +70,13 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
     debounceMs,
     now,
     sourceFactory,
-    watchFactory: (watchPath, onEvent) => {
-      const watcher = watchFactory(watchPath, onEvent);
-      logger?.info(`Watching transcript path: ${watchPath}`);
-      return watcher;
-    },
+    watchFactory: watchFactory
+      ? (watchPath, onEvent) => {
+          const watcher = watchFactory(watchPath, onEvent);
+          logger?.info(`Watching transcript path: ${watchPath}`);
+          return watcher;
+        }
+      : undefined,
   });
 
   subscription.subscribeToSnapshots((event) => {
@@ -238,17 +239,6 @@ function formatUnknownError(error: unknown): string {
     return error.message;
   }
   return String(error);
-}
-
-function createDefaultWatcher(watchPath: string, onEvent: () => void): WatcherLike {
-  const onChange = (): void => {
-    onEvent();
-  };
-  try {
-    return watch(watchPath, { persistent: false, recursive: true }, onChange);
-  } catch {
-    return watch(watchPath, { persistent: false }, onChange);
-  }
 }
 
 function applySnapshot(snapshot: AgentStateSnapshot, at: number, store?: CafeStore): SceneFrame {

@@ -30,7 +30,7 @@ type PendingMessageBuffer = {
   latestFrame: InboundMessage | undefined;
   latestTooltip: InboundMessage | undefined;
   hideTooltip: InboundMessage | undefined;
-  lifecycleEvents: AgentLifecycleEvent[];
+  latestLifecycleEvents: InboundMessage | undefined;
 };
 
 export interface VsCodeBridge {
@@ -47,7 +47,7 @@ export function createBridge(): VsCodeBridge {
     latestFrame: undefined,
     latestTooltip: undefined,
     hideTooltip: undefined,
-    lifecycleEvents: [],
+    latestLifecycleEvents: undefined,
   };
   let invalidMessageLogCount = 0;
 
@@ -125,19 +125,18 @@ function bufferMessage(buffer: PendingMessageBuffer, message: InboundMessage): v
     return;
   }
 
-  const mergedEvents = [...buffer.lifecycleEvents, ...message.events];
-  buffer.lifecycleEvents = mergedEvents.slice(-MAX_PENDING_LIFECYCLE_EVENTS);
+  buffer.latestLifecycleEvents = {
+    type: BRIDGE_INBOUND_TYPE.lifecycleEvents,
+    events: message.events.slice(-MAX_PENDING_LIFECYCLE_EVENTS),
+  };
 }
 
 function flushBufferedMessages(listener: MessageListener, buffer: PendingMessageBuffer): void {
   if (buffer.latestFrame) {
     listener(buffer.latestFrame);
   }
-  if (buffer.lifecycleEvents.length > 0) {
-    listener({
-      type: BRIDGE_INBOUND_TYPE.lifecycleEvents,
-      events: buffer.lifecycleEvents,
-    });
+  if (buffer.latestLifecycleEvents) {
+    listener(buffer.latestLifecycleEvents);
   }
   if (buffer.latestTooltip) {
     listener(buffer.latestTooltip);
@@ -151,7 +150,7 @@ function clearBufferedMessages(buffer: PendingMessageBuffer): void {
   buffer.latestFrame = undefined;
   buffer.latestTooltip = undefined;
   buffer.hideTooltip = undefined;
-  buffer.lifecycleEvents = [];
+  buffer.latestLifecycleEvents = undefined;
 }
 
 const agentStatusSchema = z.nativeEnum(AGENT_STATUS);

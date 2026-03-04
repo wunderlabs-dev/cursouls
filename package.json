@@ -50,8 +50,9 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "build": "npm run compile",
-    "compile": "node esbuild.mjs",
-    "watch": "node esbuild.mjs --watch",
+    "css:build": "tailwindcss -c tailwind.config.cjs -i ./src/static/css/tailwind.css -o ./dist/webview.css --minify",
+    "compile": "npm run css:build && node esbuild.mjs",
+    "watch": "npm run css:build && node esbuild.mjs --watch",
     "format": "biome format --write ./src ./test",
     "lint": "biome lint ./src ./test",
     "check": "biome check ./src ./test",
@@ -70,7 +71,9 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/vscode": "^1.90.0",
+    "@tailwindcss/cli": "^4.1.13",
     "esbuild": "^0.25.0",
+    "tailwindcss": "^4.1.13",
     "typescript": "^5.8.0",
     "vitest": "^3.0.0"
   },
@@ -80,7 +83,6 @@
     "lodash.uniq": "^4.5.0",
     "lodash.upperfirst": "^4.3.1",
     "lodash.words": "^4.2.0",
-    "phaser": "^3.90.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "zod": "^4.3.6"

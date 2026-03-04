@@ -6,9 +6,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   const scriptUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, "dist", "webview-main.js"),
   );
-  const globalCssUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, "src", "static", "css", "globals.css"),
-  );
+  const globalCssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, "dist", "webview.css"));
 
   return `<!DOCTYPE html>
 <html lang="en">

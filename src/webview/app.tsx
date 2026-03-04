@@ -4,7 +4,7 @@ import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import { BRIDGE_AGENT_ANCHOR, BRIDGE_INBOUND_TYPE } from "@shared/bridge";
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import type { TooltipData } from "@web/bridge/types";
-import { PhaserCanvas } from "@web/ui/canvas";
+import { CafeScene } from "@web/ui/scene";
 import { initialsFor, spriteStatusClass } from "@web/present";
 import {
   INITIALIZING_LABEL,
@@ -98,7 +98,7 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
         {healthLabel}
       </header>
       <section className="cafe-scene" aria-label="Cafe seats">
-        <PhaserCanvas frame={frame} onSeatClick={handleSeatClick} />
+        <CafeScene frame={frame} onSeatClick={handleSeatClick} />
       </section>
       <section className="cafe-queue" aria-label="Overflow queue">
         {queueVisible.length === 0 ? (

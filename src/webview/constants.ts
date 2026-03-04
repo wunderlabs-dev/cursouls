@@ -14,7 +14,3 @@ export const QUEUE_VISIBLE_LIMIT = 8;
 
 export const WARNING_LABEL_SINGULAR = "warning";
 export const WARNING_LABEL_PLURAL = "warnings";
-
-export const SCENE_KEY = "CafePhaserScene";
-export const SCENE_BACKGROUND_COLOR = "#221b16";
-export const SCENE_BACKGROUND_COLOR_NUMERIC = 0x221b16;

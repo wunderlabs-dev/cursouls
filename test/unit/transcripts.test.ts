@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -81,5 +81,61 @@ describe("CursorTranscriptSource", () => {
     expect(result.agents).toEqual([]);
     expect(result.connected).toBe(false);
     expect(result.warnings.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("marks conversation transcripts as completed after assistant reply without keyword matching", async () => {
+    const tempDir = await mkdtemp(path.join(tmpdir(), "cursor-cafe-conversation-"));
+    const transcriptPath = path.join(tempDir, "conversation.jsonl");
+    const updatedAt = 1_700_000_000_000;
+    const transcriptLines = [
+      JSON.stringify({
+        role: "user",
+        message: { content: [{ type: "text", text: "<user_query>\nTe rog implementeaza schimbarea\n</user_query>" }] },
+      }),
+      JSON.stringify({
+        role: "assistant",
+        message: { content: [{ type: "text", text: "Actualizarea este aplicata in acest pas." }] },
+      }),
+    ];
+    await writeFile(transcriptPath, `${transcriptLines.join("\n")}\n`, "utf8");
+    const updatedAtDate = new Date(updatedAt);
+    await utimes(transcriptPath, updatedAtDate, updatedAtDate);
+
+    const source = await createSource([transcriptPath]);
+    await source.connect();
+    const result = await source.readSnapshot(updatedAt + 91_000);
+    await source.disconnect();
+    await rm(tempDir, { recursive: true, force: true });
+
+    expect(result.agents).toHaveLength(1);
+    expect(result.agents[0]?.status).toBe("completed");
+  });
+
+  it("does not mark completed when the latest turn is still a user request", async () => {
+    const tempDir = await mkdtemp(path.join(tmpdir(), "cursor-cafe-conversation-"));
+    const transcriptPath = path.join(tempDir, "conversation-user-pending.jsonl");
+    const updatedAt = 1_700_000_100_000;
+    const transcriptLines = [
+      JSON.stringify({
+        role: "assistant",
+        message: { content: [{ type: "text", text: "Pot continua cu urmatorul pas." }] },
+      }),
+      JSON.stringify({
+        role: "user",
+        message: { content: [{ type: "text", text: "<user_query>\nMai ajusteaza integrarea\n</user_query>" }] },
+      }),
+    ];
+    await writeFile(transcriptPath, `${transcriptLines.join("\n")}\n`, "utf8");
+    const updatedAtDate = new Date(updatedAt);
+    await utimes(transcriptPath, updatedAtDate, updatedAtDate);
+
+    const source = await createSource([transcriptPath]);
+    await source.connect();
+    const result = await source.readSnapshot(updatedAt + 61_000);
+    await source.disconnect();
+    await rm(tempDir, { recursive: true, force: true });
+
+    expect(result.agents).toHaveLength(1);
+    expect(result.agents[0]?.status).toBe("idle");
   });
 });

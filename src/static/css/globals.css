@@ -39,14 +39,16 @@ textarea {
 
 #app {
   height: 100vh;
+  overflow: hidden;
 }
 
 .cafe-root {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  gap: 8px;
-  min-height: 100%;
-  padding: 10px;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+  padding: 6px;
 }
 
 .cafe-health {
@@ -68,13 +70,17 @@ textarea {
   border: 1px solid var(--panel-border);
   border-radius: 10px;
   display: flex;
-  justify-content: center;
-  padding: 8px;
+  justify-content: stretch;
+  align-items: stretch;
+  padding: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .phaser-canvas-root {
-  aspect-ratio: 420 / 362;
-  max-width: 420px;
+  flex: 1 1 auto;
+  height: 100%;
   min-height: 0;
   width: 100%;
 }

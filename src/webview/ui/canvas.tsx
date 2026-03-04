@@ -26,6 +26,16 @@ export function PhaserCanvas({ frame, onSeatClick }: PhaserCanvasProps) {
       return;
     }
 
+    const measureSize = () => {
+      const rect = container.getBoundingClientRect();
+      return {
+        width: Math.max(320, Math.floor(rect.width || SCENE_WIDTH)),
+        height: Math.max(260, Math.floor(rect.height || SCENE_HEIGHT)),
+      };
+    };
+
+    const initialSize = measureSize();
+
     const scene = createCafePhaserScene({
       onSeatClick: (agentId) => {
         onSeatClickRef.current(agentId);
@@ -35,19 +45,19 @@ export function PhaserCanvas({ frame, onSeatClick }: PhaserCanvasProps) {
 
     const game = new Phaser.Game({
       type: Phaser.CANVAS,
-      width: SCENE_WIDTH,
-      height: SCENE_HEIGHT,
+      width: initialSize.width,
+      height: initialSize.height,
+      pixelArt: true,
       parent: container,
       backgroundColor: SCENE_BACKGROUND_COLOR,
       scene: [scene.scene],
       scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
-        width: SCENE_WIDTH,
-        height: SCENE_HEIGHT,
+        mode: Phaser.Scale.NONE,
+        autoCenter: Phaser.Scale.NO_CENTER,
       },
       render: {
         antialias: false,
+        roundPixels: true,
       },
       audio: {
         noAudio: true,
@@ -55,24 +65,26 @@ export function PhaserCanvas({ frame, onSeatClick }: PhaserCanvasProps) {
     });
     gameRef.current = game;
 
+    let lastWidth = initialSize.width;
+    let lastHeight = initialSize.height;
     const refreshScale = () => {
-      game.scale?.refresh?.();
+      const next = measureSize();
+      if (next.width === lastWidth && next.height === lastHeight) {
+        return;
+      }
+      lastWidth = next.width;
+      lastHeight = next.height;
+      game.scale.resize(next.width, next.height);
     };
     const resizeObserver =
       typeof ResizeObserver === "function" ? new ResizeObserver(refreshScale) : null;
     resizeObserver?.observe(container);
-    if (typeof window !== "undefined") {
-      window.addEventListener("resize", refreshScale);
-    }
     refreshScale();
 
     return () => {
       sceneRef.current = null;
       gameRef.current = null;
       resizeObserver?.disconnect();
-      if (typeof window !== "undefined") {
-        window.removeEventListener("resize", refreshScale);
-      }
       game.destroy(true);
     };
   }, []);

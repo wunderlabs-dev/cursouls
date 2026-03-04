@@ -1,0 +1,88 @@
+export type LayoutSymbol = "W" | "w" | "C" | "F" | "t" | "d";
+
+export interface CompositionCell {
+  symbol: LayoutSymbol;
+  row: number;
+  column: number;
+  x: number;
+  y: number;
+  size: number;
+}
+
+export interface SceneComposition {
+  tileSize: number;
+  originX: number;
+  originY: number;
+  columns: number;
+  rows: number;
+  width: number;
+  height: number;
+  cells: CompositionCell[];
+}
+
+const MIN_TILE_SIZE = 18;
+const FRAME_PADDING = 12;
+
+export const ROOM_LAYOUT = [
+  "WWWWWWWWWWWWWWWWWW",
+  "WwWwWwWwWwWwWwWwWW",
+  "CCCCCCCCCCCCCCCCCC",
+  "FFFFFFFFFFFFFFFFFF",
+  "FFFtFFFFtFFFFtFFFF",
+  "FFFFFFFFFFFFFFFFFF",
+  "FFdFFFFFFFFFFFFdFF",
+  "FFFFtFFFFtFFFFtFFF",
+  "FFFFFFFFFFFFFFFFFF",
+  "FFFdFFFFFFFFFFdFFF",
+  "FFtFFFFFFFFFFFFtFF",
+  "FFFFFFFFFFFFFFFFFF",
+  "FFFFFtFFtFFtFFFFFF",
+  "FFFFFFFFFFFFFFFFFF",
+  "FFdFFFFFFFFFFFFdFF",
+  "FFFtFFFFtFFFFtFFFF",
+  "FFFFFFFFFFFFFFFFFF",
+  "FFFFtFFFFFFFFtFFFF",
+  "FFFFFFFFFFFFFFFFFF",
+  "FFdFFFFFFFFFFFFdFF",
+  "FFFFFFFFFFFFFFFFFF",
+  "FFFFFFFFFFFFFFFFFF",
+] as const;
+
+export function buildSceneComposition(sceneWidth: number, sceneHeight: number): SceneComposition {
+  const columns = ROOM_LAYOUT[0].length;
+  const rows = ROOM_LAYOUT.length;
+  const maxTileByWidth = Math.max(MIN_TILE_SIZE, Math.floor((sceneWidth - FRAME_PADDING) / columns));
+  const maxTileByHeight = Math.max(MIN_TILE_SIZE, Math.floor((sceneHeight - FRAME_PADDING) / rows));
+  const tileSize = Math.max(MIN_TILE_SIZE, Math.min(maxTileByWidth, maxTileByHeight));
+  const width = columns * tileSize;
+  const height = rows * tileSize;
+  const originX = Math.floor((sceneWidth - width) / 2);
+  const originY = Math.floor((sceneHeight - height) / 2);
+
+  const cells: CompositionCell[] = [];
+  for (let row = 0; row < rows; row += 1) {
+    const pattern = ROOM_LAYOUT[row];
+    for (let column = 0; column < columns; column += 1) {
+      const symbol = pattern[column] as LayoutSymbol;
+      cells.push({
+        symbol,
+        row,
+        column,
+        x: originX + column * tileSize,
+        y: originY + row * tileSize,
+        size: tileSize,
+      });
+    }
+  }
+
+  return {
+    tileSize,
+    originX,
+    originY,
+    columns,
+    rows,
+    width,
+    height,
+    cells,
+  };
+}

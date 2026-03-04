@@ -13,6 +13,7 @@
     "types": []
   },
   "include": [
-    "src/webview/main.tsx"
+    "src/webview/main.tsx",
+    "src/webview/**/*.d.ts"
   ]
 }

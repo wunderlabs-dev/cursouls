@@ -54,8 +54,8 @@ const FONT_FAMILY = "monospace";
 const NAME_FONT_SIZE = "10px";
 const AVATAR_FONT_SIZE = "10px";
 const BUBBLE_FONT_SIZE = "11px";
-const ACTOR_OFFSET_X = 14;
-const ACTOR_OFFSET_Y = 24;
+const ACTOR_OFFSET_X = 0;
+const ACTOR_OFFSET_Y = 14;
 const ACTOR_BODY_IDLE = 0x5c7b96;
 const ACTOR_BODY_RUNNING = 0x6a9f6a;
 const ACTOR_BODY_COMPLETED = 0x4c8f5f;
@@ -69,8 +69,8 @@ const ACTOR_FRAME_RUNNING_A = `${ACTOR_TEXTURE_PREFIX}-run-a`;
 const ACTOR_FRAME_RUNNING_B = `${ACTOR_TEXTURE_PREFIX}-run-b`;
 const ACTOR_FRAME_COMPLETED = `${ACTOR_TEXTURE_PREFIX}-done`;
 const ACTOR_FRAME_ERROR = `${ACTOR_TEXTURE_PREFIX}-error`;
-const ACTOR_SCALE = 2.4;
-const ACTOR_BOB_OFFSET = 5;
+const ACTOR_SCALE = 3.4;
+const ACTOR_BOB_OFFSET = 7;
 
 export interface SeatSprite {
   floorShadow: Phaser.GameObjects.Ellipse;
@@ -78,10 +78,12 @@ export interface SeatSprite {
   actorLaptop: Phaser.GameObjects.Rectangle;
   actorSteam: Phaser.GameObjects.Ellipse;
   actorHalo: Phaser.GameObjects.Ellipse;
+  actorStatusText: Phaser.GameObjects.Text;
   actorBaseY: number;
   actorTween: Phaser.Tweens.Tween | null;
   actorFrameEvent: Phaser.Time.TimerEvent | null;
   actorSteamTween: Phaser.Tweens.Tween | null;
+  floorShadowTween: Phaser.Tweens.Tween | null;
   agentButton: Phaser.GameObjects.Container;
   agentBody: Phaser.GameObjects.Rectangle;
   avatarBadge: Phaser.GameObjects.Rectangle;
@@ -174,15 +176,15 @@ export function createSeatSprite(
     .setScale(ACTOR_SCALE)
     .setDepth(6);
   const actorHalo = scene.add
-    .ellipse(seat.x + seat.width * 0.5 + ACTOR_OFFSET_X, actorBaseY + 12, 30, 10, 0x6e5f53, 0.22)
+    .ellipse(seat.x + seat.width * 0.5 + ACTOR_OFFSET_X, actorBaseY + 20, 44, 14, 0x6e5f53, 0.22)
     .setOrigin(0.5, 0.5)
     .setDepth(4);
   const actorLaptop = scene.add
     .rectangle(
-      seat.x + seat.width * 0.5 + ACTOR_OFFSET_X + 9,
-      actorBaseY + 7,
-      18,
-      10,
+      seat.x + seat.width * 0.5 + ACTOR_OFFSET_X + 12,
+      actorBaseY + 10,
+      22,
+      12,
       ACTOR_LAPTOP_COLOR,
     )
     .setOrigin(0.5, 0.5)
@@ -199,6 +201,14 @@ export function createSeatSprite(
     .setOrigin(0.5, 0.5)
     .setDepth(5);
   actorSteam.setVisible(false);
+  const actorStatusText = scene.add
+    .text(seat.x + seat.width * 0.5 + ACTOR_OFFSET_X, actorBaseY - 28, "", {
+      fontFamily: FONT_FAMILY,
+      fontSize: "10px",
+      color: "#f1d4a8",
+    })
+    .setOrigin(0.5, 0.5)
+    .setDepth(7);
 
   return {
     floorShadow,
@@ -206,10 +216,12 @@ export function createSeatSprite(
     actorLaptop,
     actorSteam,
     actorHalo,
+    actorStatusText,
     actorBaseY,
     actorTween: null,
     actorFrameEvent: null,
     actorSteamTween: null,
+    floorShadowTween: null,
     agentButton,
     agentBody,
     avatarBadge,
@@ -222,9 +234,10 @@ export function createSeatSprite(
 export function updateSeatSprite(sprite: SeatSprite, seat: SeatRenderModel): void {
   sprite.actorBaseY = seat.y + ACTOR_OFFSET_Y;
   sprite.agentActor.setPosition(seat.x + seat.width * 0.5 + ACTOR_OFFSET_X, sprite.actorBaseY);
-  sprite.actorLaptop.setPosition(seat.x + seat.width * 0.5 + ACTOR_OFFSET_X + 9, sprite.actorBaseY + 7);
+  sprite.actorLaptop.setPosition(seat.x + seat.width * 0.5 + ACTOR_OFFSET_X + 12, sprite.actorBaseY + 10);
   sprite.actorSteam.setPosition(seat.x + seat.width * 0.5 + ACTOR_OFFSET_X + 14, sprite.actorBaseY - 5);
-  sprite.actorHalo.setPosition(seat.x + seat.width * 0.5 + ACTOR_OFFSET_X, sprite.actorBaseY + 12);
+  sprite.actorHalo.setPosition(seat.x + seat.width * 0.5 + ACTOR_OFFSET_X, sprite.actorBaseY + 20);
+  sprite.actorStatusText.setPosition(seat.x + seat.width * 0.5 + ACTOR_OFFSET_X, sprite.actorBaseY - 28);
   sprite.agentButton.setPosition(seat.x + BUTTON_OUTER_PADDING, seat.y + BUTTON_TOP_OFFSET);
 
   if (!seat.agent) {
@@ -236,6 +249,7 @@ export function updateSeatSprite(sprite: SeatSprite, seat: SeatRenderModel): voi
     sprite.actorLaptop.setVisible(false);
     sprite.actorSteam.setVisible(false);
     sprite.actorHalo.setVisible(false);
+    sprite.actorStatusText.setVisible(false);
     sprite.agentButton.setData("agentId", null);
     sprite.agentButton.setVisible(false);
     return;
@@ -250,6 +264,7 @@ export function updateSeatSprite(sprite: SeatSprite, seat: SeatRenderModel): voi
   sprite.agentActor.setVisible(true);
   sprite.actorLaptop.setVisible(true);
   sprite.actorHalo.setVisible(true);
+  sprite.actorStatusText.setVisible(true);
   sprite.agentButton.setVisible(true);
   sprite.agentButton.setData("agentId", seat.agent.id);
   if (sprite.agentButton.input) {
@@ -283,13 +298,15 @@ function applyActorStatus(sprite: SeatSprite, status: AgentStatus): void {
   sprite.actorHalo.setFillStyle(0x6e5f53);
   sprite.actorSteam.setVisible(false);
   if (status === "running") {
+    sprite.actorStatusText.setText(">");
+    sprite.actorStatusText.setColor("#c8f2b8");
     sprite.agentActor.setTexture(ACTOR_FRAME_RUNNING_A);
     sprite.agentActor.setTint(ACTOR_BODY_RUNNING);
     sprite.actorHalo.setFillStyle(0x7aa06d);
     sprite.actorHalo.setAlpha(0.3);
     let toggle = false;
     sprite.actorFrameEvent = sprite.agentActor.scene.time.addEvent({
-      delay: 140,
+      delay: 120,
       loop: true,
       callback: () => {
         toggle = !toggle;
@@ -301,7 +318,7 @@ function applyActorStatus(sprite: SeatSprite, status: AgentStatus): void {
       y: sprite.actorBaseY - ACTOR_BOB_OFFSET,
       yoyo: true,
       repeat: -1,
-      duration: 300,
+      duration: 260,
       ease: "Sine.easeInOut",
     });
     sprite.actorSteam.setVisible(true);
@@ -314,9 +331,20 @@ function applyActorStatus(sprite: SeatSprite, status: AgentStatus): void {
       duration: 520,
       ease: "Sine.easeInOut",
     });
+    sprite.floorShadow.setFillStyle(0x7aa06d, 0.26);
+    sprite.floorShadowTween = sprite.agentActor.scene.tweens.add({
+      targets: sprite.floorShadow,
+      alpha: 0.16,
+      yoyo: true,
+      repeat: -1,
+      duration: 300,
+      ease: "Sine.easeInOut",
+    });
     return;
   }
   if (status === "completed") {
+    sprite.actorStatusText.setText("+");
+    sprite.actorStatusText.setColor("#88e3aa");
     sprite.agentActor.setTexture(ACTOR_FRAME_COMPLETED);
     sprite.agentActor.setTint(ACTOR_BODY_COMPLETED);
     sprite.actorHalo.setFillStyle(0x4c8f5f);
@@ -327,12 +355,14 @@ function applyActorStatus(sprite: SeatSprite, status: AgentStatus): void {
       scaleY: ACTOR_SCALE * 1.12,
       yoyo: true,
       repeat: -1,
-      duration: 520,
+      duration: 420,
       ease: "Quad.easeInOut",
     });
     return;
   }
   if (status === "error") {
+    sprite.actorStatusText.setText("!");
+    sprite.actorStatusText.setColor("#f06d5e");
     sprite.agentActor.setTexture(ACTOR_FRAME_ERROR);
     sprite.agentActor.setTint(ACTOR_BODY_ERROR);
     sprite.actorHalo.setFillStyle(0x8f4c4c);
@@ -343,20 +373,22 @@ function applyActorStatus(sprite: SeatSprite, status: AgentStatus): void {
       x: actorX + 3,
       yoyo: true,
       repeat: -1,
-      duration: 80,
+      duration: 70,
       ease: "Linear",
     });
     sprite.actorLaptop.setFillStyle(0x4a1f1f);
     return;
   }
   sprite.agentActor.setTexture(ACTOR_FRAME_IDLE_A);
+  sprite.actorStatusText.setText(".");
+  sprite.actorStatusText.setColor("#f1d4a8");
   sprite.agentActor.setTint(ACTOR_BODY_IDLE);
   sprite.actorHalo.setFillStyle(0x6e5f53);
   sprite.actorHalo.setAlpha(0.24);
   sprite.actorLaptop.setFillStyle(ACTOR_LAPTOP_COLOR);
   let toggle = false;
   sprite.actorFrameEvent = sprite.agentActor.scene.time.addEvent({
-    delay: 650,
+    delay: 420,
     loop: true,
     callback: () => {
       toggle = !toggle;
@@ -380,11 +412,15 @@ function stopActorEffects(sprite: SeatSprite): void {
   sprite.actorFrameEvent = null;
   sprite.actorSteamTween?.stop();
   sprite.actorSteamTween = null;
+  sprite.floorShadowTween?.stop();
+  sprite.floorShadowTween = null;
   sprite.agentActor.setScale(ACTOR_SCALE);
   sprite.agentActor.setY(sprite.actorBaseY);
   sprite.actorSteam.setY(sprite.actorBaseY - 5);
   sprite.actorSteam.setAlpha(0.36);
   sprite.actorLaptop.setFillStyle(ACTOR_LAPTOP_COLOR);
+  sprite.actorStatusText.setAlpha(1);
+  sprite.floorShadow.setFillStyle(0x000000, 0.22);
 }
 
 export function ensureActorTextures(scene: Phaser.Scene): void {

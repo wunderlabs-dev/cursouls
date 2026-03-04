@@ -120,6 +120,7 @@ function renderFrame(state: CafePhaserSceneState, frame?: SceneFrame): void {
     sprite.actorLaptop.destroy();
     sprite.actorSteam.destroy();
     sprite.actorHalo.destroy();
+    sprite.actorStatusText.destroy();
     sprite.agentButton.destroy();
     state.seatSprites.delete(tableIndex);
   }
@@ -376,40 +377,9 @@ function clearAmbientPatrons(state: CafePhaserSceneState): void {
 }
 
 function startAmbientPatrons(
-  scene: Phaser.Scene,
-  state: CafePhaserSceneState,
-  composition: ReturnType<typeof buildSceneComposition>,
+  _scene: Phaser.Scene,
+  _state: CafePhaserSceneState,
+  _composition: ReturnType<typeof buildSceneComposition>,
 ): void {
-  const leftX = composition.originX + composition.tileSize * 1.5;
-  const rightX = composition.originX + composition.width - composition.tileSize * 1.5;
-  const lanes = [
-    composition.originY + composition.tileSize * 5.2,
-    composition.originY + composition.tileSize * 8.6,
-    composition.originY + composition.tileSize * 12,
-  ];
-  lanes.forEach((laneY, index) => {
-    const actor = scene.add
-      .sprite(index % 2 === 0 ? leftX : rightX, laneY, "cafe-actor-idle-a")
-      .setOrigin(0.5, 0.5)
-      .setDepth(4)
-      .setTint(0x8d8a7c);
-    let toggle = false;
-    const frameEvent = scene.time.addEvent({
-      delay: 340 + index * 60,
-      loop: true,
-      callback: () => {
-        toggle = !toggle;
-        actor.setTexture(toggle ? "cafe-actor-idle-a" : "cafe-actor-idle-b");
-      },
-    });
-    const moveTween = scene.tweens.add({
-      targets: actor,
-      x: index % 2 === 0 ? rightX : leftX,
-      duration: 5200 + index * 800,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.easeInOut",
-    });
-    state.ambientPatrons.push({ actor, frameEvent, moveTween });
-  });
+  return;
 }

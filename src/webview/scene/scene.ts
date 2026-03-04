@@ -119,6 +119,7 @@ function renderFrame(state: CafePhaserSceneState, frame?: SceneFrame): void {
     sprite.agentActor.destroy();
     sprite.actorLaptop.destroy();
     sprite.actorSteam.destroy();
+    sprite.actorHalo.destroy();
     sprite.agentButton.destroy();
     state.seatSprites.delete(tableIndex);
   }

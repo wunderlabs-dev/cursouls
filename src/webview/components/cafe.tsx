@@ -1,12 +1,12 @@
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import type { TooltipData } from "@web/bridge/types";
 import { INITIALIZING_LABEL } from "@web/constants";
-import { CafeScene } from "@web/ui/scene";
+import { CafeScene } from "@web/components/scene/cafe-scene";
 import { HealthBanner } from "@web/components/ui/health-banner";
 import { QueueStrip } from "@web/components/ui/queue-strip";
 import { TooltipCard } from "@web/components/ui/tooltip-card";
 
-interface CafeRootProps {
+interface CafeProps {
   frame?: SceneFrame;
   tooltip?: TooltipData;
   lifecycleEvents: AgentLifecycleEvent[];
@@ -14,13 +14,13 @@ interface CafeRootProps {
   onQueueClick: (agentId: string) => void;
 }
 
-export function CafeRoot({
+export function Cafe({
   frame,
   tooltip,
   lifecycleEvents,
   onSeatClick,
   onQueueClick,
-}: CafeRootProps) {
+}: CafeProps) {
   return (
     <main
       className="grid h-full min-h-0 grid-rows-[auto_1fr_auto_auto] gap-1.5 p-1.5"

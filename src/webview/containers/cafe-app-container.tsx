@@ -3,7 +3,7 @@ import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import { BRIDGE_AGENT_ANCHOR, BRIDGE_INBOUND_TYPE } from "@shared/bridge";
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import type { TooltipData } from "@web/bridge/types";
-import { CafeRoot } from "@web/components/cafe-root";
+import { Cafe } from "@web/components/cafe";
 
 export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }) {
   const [frame, setFrame] = useState<SceneFrame | undefined>(undefined);
@@ -43,7 +43,7 @@ export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }) {
   );
 
   return (
-    <CafeRoot
+    <Cafe
       frame={frame}
       tooltip={tooltip}
       lifecycleEvents={lifecycleEvents}

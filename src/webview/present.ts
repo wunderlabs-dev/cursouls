@@ -2,10 +2,6 @@ import { AGENT_STATUS, type AgentStatus } from "@shared/types";
 import words from "lodash.words";
 import upperFirst from "lodash.upperfirst";
 
-export function spriteStatusClass(status: AgentStatus): string {
-  return `status-${status}`;
-}
-
 export function initialsFor(name: string): string {
   const parts = words(name.trim());
   if (parts.length === 0) {

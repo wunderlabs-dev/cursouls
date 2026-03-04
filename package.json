@@ -63,6 +63,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.5",
+    "@tailwindcss/cli": "^4.1.13",
     "@types/lodash.truncate": "^4.4.9",
     "@types/lodash.uniq": "^4.5.9",
     "@types/lodash.upperfirst": "^4.3.9",
@@ -71,13 +72,14 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/vscode": "^1.90.0",
-    "@tailwindcss/cli": "^4.1.13",
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.8.0",
     "vitest": "^3.0.0"
   },
   "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lodash.truncate": "^4.4.2",
     "lodash.uniq": "^4.5.0",
@@ -85,6 +87,7 @@
     "lodash.words": "^4.2.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "tailwind-merge": "^3.5.0",
     "zod": "^4.3.6"
   }
 }

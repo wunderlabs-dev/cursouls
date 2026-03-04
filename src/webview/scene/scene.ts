@@ -27,6 +27,7 @@ function renderFrame(state: CafePhaserSceneState, frame?: SceneFrame): void {
   }
 
   const model = buildCafeSceneModel(frame);
+  const activeSeatIndexes = new Set<number>(model.seats.map((seat) => seat.tableIndex));
 
   model.seats.forEach((seat) => {
     const existing = state.seatSprites.get(seat.tableIndex);
@@ -39,6 +40,18 @@ function renderFrame(state: CafePhaserSceneState, frame?: SceneFrame): void {
     state.seatSprites.set(seat.tableIndex, sprite);
     updateSeatSprite(sprite, seat);
   });
+
+  for (const [tableIndex, sprite] of state.seatSprites.entries()) {
+    if (activeSeatIndexes.has(tableIndex)) {
+      continue;
+    }
+    sprite.table.destroy();
+    sprite.tableStroke.destroy();
+    sprite.tableSurface.destroy();
+    sprite.tableLabel.destroy();
+    sprite.agentButton.destroy();
+    state.seatSprites.delete(tableIndex);
+  }
 }
 
 export function createCafePhaserScene({

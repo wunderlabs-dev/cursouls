@@ -1,6 +1,5 @@
+import { DEFAULT_SEAT_COUNT } from "@shared/constants";
 import type { AgentSnapshot, SceneFrame } from "@shared/types";
-
-export const TABLE_COUNT = 6;
 
 export interface TableAnchor {
   tableIndex: number;
@@ -29,37 +28,41 @@ const TABLE_ROW_GAP = 100;
 const TABLE_COLUMN_COUNT = 2;
 const TABLE_LABEL_PREFIX = "Table";
 
-export const TABLE_ANCHORS: readonly TableAnchor[] = Array.from({ length: TABLE_COUNT }, (_, index) => {
-  const rowIndex = Math.floor(index / TABLE_COLUMN_COUNT);
-  const columnIndex = index % TABLE_COLUMN_COUNT;
-  const x = columnIndex === 0 ? TABLE_LEFT_X : TABLE_RIGHT_X;
-  const y = TABLE_TOP_Y + rowIndex * TABLE_ROW_GAP;
-  return {
-    tableIndex: index,
-    label: `${TABLE_LABEL_PREFIX} ${index + 1}`,
-    x,
-    y,
-    width: TABLE_WIDTH,
-    height: TABLE_HEIGHT,
-  };
-});
-
 export const SCENE_WIDTH = 420;
 export const SCENE_HEIGHT = 362;
 
 export function buildCafeSceneModel(frame?: SceneFrame): CafeSceneModel {
+  const tableCount = Math.max(1, frame?.seats.length ?? DEFAULT_SEAT_COUNT);
+  const tableAnchors = buildTableAnchors(tableCount);
   const byTable = new Map<number, AgentSnapshot | null>();
   frame?.seats.forEach((seat) => {
-    if (seat.tableIndex >= 0 && seat.tableIndex < TABLE_COUNT) {
+    if (seat.tableIndex >= 0 && seat.tableIndex < tableCount) {
       byTable.set(seat.tableIndex, seat.agent);
     }
   });
 
   return {
     generatedAt: frame?.generatedAt ?? Date.now(),
-    seats: TABLE_ANCHORS.map((anchor) => ({
+    seats: tableAnchors.map((anchor) => ({
       ...anchor,
       agent: byTable.get(anchor.tableIndex) ?? null,
     })),
   };
+}
+
+function buildTableAnchors(tableCount: number): readonly TableAnchor[] {
+  return Array.from({ length: tableCount }, (_, index) => {
+    const rowIndex = Math.floor(index / TABLE_COLUMN_COUNT);
+    const columnIndex = index % TABLE_COLUMN_COUNT;
+    const x = columnIndex === 0 ? TABLE_LEFT_X : TABLE_RIGHT_X;
+    const y = TABLE_TOP_Y + rowIndex * TABLE_ROW_GAP;
+    return {
+      tableIndex: index,
+      label: `${TABLE_LABEL_PREFIX} ${index + 1}`,
+      x,
+      y,
+      width: TABLE_WIDTH,
+      height: TABLE_HEIGHT,
+    };
+  });
 }

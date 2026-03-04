@@ -1,16 +1,14 @@
 import {
   AGENT_SUBSCRIPTION_EVENT_TYPES,
   WATCH_RUNTIME_ERROR_CODES,
-  WATCH_RUNTIME_ERROR_MESSAGES,
   createAgentSubscription,
   isWatchRuntimeError,
   type AgentStateSnapshot,
 } from "@shared/watch";
 import type { AgentLifecycleEvent, AgentSourceReadResult, SceneFrame } from "@shared/types";
+import { formatUnknownError } from "@ext/errors";
 import type { Logger } from "@ext/logging";
 import type { CafeStore } from "./store";
-
-const DEFAULT_DEBOUNCE_MS = 150;
 
 export type FrameListener = (frame: SceneFrame) => void;
 export type LifecycleListener = (events: AgentLifecycleEvent[]) => void;
@@ -52,22 +50,17 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
   const store = options.store;
   const logger = options.logger;
   const now = options.now ?? (() => Date.now());
-  const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
   const watchFactory = options.watchFactory;
   const sourceFactory = options.sourceFactory;
 
   const frameListeners = new Set<FrameListener>();
   const lifecycleListeners = new Set<LifecycleListener>();
   const errorListeners = new Set<ErrorListener>();
-  let state: "stopped" | "starting" | "started" | "stopping" = "stopped";
-  let startPromise: Promise<void> | null = null;
-  let stopPromise: Promise<void> | null = null;
-  let latestFrame: SceneFrame | undefined;
 
   const subscription = createAgentSubscription({
     projectPath: options.projectPath,
     projectPaths: options.projectPaths,
-    debounceMs,
+    debounceMs: options.debounceMs,
     now,
     sourceFactory,
     watchFactory: watchFactory
@@ -81,7 +74,6 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
 
   subscription.subscribeToSnapshots((event) => {
     const frame = applySnapshot(event.snapshot, event.snapshot.at, store);
-    latestFrame = frame;
     notifyListeners(frameListeners, frame, "frame", logger);
   });
 
@@ -95,92 +87,15 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
     }
   });
 
-  async function start(): Promise<void> {
-    if (state === "started") {
-      return;
-    }
-    if (state === "starting" && startPromise) {
-      return startPromise;
-    }
-    if (state === "stopping" && stopPromise) {
-      await stopPromise;
-    }
-
-    state = "starting";
-    const operation = (async () => {
-      try {
-        await subscription.start();
-        state = "started";
-      } catch (error) {
-        state = "stopped";
-        throw error;
-      }
-    })();
-    startPromise = operation;
-    try {
-      await operation;
-    } finally {
-      if (startPromise === operation) {
-        startPromise = null;
-      }
-    }
-  }
-
-  async function stop(): Promise<void> {
-    if (state === "stopped") {
-      return;
-    }
-    if (state === "stopping" && stopPromise) {
-      return stopPromise;
-    }
-    if (state === "starting" && startPromise) {
-      try {
-        await startPromise;
-      } catch {
-        // Continue stopping after failed startup.
-      }
-    }
-
-    state = "stopping";
-    const operation = (async () => {
-      try {
-        await subscription.stop();
-      } finally {
-        state = "stopped";
-      }
-    })();
-    stopPromise = operation;
-    try {
-      await operation;
-    } finally {
-      if (stopPromise === operation) {
-        stopPromise = null;
-      }
-    }
-  }
-
   async function refreshNow(): Promise<SceneFrame> {
-    if (state === "starting" && startPromise) {
-      await startPromise;
-    }
-    if (state !== "started") {
-      return Promise.reject(new Error("Watch controller is not running."));
-    }
     try {
       const snapshot = await subscription.refreshNow();
       const frame = applySnapshot(snapshot, snapshot.at, store);
-      latestFrame = frame;
       return frame;
     } catch (error: unknown) {
       if (
         isWatchRuntimeError(error) &&
         error.code === WATCH_RUNTIME_ERROR_CODES.stoppedBeforeRefreshCompleted
-      ) {
-        throw new Error("Watch controller stopped before refresh completed.");
-      }
-      if (
-        error instanceof Error &&
-        error.message === WATCH_RUNTIME_ERROR_MESSAGES.stoppedBeforeRefreshCompleted
       ) {
         throw new Error("Watch controller stopped before refresh completed.");
       }
@@ -210,8 +125,8 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
   }
 
   return {
-    start,
-    stop,
+    start: () => subscription.start(),
+    stop: () => subscription.stop(),
     refreshNow,
     onFrame,
     onLifecycleEvents,
@@ -232,13 +147,6 @@ function notifyListeners<T>(
       logger?.error(`Watch ${channel} listener failed: ${formatUnknownError(error)}`);
     }
   }
-}
-
-function formatUnknownError(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return String(error);
 }
 
 function applySnapshot(snapshot: AgentStateSnapshot, at: number, store?: CafeStore): SceneFrame {

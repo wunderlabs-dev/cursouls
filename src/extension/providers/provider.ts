@@ -2,11 +2,11 @@ import type * as vscode from "vscode";
 import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import {
-  BRIDGE_AGENT_ANCHOR,
+  BRIDGE_LIFECYCLE_REPLAY_LIMIT,
   BRIDGE_INBOUND_TYPE,
   BRIDGE_OUTBOUND_TYPE,
+  safeParseOutboundBridgeMessage,
   type InboundMessage,
-  type OutboundMessage,
   type TooltipData,
 } from "@shared/bridge";
 import { findAgentInFrame } from "@shared/frame";
@@ -23,10 +23,10 @@ export function createCafeViewProvider(
   extensionUri: vscode.Uri,
   logger?: { warn(message: string): void },
 ): CafeViewProvider {
-  const MAX_LIFECYCLE_REPLAY_EVENTS = 200;
   let view: vscode.WebviewView | undefined;
   let latestFrame: SceneFrame | undefined;
   let lifecycleReplayEvents: AgentLifecycleEvent[] = [];
+  let selectedTooltipAgentId: string | undefined;
 
   function resolveWebviewView(nextView: vscode.WebviewView): void {
     view = nextView;
@@ -41,8 +41,10 @@ export function createCafeViewProvider(
     });
 
     nextView.webview.onDidReceiveMessage((message: unknown) => {
-      if (!isOutboundMessage(message)) {
-        const details = `[cursor-cafe] Ignoring malformed webview message: ${formatUnknown(message)}`;
+      const parsedMessage = safeParseOutboundBridgeMessage(message);
+      if (!parsedMessage.success) {
+        const reason = parsedMessage.error.issues.map((issue) => issue.message).join("; ");
+        const details = `[cursor-cafe] Ignoring malformed webview message: ${reason || formatUnknown(message)}`;
         if (logger) {
           logger.warn(details);
         } else {
@@ -50,8 +52,9 @@ export function createCafeViewProvider(
         }
         return;
       }
+      const outboundMessage = parsedMessage.data;
 
-      if (message.type === BRIDGE_OUTBOUND_TYPE.ready) {
+      if (outboundMessage.type === BRIDGE_OUTBOUND_TYPE.ready) {
         if (latestFrame) {
           postMessage({ type: BRIDGE_INBOUND_TYPE.sceneFrame, frame: latestFrame });
         }
@@ -64,13 +67,9 @@ export function createCafeViewProvider(
         return;
       }
 
-      if (message.type === BRIDGE_OUTBOUND_TYPE.agentClick) {
-        const tooltip = buildTooltip(message.agentId);
-        if (tooltip) {
-          postMessage({ type: BRIDGE_INBOUND_TYPE.tooltipData, tooltip });
-        } else {
-          postMessage({ type: BRIDGE_INBOUND_TYPE.hideTooltip });
-        }
+      if (outboundMessage.type === BRIDGE_OUTBOUND_TYPE.agentClick) {
+        selectedTooltipAgentId = outboundMessage.agentId;
+        syncSelectedTooltip();
       }
     });
   }
@@ -78,13 +77,14 @@ export function createCafeViewProvider(
   function updateFrame(frame: SceneFrame): void {
     latestFrame = frame;
     postMessage({ type: BRIDGE_INBOUND_TYPE.sceneFrame, frame });
+    syncSelectedTooltip();
   }
 
   function updateLifecycleEvents(events: AgentLifecycleEvent[]): void {
     lifecycleReplayEvents = [...lifecycleReplayEvents, ...events];
-    if (lifecycleReplayEvents.length > MAX_LIFECYCLE_REPLAY_EVENTS) {
+    if (lifecycleReplayEvents.length > BRIDGE_LIFECYCLE_REPLAY_LIMIT) {
       lifecycleReplayEvents = lifecycleReplayEvents.slice(
-        lifecycleReplayEvents.length - MAX_LIFECYCLE_REPLAY_EVENTS,
+        lifecycleReplayEvents.length - BRIDGE_LIFECYCLE_REPLAY_LIMIT,
       );
     }
     postMessage({ type: BRIDGE_INBOUND_TYPE.lifecycleEvents, events: lifecycleReplayEvents });
@@ -115,6 +115,19 @@ export function createCafeViewProvider(
     };
   }
 
+  function syncSelectedTooltip(): void {
+    if (!selectedTooltipAgentId) {
+      return;
+    }
+    const tooltip = buildTooltip(selectedTooltipAgentId);
+    if (tooltip) {
+      postMessage({ type: BRIDGE_INBOUND_TYPE.tooltipData, tooltip });
+      return;
+    }
+    selectedTooltipAgentId = undefined;
+    postMessage({ type: BRIDGE_INBOUND_TYPE.hideTooltip });
+  }
+
   function postMessage(message: InboundMessage): void {
     if (!view) {
       return;
@@ -132,29 +145,6 @@ export function createCafeViewProvider(
 export const CafeViewProvider = {
   viewType: CAFE_VIEW_TYPE,
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function isOutboundMessage(value: unknown): value is OutboundMessage {
-  if (!isRecord(value) || typeof value.type !== "string") {
-    return false;
-  }
-
-  if (value.type === BRIDGE_OUTBOUND_TYPE.ready) {
-    return true;
-  }
-
-  if (value.type === BRIDGE_OUTBOUND_TYPE.agentClick) {
-    return (
-      typeof value.agentId === "string" &&
-      (value.anchor === BRIDGE_AGENT_ANCHOR.seat || value.anchor === BRIDGE_AGENT_ANCHOR.queue)
-    );
-  }
-
-  return false;
-}
 
 function formatElapsed(startedAt: number | undefined): string {
   if (!startedAt) {

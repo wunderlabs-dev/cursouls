@@ -1,18 +1,12 @@
 import {
-  AGENT_KIND,
-  AGENT_LIFECYCLE_EVENT_KIND,
-  AGENT_SOURCE_KIND,
-  AGENT_STATUS,
   type AgentLifecycleEvent,
-  type SceneFrame,
 } from "@shared/types";
 import {
-  BRIDGE_AGENT_ANCHOR,
   BRIDGE_INBOUND_TYPE,
   BRIDGE_OUTBOUND_TYPE,
+  safeParseInboundBridgeMessage,
   type AgentAnchor,
 } from "@shared/bridge";
-import { z } from "zod";
 import type { InboundMessage, OutboundMessage, TooltipData } from "./types";
 
 type MessageListener = (message: InboundMessage) => void;
@@ -23,7 +17,6 @@ type VsCodeApi = {
 
 declare function acquireVsCodeApi(): VsCodeApi;
 
-const MAX_PENDING_LIFECYCLE_EVENTS = 200;
 const MAX_INVALID_MESSAGE_LOGS = 5;
 
 type PendingMessageBuffer = {
@@ -99,7 +92,7 @@ function parseInboundMessage(
   value: unknown,
   onInvalid: (reason: string) => void,
 ): InboundMessage | undefined {
-  const parsed = inboundMessageSchema.safeParse(value);
+  const parsed = safeParseInboundBridgeMessage(value);
   if (!parsed.success) {
     const reason = parsed.error.issues.map((issue) => issue.message).join("; ");
     onInvalid(reason || "schema validation failed");
@@ -127,7 +120,7 @@ function bufferMessage(buffer: PendingMessageBuffer, message: InboundMessage): v
 
   buffer.latestLifecycleEvents = {
     type: BRIDGE_INBOUND_TYPE.lifecycleEvents,
-    events: message.events.slice(-MAX_PENDING_LIFECYCLE_EVENTS),
+    events: message.events,
   };
 }
 
@@ -152,72 +145,3 @@ function clearBufferedMessages(buffer: PendingMessageBuffer): void {
   buffer.hideTooltip = undefined;
   buffer.latestLifecycleEvents = undefined;
 }
-
-const agentStatusSchema = z.nativeEnum(AGENT_STATUS);
-const agentKindSchema = z.nativeEnum(AGENT_KIND);
-const sourceKindSchema = z.nativeEnum(AGENT_SOURCE_KIND);
-const lifecycleEventTypeSchema = z.nativeEnum(AGENT_LIFECYCLE_EVENT_KIND);
-
-const agentSnapshotSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  kind: agentKindSchema,
-  status: agentStatusSchema,
-  taskSummary: z.string(),
-  startedAt: z.number().optional(),
-  updatedAt: z.number(),
-  source: sourceKindSchema,
-}).strict();
-
-const seatFrameSchema = z.object({
-  tableIndex: z.number(),
-  agent: z.union([agentSnapshotSchema, z.null()]),
-}).strict();
-
-const sourceHealthSchema = z.object({
-  sourceConnected: z.boolean(),
-  sourceLabel: z.string(),
-  warnings: z.array(z.string()),
-}).strict();
-
-const sceneFrameSchema: z.ZodType<SceneFrame> = z.object({
-  generatedAt: z.number(),
-  seats: z.array(seatFrameSchema),
-  queue: z.array(agentSnapshotSchema),
-  health: sourceHealthSchema,
-}).strict();
-
-const tooltipDataSchema: z.ZodType<TooltipData> = z.object({
-  id: z.string(),
-  name: z.string(),
-  status: agentStatusSchema,
-  task: z.string(),
-  elapsed: z.string(),
-  updated: z.string(),
-}).strict();
-
-const lifecycleEventSchema: z.ZodType<AgentLifecycleEvent> = z.object({
-  kind: lifecycleEventTypeSchema,
-  agentId: z.string(),
-  at: z.number(),
-  fromStatus: z.union([agentStatusSchema, z.null()]),
-  toStatus: z.union([agentStatusSchema, z.null()]),
-}).strict();
-
-const inboundMessageSchema: z.ZodType<InboundMessage> = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal(BRIDGE_INBOUND_TYPE.sceneFrame),
-    frame: sceneFrameSchema,
-  }).strict(),
-  z.object({
-    type: z.literal(BRIDGE_INBOUND_TYPE.lifecycleEvents),
-    events: z.array(lifecycleEventSchema),
-  }).strict(),
-  z.object({
-    type: z.literal(BRIDGE_INBOUND_TYPE.tooltipData),
-    tooltip: tooltipDataSchema,
-  }).strict(),
-  z.object({
-    type: z.literal(BRIDGE_INBOUND_TYPE.hideTooltip),
-  }).strict(),
-]);

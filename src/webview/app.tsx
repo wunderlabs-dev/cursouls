@@ -1,17 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
 import { createRoot } from "react-dom/client";
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import { BRIDGE_AGENT_ANCHOR, BRIDGE_INBOUND_TYPE } from "@shared/bridge";
-import { findAgentInFrame } from "@shared/frame";
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import type { TooltipData } from "@web/bridge/types";
 import { PhaserCanvas } from "@web/ui/canvas";
 import { initialsFor, spriteStatusClass } from "@web/present";
 import {
-  EMPTY_ELAPSED_LABEL,
   INITIALIZING_LABEL,
-  NO_ACTIVE_TASK_LABEL,
   NO_QUEUE_LABEL,
   QUEUE_VISIBLE_LIMIT,
   TOOLTIP_ELAPSED_LABEL,
@@ -47,12 +43,6 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
       switch (message.type) {
         case BRIDGE_INBOUND_TYPE.sceneFrame:
           setFrame(message.frame);
-          setTooltip((current) => {
-            if (!current) {
-              return current;
-            }
-            return findAgentTooltip(message.frame, current.id);
-          });
           return;
         case BRIDGE_INBOUND_TYPE.tooltipData:
           setTooltip(message.tooltip);
@@ -84,24 +74,16 @@ function CafeApp({ bridge }: { bridge: VsCodeBridge }) {
 
   const handleSeatClick = useCallback(
     (agentId: string): void => {
-      const fallback = findAgentTooltip(frame, agentId);
-      if (fallback) {
-        setTooltip(fallback);
-      }
       bridge.postAgentClick(agentId, BRIDGE_AGENT_ANCHOR.seat);
     },
-    [bridge, frame],
+    [bridge],
   );
 
   const handleQueueClick = useCallback(
     (agentId: string): void => {
-      const fallback = findAgentTooltip(frame, agentId);
-      if (fallback) {
-        setTooltip(fallback);
-      }
       bridge.postAgentClick(agentId, BRIDGE_AGENT_ANCHOR.queue);
     },
-    [bridge, frame],
+    [bridge],
   );
 
   return (
@@ -175,31 +157,6 @@ function assertNever(_value: never): never {
   throw new Error("Unhandled inbound bridge message.");
 }
 
-function findAgentTooltip(frame: SceneFrame | undefined, agentId: string): TooltipData | undefined {
-  if (!frame) {
-    return undefined;
-  }
-  const agent = findAgentInFrame(frame, agentId);
-  if (!agent) {
-    return undefined;
-  }
-
-  const elapsed = agent.startedAt
-    ? formatElapsed(agent.startedAt)
-    : EMPTY_ELAPSED_LABEL;
-
-  const updated = formatDistanceToNowStrict(agent.updatedAt, { addSuffix: true });
-
-  return {
-    id: agent.id,
-    name: agent.name,
-    status: agent.status,
-    task: agent.taskSummary || NO_ACTIVE_TASK_LABEL,
-    elapsed,
-    updated,
-  };
-}
-
 function buildHealthLabel(frame: SceneFrame): string {
   const source = frame.health.sourceLabel || UNKNOWN_SOURCE_LABEL;
   const warnings = frame.health.warnings.length;
@@ -208,12 +165,4 @@ function buildHealthLabel(frame: SceneFrame): string {
   }
   const label = warnings === 1 ? WARNING_LABEL_SINGULAR : WARNING_LABEL_PLURAL;
   return `${source} (${warnings} ${label})`;
-}
-
-function formatElapsed(startedAt: number): string {
-  const { hours = 0, minutes = 0 } = intervalToDuration({
-    start: startedAt,
-    end: Date.now(),
-  });
-  return hours > 0 ? `${hours}h ${minutes}m` : `${Math.max(0, minutes)}m`;
 }

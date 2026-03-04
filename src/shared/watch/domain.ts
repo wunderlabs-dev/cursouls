@@ -30,24 +30,6 @@ export interface AgentSnapshot {
   source: AgentSourceKind;
 }
 
-export interface SeatFrame {
-  tableIndex: number;
-  agent: AgentSnapshot | null;
-}
-
-export interface SourceHealth {
-  sourceConnected: boolean;
-  sourceLabel: string;
-  warnings: string[];
-}
-
-export interface SceneFrame {
-  generatedAt: number;
-  seats: SeatFrame[];
-  queue: AgentSnapshot[];
-  health: SourceHealth;
-}
-
 export interface AgentSourceReadResult {
   agents: AgentSnapshot[];
   connected: boolean;

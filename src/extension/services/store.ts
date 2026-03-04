@@ -1,6 +1,6 @@
 import { DEFAULT_SEAT_COUNT } from "@shared/constants";
 import { AGENT_STATUS, type AgentSnapshot, type SceneFrame, type SourceHealth } from "@shared/types";
-import { createSeatAllocator, type SeatAllocator } from "./seats";
+import { createSeatAllocator, normalizeSeatCount, type SeatAllocator } from "./seats";
 
 export interface CafeStoreUpdateInput {
   agents: AgentSnapshot[];
@@ -14,8 +14,8 @@ export interface CafeStore {
 }
 
 export function createCafeStore(seatCount: number = DEFAULT_SEAT_COUNT): CafeStore {
-  const normalizedSeatCount = Math.max(1, Math.floor(seatCount));
-  const allocator: SeatAllocator = createSeatAllocator(seatCount);
+  const normalizedSeatCount = normalizeSeatCount(seatCount);
+  const allocator: SeatAllocator = createSeatAllocator(normalizedSeatCount);
   let frame: SceneFrame = {
     generatedAt: 0,
     seats: new Array(normalizedSeatCount).fill(null).map((_, index) => ({
@@ -81,9 +81,5 @@ function isSeatEligibleAgent(agent: AgentSnapshot): boolean {
   if (agent.status !== AGENT_STATUS.idle) {
     return false;
   }
-  return !isSubagent(agent);
-}
-
-function isSubagent(agent: AgentSnapshot): boolean {
-  return agent.name.trim().toLowerCase().startsWith("subagent");
+  return !agent.isSubagent;
 }

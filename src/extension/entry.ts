@@ -1,13 +1,13 @@
 import * as vscode from "vscode";
 import { readCafeConfig } from "./config";
+import { formatUnknownError } from "./errors";
 import { createLogger } from "./logging";
 import { CAFE_VIEW_TYPE, createCafeViewProvider } from "@ext/providers/provider";
 import { createCafeStore } from "@ext/services/store";
 import { createWatchController, type WatchController } from "@ext/services/watch";
 import { AGENT_SOURCE_KIND } from "@shared/types";
 
-let activeWatchController: WatchController | undefined;
-let activeWatchStartPromise: Promise<void> | undefined;
+let stopActiveSession: (() => Promise<void>) | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   const outputChannel = vscode.window.createOutputChannel("Cursor Cafe");
@@ -16,6 +16,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const store = createCafeStore(config.seatCount);
   const viewProvider = createCafeViewProvider(context.extensionUri, logger);
   let currentController: WatchController | undefined;
+  let isDisposed = false;
   let disposeFrameListener: () => void = () => undefined;
   let disposeLifecycleListener: () => void = () => undefined;
   let disposeErrorListener: () => void = () => undefined;
@@ -31,13 +32,14 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   async function replaceWatchController(): Promise<void> {
+    if (isDisposed) {
+      return;
+    }
     const previousController = currentController;
     if (previousController) {
       detachControllerListeners();
-      await stopWatchController(previousController, logger);
-      if (currentController === previousController) {
-        currentController = undefined;
-      }
+      await stopController(previousController, logger);
+      currentController = undefined;
     }
 
     const workspacePaths = (vscode.workspace.workspaceFolders ?? []).map(
@@ -60,8 +62,6 @@ export function activate(context: vscode.ExtensionContext): void {
           Date.now(),
         ),
       );
-      activeWatchController = undefined;
-      activeWatchStartPromise = undefined;
       return;
     }
 
@@ -73,7 +73,6 @@ export function activate(context: vscode.ExtensionContext): void {
       logger,
     });
     currentController = nextController;
-    activeWatchController = nextController;
     disposeFrameListener = nextController.onFrame((frame) => {
       viewProvider.updateFrame(frame);
     });
@@ -83,15 +82,10 @@ export function activate(context: vscode.ExtensionContext): void {
     disposeErrorListener = nextController.onError((error) => {
       logger.error(`Watch refresh error: ${formatUnknownError(error)}`);
     });
-    activeWatchStartPromise = nextController
+    await nextController
       .start()
       .catch((error: unknown) => {
         logger.error(`Failed to start transcript watch: ${formatUnknownError(error)}`);
-      })
-      .finally(() => {
-        if (activeWatchController === nextController) {
-          activeWatchStartPromise = undefined;
-        }
       });
   }
 
@@ -101,6 +95,16 @@ export function activate(context: vscode.ExtensionContext): void {
       .catch((error: unknown) => {
         logger.error(`Failed to update transcript watch: ${formatUnknownError(error)}`);
       });
+  }
+
+  async function shutdownSession(): Promise<void> {
+    isDisposed = true;
+    detachControllerListeners();
+    await replacePromise.catch(() => undefined);
+    if (currentController) {
+      await stopController(currentController, logger);
+      currentController = undefined;
+    }
   }
 
   context.subscriptions.push(
@@ -125,48 +129,25 @@ export function activate(context: vscode.ExtensionContext): void {
       scheduleWatchControllerReplace();
     }),
     new vscode.Disposable(() => {
-      detachControllerListeners();
-      if (currentController) {
-        void stopWatchController(currentController, logger);
-      }
+      void shutdownSession();
     }),
   );
 
   viewProvider.updateFrame(store.getFrame());
   viewProvider.updateLifecycleEvents([]);
   scheduleWatchControllerReplace();
+  stopActiveSession = shutdownSession;
 }
 
 export function deactivate(): Thenable<void> | void {
-  if (!activeWatchController) {
+  if (!stopActiveSession) {
     return;
   }
-  const controller = activeWatchController;
-  return stopWatchController(controller);
+  const stop = stopActiveSession;
+  stopActiveSession = undefined;
+  return stop();
 }
-
-function formatUnknownError(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return String(error);
-}
-
-async function stopWatchController(controller: WatchController, logger?: { error(message: string): void }): Promise<void> {
-  if (activeWatchController === controller) {
-    activeWatchController = undefined;
-  }
-
-  if (activeWatchStartPromise) {
-    try {
-      await activeWatchStartPromise;
-    } catch {
-      // Start failures are already handled during activation.
-    } finally {
-      activeWatchStartPromise = undefined;
-    }
-  }
-
+async function stopController(controller: WatchController, logger?: { error(message: string): void }): Promise<void> {
   try {
     await controller.stop();
   } catch (error) {

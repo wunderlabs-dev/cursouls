@@ -1,13 +1,10 @@
 import {
-  type AgentLifecycleEvent,
-} from "@shared/types";
-import {
   BRIDGE_INBOUND_TYPE,
   BRIDGE_OUTBOUND_TYPE,
   safeParseInboundBridgeMessage,
   type AgentAnchor,
 } from "@shared/bridge";
-import type { InboundMessage, OutboundMessage, TooltipData } from "./types";
+import type { InboundMessage, OutboundMessage } from "./types";
 
 type MessageListener = (message: InboundMessage) => void;
 
@@ -20,10 +17,12 @@ declare function acquireVsCodeApi(): VsCodeApi;
 const MAX_INVALID_MESSAGE_LOGS = 5;
 
 type PendingMessageBuffer = {
-  latestFrame: InboundMessage | undefined;
-  latestTooltip: InboundMessage | undefined;
-  hideTooltip: InboundMessage | undefined;
-  latestLifecycleEvents: InboundMessage | undefined;
+  latestFrame: Extract<InboundMessage, { type: typeof BRIDGE_INBOUND_TYPE.sceneFrame }> | undefined;
+  latestTooltip: Extract<InboundMessage, { type: typeof BRIDGE_INBOUND_TYPE.tooltipData }> | undefined;
+  hideTooltip: Extract<InboundMessage, { type: typeof BRIDGE_INBOUND_TYPE.hideTooltip }> | undefined;
+  latestLifecycleEvents:
+    | Extract<InboundMessage, { type: typeof BRIDGE_INBOUND_TYPE.lifecycleEvents }>
+    | undefined;
 };
 
 export interface VsCodeBridge {
@@ -118,10 +117,7 @@ function bufferMessage(buffer: PendingMessageBuffer, message: InboundMessage): v
     return;
   }
 
-  buffer.latestLifecycleEvents = {
-    type: BRIDGE_INBOUND_TYPE.lifecycleEvents,
-    events: message.events,
-  };
+  buffer.latestLifecycleEvents = message;
 }
 
 function flushBufferedMessages(listener: MessageListener, buffer: PendingMessageBuffer): void {

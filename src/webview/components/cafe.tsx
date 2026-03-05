@@ -1,4 +1,4 @@
-import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
+import type { SceneFrame } from "@shared/types";
 import type { TooltipData } from "@web/bridge/types";
 import { INITIALIZING_LABEL } from "@web/constants";
 import { CafeScene } from "@web/components/scene/cafe-scene";
@@ -9,7 +9,6 @@ import { TooltipCard } from "@web/components/ui/tooltip-card";
 interface CafeProps {
   frame?: SceneFrame;
   tooltip?: TooltipData;
-  lifecycleEvents: AgentLifecycleEvent[];
   onSeatClick: (agentId: string) => void;
   onQueueClick: (agentId: string) => void;
 }
@@ -17,7 +16,6 @@ interface CafeProps {
 export function Cafe({
   frame,
   tooltip,
-  lifecycleEvents,
   onSeatClick,
   onQueueClick,
 }: CafeProps) {
@@ -25,7 +23,6 @@ export function Cafe({
     <main
       className="grid h-full min-h-0 grid-rows-[auto_1fr_auto_auto] gap-1.5 p-1.5"
       aria-label="Cursor Cafe sidebar"
-      data-lifecycle-event-count={lifecycleEvents.length}
     >
       <HealthBanner frame={frame} fallbackLabel={INITIALIZING_LABEL} />
       <section

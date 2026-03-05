@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
+import type { SceneFrame } from "@shared/types";
 import { BRIDGE_AGENT_ANCHOR, BRIDGE_INBOUND_TYPE } from "@shared/bridge";
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import type { TooltipData } from "@web/bridge/types";
@@ -8,7 +8,6 @@ import { Cafe } from "@web/components/cafe";
 export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }) {
   const [frame, setFrame] = useState<SceneFrame | undefined>(undefined);
   const [tooltip, setTooltip] = useState<TooltipData | undefined>(undefined);
-  const [lifecycleEvents, setLifecycleEvents] = useState<AgentLifecycleEvent[]>([]);
 
   useEffect(() => {
     const unsubscribe = bridge.subscribe((message) => {
@@ -20,7 +19,6 @@ export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }) {
           setTooltip(message.tooltip);
           return;
         case BRIDGE_INBOUND_TYPE.lifecycleEvents:
-          setLifecycleEvents(message.events);
           return;
         case BRIDGE_INBOUND_TYPE.hideTooltip:
           setTooltip(undefined);
@@ -46,7 +44,6 @@ export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }) {
     <Cafe
       frame={frame}
       tooltip={tooltip}
-      lifecycleEvents={lifecycleEvents}
       onSeatClick={handleSeatClick}
       onQueueClick={handleQueueClick}
     />

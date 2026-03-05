@@ -48,6 +48,20 @@ export const ROOM_LAYOUT = [
   "FFFFFFFFFFFFFFFFFF",
 ] as const;
 
+function toLayoutSymbol(value: string): LayoutSymbol {
+  switch (value) {
+    case "W":
+    case "w":
+    case "C":
+    case "F":
+    case "t":
+    case "d":
+      return value;
+    default:
+      throw new Error(`Unsupported layout symbol: ${value}`);
+  }
+}
+
 export function buildSceneComposition(sceneWidth: number, sceneHeight: number): SceneComposition {
   const columns = ROOM_LAYOUT[0].length;
   const rows = ROOM_LAYOUT.length;
@@ -63,7 +77,7 @@ export function buildSceneComposition(sceneWidth: number, sceneHeight: number): 
   for (let row = 0; row < rows; row += 1) {
     const pattern = ROOM_LAYOUT[row];
     for (let column = 0; column < columns; column += 1) {
-      const symbol = pattern[column] as LayoutSymbol;
+      const symbol = toLayoutSymbol(pattern[column]);
       cells.push({
         symbol,
         row,

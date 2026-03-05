@@ -1,5 +1,6 @@
 import type * as vscode from "vscode";
 import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
+import truncate from "lodash.truncate";
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import {
   BRIDGE_LIFECYCLE_REPLAY_LIMIT,
@@ -13,6 +14,8 @@ import { findAgentInFrame } from "@shared/frame";
 import { getWebviewHtml } from "./html";
 
 export const CAFE_VIEW_TYPE = "cursorCafe.sidebar";
+const FALLBACK_TASK_LABEL = "No active task";
+const MAX_TOOLTIP_TASK_LENGTH = 120;
 
 export interface CafeViewProvider extends vscode.WebviewViewProvider {
   updateFrame(frame: SceneFrame): void;
@@ -109,7 +112,7 @@ export function createCafeViewProvider(
       id: agent.id,
       name: agent.name,
       status: agent.status,
-      task: agent.taskSummary || "No active task",
+      task: truncate(agent.taskSummary || FALLBACK_TASK_LABEL, { length: MAX_TOOLTIP_TASK_LENGTH }),
       elapsed,
       updated,
     };
@@ -141,10 +144,6 @@ export function createCafeViewProvider(
     updateLifecycleEvents,
   };
 }
-
-export const CafeViewProvider = {
-  viewType: CAFE_VIEW_TYPE,
-};
 
 function formatElapsed(startedAt: number | undefined): string {
   if (!startedAt) {

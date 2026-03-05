@@ -1,3 +1,5 @@
+import type { AgentStatus } from "@shared/types";
+
 export const SCENE_MIN_WIDTH = 360;
 export const SCENE_MIN_HEIGHT = 280;
 
@@ -23,7 +25,7 @@ export const SEATING_REGION_OFFSET_Y_MULTIPLIER = 2.4;
 export const TABLE_ORIGIN_OFFSET_X_MULTIPLIER = -0.2;
 export const TABLE_ORIGIN_OFFSET_Y_MULTIPLIER = 0.38;
 
-export const STATUS_STYLE: Record<string, string> = {
+export const STATUS_STYLE: Record<AgentStatus, string> = {
   running: "border-emerald-500 bg-emerald-300/20 text-emerald-200 animate-pulse",
   idle: "border-stone-500 bg-stone-300/10 text-stone-200",
   completed: "border-teal-500 bg-teal-300/20 text-teal-200",

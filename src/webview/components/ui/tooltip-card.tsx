@@ -1,4 +1,5 @@
 import type { TooltipData } from "@web/bridge/types";
+import truncate from "lodash.truncate";
 import {
   TOOLTIP_ELAPSED_LABEL,
   TOOLTIP_STATUS_LABEL,
@@ -10,6 +11,7 @@ import { cn } from "@web/utils/helpers";
 interface TooltipCardProps {
   tooltip?: TooltipData;
 }
+const TOOLTIP_VALUE_MAX_LENGTH = 80;
 
 export function TooltipCard({ tooltip }: TooltipCardProps) {
   return (
@@ -38,7 +40,7 @@ function TooltipLine({ label, value }: { label: string; value: string }) {
     <div className="mb-1 flex items-center justify-between text-[11px]">
       <span className="text-[#b8aa96]">{label}</span>
       <strong className="max-w-[64%] overflow-hidden text-ellipsis whitespace-nowrap text-[#f5ecdd]">
-        {value}
+        {truncate(value, { length: TOOLTIP_VALUE_MAX_LENGTH })}
       </strong>
     </div>
   );

@@ -24,7 +24,10 @@ export function statusGlyph(status: AgentStatus): string {
       return "✓";
     case AGENT_STATUS.error:
       return "⚠";
-    default:
-      return "•";
   }
+  return assertNever(status);
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unhandled agent status: ${String(value)}`);
 }

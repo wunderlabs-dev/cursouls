@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { AgentSnapshot } from "@shared/types";
-import { createLifecycleMapper } from "@shared/watch/lifecycle";
+import { createLifecycleMapper } from "@agentprobe/core";
 
 function agent(id: string, status: AgentSnapshot["status"]): AgentSnapshot {
   return {
     id,
     name: `Agent ${id}`,
     kind: "local",
+    isSubagent: false,
     status,
     taskSummary: `Task ${id}`,
     updatedAt: 1_700_000_000_000,

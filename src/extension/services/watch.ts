@@ -1,11 +1,13 @@
 import {
-  AGENT_SUBSCRIPTION_EVENT_TYPES,
-  WATCH_RUNTIME_ERROR_CODES,
-  createAgentSubscription,
+  createObserver,
   isWatchRuntimeError,
-  type AgentStateSnapshot,
-} from "@shared/watch";
-import type { AgentLifecycleEvent, AgentSourceReadResult, SceneFrame } from "@shared/types";
+  OBSERVER_EVENT_TYPES,
+  WATCH_RUNTIME_ERROR_CODES,
+  type Observer,
+  type ObserverSnapshot,
+  type TranscriptProvider,
+} from "@agentprobe/core";
+import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import { formatUnknownError } from "@ext/errors";
 import type { Logger } from "@ext/logging";
 import type { CafeStore } from "./store";
@@ -14,27 +16,13 @@ export type FrameListener = (frame: SceneFrame) => void;
 export type LifecycleListener = (events: AgentLifecycleEvent[]) => void;
 export type ErrorListener = (error: unknown) => void;
 
-interface AgentSourceLike {
-  connect(): Promise<void> | void;
-  disconnect(): Promise<void> | void;
-  readSnapshot(now?: number): Promise<AgentSourceReadResult> | AgentSourceReadResult;
-  getWatchPaths?(): string[];
-}
-
 export interface WatchControllerOptions {
-  projectPath: string;
-  projectPaths?: string[];
+  workspacePaths: string[];
   store?: CafeStore;
   logger?: Logger;
   now?: () => number;
   debounceMs?: number;
-  sourceFactory?: (projectPath: string) => AgentSourceLike;
-  watchFactory?: (watchPath: string, onEvent: () => void) => WatcherLike;
-}
-
-interface WatcherLike {
-  close(): void;
-  on(event: "error", listener: (error: Error) => void): void;
+  provider?: TranscriptProvider;
 }
 
 export interface WatchController {
@@ -50,46 +38,36 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
   const store = options.store;
   const logger = options.logger;
   const now = options.now ?? (() => Date.now());
-  const watchFactory = options.watchFactory;
-  const sourceFactory = options.sourceFactory;
 
   const frameListeners = new Set<FrameListener>();
   const lifecycleListeners = new Set<LifecycleListener>();
   const errorListeners = new Set<ErrorListener>();
 
-  const subscription = createAgentSubscription({
-    projectPath: options.projectPath,
-    projectPaths: options.projectPaths,
+  const observer: Observer = createObserver({
+    workspacePaths: options.workspacePaths,
     debounceMs: options.debounceMs,
     now,
-    sourceFactory,
-    watchFactory: watchFactory
-      ? (watchPath, onEvent) => {
-          const watcher = watchFactory(watchPath, onEvent);
-          logger?.info(`Watching transcript path: ${watchPath}`);
-          return watcher;
-        }
-      : undefined,
+    provider: options.provider,
   });
 
-  subscription.subscribeToSnapshots((event) => {
+  observer.subscribeToSnapshots((event) => {
     const frame = applySnapshot(event.snapshot, event.snapshot.at, store);
     notifyListeners(frameListeners, frame, "frame", logger);
   });
 
-  subscription.subscribeToAgentChanges((event) => {
+  observer.subscribeToAgentChanges((event) => {
     notifyListeners(lifecycleListeners, [event.change], "lifecycle", logger);
   });
 
-  subscription.subscribe((event) => {
-    if (event.type === AGENT_SUBSCRIPTION_EVENT_TYPES.errored) {
+  observer.subscribe((event) => {
+    if (event.type === OBSERVER_EVENT_TYPES.errored) {
       notifyListeners(errorListeners, event.error, "error", logger);
     }
   });
 
   async function refreshNow(): Promise<SceneFrame> {
     try {
-      const snapshot = await subscription.refreshNow();
+      const snapshot = await observer.refreshNow();
       const frame = applySnapshot(snapshot, snapshot.at, store);
       return frame;
     } catch (error: unknown) {
@@ -125,8 +103,8 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
   }
 
   return {
-    start: () => subscription.start(),
-    stop: () => subscription.stop(),
+    start: () => observer.start(),
+    stop: () => observer.stop(),
     refreshNow,
     onFrame,
     onLifecycleEvents,
@@ -149,7 +127,7 @@ function notifyListeners<T>(
   }
 }
 
-function applySnapshot(snapshot: AgentStateSnapshot, at: number, store?: CafeStore): SceneFrame {
+function applySnapshot(snapshot: ObserverSnapshot, at: number, store?: CafeStore): SceneFrame {
   if (!store) {
     return toFrame(snapshot, at);
   }
@@ -166,7 +144,7 @@ function applySnapshot(snapshot: AgentStateSnapshot, at: number, store?: CafeSto
   );
 }
 
-function toFrame(snapshot: AgentStateSnapshot, at: number): SceneFrame {
+function toFrame(snapshot: ObserverSnapshot, at: number): SceneFrame {
   return {
     generatedAt: at,
     seats: [],
@@ -178,4 +156,3 @@ function toFrame(snapshot: AgentStateSnapshot, at: number): SceneFrame {
     },
   };
 }
-

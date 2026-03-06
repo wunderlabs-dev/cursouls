@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createWatchController } from "@ext/services/watch";
-import type { AgentSourceReadResult, SceneFrame } from "@shared/types";
+import type { SceneFrame } from "@shared/types";
+import type { CanonicalAgentSnapshot, TranscriptProvider } from "@agentprobe/core";
 
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -12,31 +13,51 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
-function createReadResult(): AgentSourceReadResult {
-  return {
-    agents: [
-      {
-        id: "agent-1",
-        name: "Ada",
-        kind: "local",
-        status: "running",
-        taskSummary: "Watch update",
-        updatedAt: 1_700_000_000_100,
-        source: "cursor-transcripts",
-      },
-    ],
-    connected: true,
-    sourceLabel: "cursor-transcripts",
-    warnings: [],
-  };
+function createAgents(): CanonicalAgentSnapshot[] {
+  return [
+    {
+      id: "agent-1",
+      name: "Ada",
+      kind: "local",
+      isSubagent: false,
+      status: "running",
+      taskSummary: "Watch update",
+      updatedAt: 1_700_000_000_100,
+      source: "cursor-transcripts",
+    },
+  ];
 }
 
 function createFrame(): SceneFrame {
   return {
     generatedAt: 1234,
-    seats: [{ tableIndex: 0, agent: createReadResult().agents[0] }],
+    seats: [{ tableIndex: 0, agent: createAgents()[0] }],
     queue: [],
     health: { sourceConnected: true, sourceLabel: "cursor-transcripts", warnings: [] },
+  };
+}
+
+function createMockProvider(
+  normalizeFn: () =>
+    | Promise<{ agents: CanonicalAgentSnapshot[] }>
+    | { agents: CanonicalAgentSnapshot[] },
+): TranscriptProvider {
+  return {
+    id: "mock",
+    discover: () => ({ inputs: [], watchPaths: [], warnings: [] }),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    read: () => ({
+      records: [],
+      health: { connected: true, sourceLabel: "cursor-transcripts", warnings: [] },
+    }),
+    normalize: async () => {
+      const result = await normalizeFn();
+      return {
+        agents: result.agents,
+        health: { connected: true, sourceLabel: "cursor-transcripts", warnings: [] },
+      };
+    },
   };
 }
 
@@ -46,24 +67,14 @@ afterEach(() => {
 
 describe("watch controller", () => {
   it("connects, emits frames, and disconnects", async () => {
-    const source = {
-      sourceKind: "cursor-transcripts" as const,
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      readSnapshot: vi.fn().mockResolvedValue(createReadResult()),
-      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
-    };
+    const provider = createMockProvider(() => ({ agents: createAgents() }));
     const store = { update: vi.fn().mockReturnValue(createFrame()) };
 
     const controller = createWatchController({
-      projectPath: "/tmp/project",
+      workspacePaths: ["/tmp/project"],
       store,
       now: () => 1234,
-      sourceFactory: () => source,
-      watchFactory: (_path, _onEvent) => ({
-        close: vi.fn(),
-        on: vi.fn(),
-      }),
+      provider,
     });
 
     expect(typeof controller.start).toBe("function");
@@ -80,73 +91,59 @@ describe("watch controller", () => {
     dispose();
     await controller.stop();
 
-    expect(source.connect).toHaveBeenCalledTimes(1);
-    expect(source.readSnapshot).toHaveBeenCalled();
+    expect(provider.connect).toHaveBeenCalledTimes(1);
     expect(onFrame).toHaveBeenCalled();
-    expect(source.disconnect).toHaveBeenCalledTimes(1);
+    expect(provider.disconnect).toHaveBeenCalledTimes(1);
   });
 
   it("supports one-shot refresh used by the refresh command", async () => {
-    const source = {
-      sourceKind: "cursor-transcripts" as const,
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      readSnapshot: vi.fn().mockResolvedValue(createReadResult()),
-      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
-    };
+    const provider = createMockProvider(() => ({ agents: createAgents() }));
     const expectedFrame = createFrame();
     const store = { update: vi.fn().mockReturnValue(expectedFrame) };
 
     const controller = createWatchController({
-      projectPath: "/tmp/project",
+      workspacePaths: ["/tmp/project"],
       store,
       now: () => 1234,
-      sourceFactory: () => source,
-      watchFactory: (_path, _onEvent) => ({
-        close: vi.fn(),
-        on: vi.fn(),
-      }),
+      provider,
     });
 
     await controller.start();
     const frame = await controller.refreshNow();
     await controller.stop();
 
-    expect(source.readSnapshot).toHaveBeenCalled();
     expect(store.update).toHaveBeenCalled();
     expect(frame).toEqual(expectedFrame);
   });
 
   it("emits frame updates even when snapshot has no agent lifecycle changes", async () => {
-    const source = {
-      sourceKind: "cursor-transcripts" as const,
+    let callCount = 0;
+    const provider: TranscriptProvider = {
+      id: "mock",
+      discover: () => ({ inputs: [], watchPaths: [], warnings: [] }),
       connect: vi.fn(),
       disconnect: vi.fn(),
-      readSnapshot: vi
-        .fn()
-        .mockResolvedValueOnce({
+      read: () => ({
+        records: [],
+        health: { connected: callCount > 0 ? false : true, sourceLabel: "cursor-transcripts", warnings: callCount > 0 ? ["source unavailable"] : [] },
+      }),
+      normalize: async (_readResult) => {
+        callCount += 1;
+        return {
           agents: [],
-          connected: true,
-          sourceLabel: "cursor-transcripts",
-          warnings: [],
-        })
-        .mockResolvedValueOnce({
-          agents: [],
-          connected: false,
-          sourceLabel: "cursor-transcripts",
-          warnings: ["source unavailable"],
-        }),
-      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
+          health: {
+            connected: callCount > 1 ? false : true,
+            sourceLabel: "cursor-transcripts",
+            warnings: callCount > 1 ? ["source unavailable"] : [],
+          },
+        };
+      },
     };
 
     const controller = createWatchController({
-      projectPath: "/tmp/project",
+      workspacePaths: ["/tmp/project"],
       now: () => 1234,
-      sourceFactory: () => source,
-      watchFactory: (_path, _onEvent) => ({
-        close: vi.fn(),
-        on: vi.fn(),
-      }),
+      provider,
     });
     const onFrame = vi.fn();
     const onLifecycle = vi.fn();
@@ -167,25 +164,15 @@ describe("watch controller", () => {
   });
 
   it("forwards lifecycle updates through onLifecycleEvents", async () => {
-    const source = {
-      sourceKind: "cursor-transcripts" as const,
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      readSnapshot: vi.fn().mockResolvedValue(createReadResult()),
-      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
-    };
+    const provider = createMockProvider(() => ({ agents: createAgents() }));
     const store = { update: vi.fn().mockReturnValue(createFrame()) };
     const onLifecycle = vi.fn();
 
     const controller = createWatchController({
-      projectPath: "/tmp/project",
+      workspacePaths: ["/tmp/project"],
       store,
       now: () => 1234,
-      sourceFactory: () => source,
-      watchFactory: (_path, _onEvent) => ({
-        close: vi.fn(),
-        on: vi.fn(),
-      }),
+      provider,
     });
 
     controller.onLifecycleEvents(onLifecycle);
@@ -199,23 +186,20 @@ describe("watch controller", () => {
   });
 
   it("forwards source errors through onError", async () => {
-    const source = {
-      sourceKind: "cursor-transcripts" as const,
+    const provider: TranscriptProvider = {
+      id: "mock",
+      discover: () => ({ inputs: [], watchPaths: [], warnings: [] }),
       connect: vi.fn(),
       disconnect: vi.fn(),
-      readSnapshot: vi.fn().mockRejectedValue(new Error("boom")),
-      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
+      read: () => { throw new Error("boom"); },
+      normalize: () => ({ agents: [], health: { connected: false, sourceLabel: "mock", warnings: [] } }),
     };
     const onError = vi.fn();
 
     const controller = createWatchController({
-      projectPath: "/tmp/project",
+      workspacePaths: ["/tmp/project"],
       now: () => 1234,
-      sourceFactory: () => source,
-      watchFactory: (_path, _onEvent) => ({
-        close: vi.fn(),
-        on: vi.fn(),
-      }),
+      provider,
     });
 
     controller.onError(onError);
@@ -228,207 +212,43 @@ describe("watch controller", () => {
     expect(onError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
   });
 
-  it("debounces file-change bursts into one refresh", async () => {
-    vi.useFakeTimers();
-
-    const source = {
-      sourceKind: "cursor-transcripts" as const,
+  it("rejects queued refreshNow waiters when stopped", async () => {
+    const firstRead = createDeferred<{ agents: CanonicalAgentSnapshot[] }>();
+    const provider: TranscriptProvider = {
+      id: "mock",
+      discover: () => ({ inputs: [], watchPaths: [], warnings: [] }),
       connect: vi.fn(),
       disconnect: vi.fn(),
-      readSnapshot: vi
-        .fn()
-        .mockResolvedValueOnce(createReadResult())
-        .mockResolvedValueOnce(createReadResult()),
-      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
-    };
-    const store = { update: vi.fn().mockReturnValue(createFrame()) };
-    const watchedCallbacks: Array<() => void> = [];
-    const controller = createWatchController({
-      projectPath: "/tmp/project",
-      store,
-      now: () => 1234,
-      debounceMs: 150,
-      sourceFactory: () => source,
-      watchFactory: (_path, onEvent) => {
-        watchedCallbacks.push(onEvent);
+      read: () => ({
+        records: [],
+        health: { connected: true, sourceLabel: "cursor-transcripts", warnings: [] },
+      }),
+      normalize: async () => {
+        const result = await firstRead.promise;
         return {
-          close: vi.fn(),
-          on: vi.fn(),
+          agents: result.agents,
+          health: { connected: true, sourceLabel: "cursor-transcripts", warnings: [] },
         };
       },
-    });
-
-    await controller.start();
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(watchedCallbacks).toHaveLength(1);
-    expect(source.readSnapshot).toHaveBeenCalledTimes(1);
-
-    watchedCallbacks[0]();
-    watchedCallbacks[0]();
-    watchedCallbacks[0]();
-    expect(source.readSnapshot).toHaveBeenCalledTimes(1);
-
-    vi.advanceTimersByTime(149);
-    await Promise.resolve();
-    expect(source.readSnapshot).toHaveBeenCalledTimes(1);
-
-    vi.advanceTimersByTime(1);
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(source.readSnapshot).toHaveBeenCalledTimes(2);
-
-    await controller.stop();
-  });
-
-  it("serializes refreshes so reads never overlap", async () => {
-    const reads: Array<ReturnType<typeof createDeferred<AgentSourceReadResult>>> = [];
-    let inFlight = 0;
-    let maxInFlight = 0;
-
-    const source = {
-      sourceKind: "cursor-transcripts" as const,
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      readSnapshot: vi.fn().mockImplementation(async () => {
-        inFlight += 1;
-        maxInFlight = Math.max(maxInFlight, inFlight);
-        const deferred = createDeferred<AgentSourceReadResult>();
-        reads.push(deferred);
-        try {
-          return await deferred.promise;
-        } finally {
-          inFlight -= 1;
-        }
-      }),
-      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
     };
     const store = { update: vi.fn().mockReturnValue(createFrame()) };
 
     const controller = createWatchController({
-      projectPath: "/tmp/project",
+      workspacePaths: ["/tmp/project"],
       store,
       now: () => 1234,
-      sourceFactory: () => source,
-      watchFactory: (_path, _onEvent) => ({
-        close: vi.fn(),
-        on: vi.fn(),
-      }),
+      provider,
     });
 
     await controller.start();
     await Promise.resolve();
-
-    expect(source.readSnapshot).toHaveBeenCalledTimes(1);
-    expect(maxInFlight).toBe(1);
-
-    const firstWaiter = controller.refreshNow();
-    const secondWaiter = controller.refreshNow();
-    await Promise.resolve();
-    expect(source.readSnapshot).toHaveBeenCalledTimes(1);
-
-    reads[0].resolve(createReadResult());
-    await vi.waitFor(() => {
-      expect(source.readSnapshot).toHaveBeenCalledTimes(2);
-    });
-    expect(maxInFlight).toBe(1);
-
-    reads[1].resolve(createReadResult());
-    await Promise.all([firstWaiter, secondWaiter]);
-    await controller.stop();
-  });
-
-  it("coalesces refreshNow waiters into the same refresh cycle", async () => {
-    const reads: Array<ReturnType<typeof createDeferred<AgentSourceReadResult>>> = [];
-    const source = {
-      sourceKind: "cursor-transcripts" as const,
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      readSnapshot: vi.fn().mockImplementation(() => {
-        const deferred = createDeferred<AgentSourceReadResult>();
-        reads.push(deferred);
-        return deferred.promise;
-      }),
-      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
-    };
-    const initialFrame = createFrame();
-    const refreshedFrame = createFrame();
-    const store = {
-      update: vi
-        .fn()
-        .mockReturnValueOnce(initialFrame)
-        .mockReturnValueOnce(refreshedFrame)
-        .mockReturnValue(refreshedFrame),
-    };
-
-    const controller = createWatchController({
-      projectPath: "/tmp/project",
-      store,
-      now: () => 1234,
-      sourceFactory: () => source,
-      watchFactory: (_path, _onEvent) => ({
-        close: vi.fn(),
-        on: vi.fn(),
-      }),
-    });
-
-    await controller.start();
-    await Promise.resolve();
-    expect(source.readSnapshot).toHaveBeenCalledTimes(1);
-
-    const firstWaiter = controller.refreshNow();
-    const secondWaiter = controller.refreshNow();
-    await Promise.resolve();
-    expect(source.readSnapshot).toHaveBeenCalledTimes(1);
-
-    reads[0].resolve(createReadResult());
-    await vi.waitFor(() => {
-      expect(source.readSnapshot).toHaveBeenCalledTimes(2);
-    });
-
-    reads[1].resolve(createReadResult());
-
-    const [first, second] = await Promise.all([firstWaiter, secondWaiter]);
-    expect(source.readSnapshot).toHaveBeenCalledTimes(2);
-    expect(first).toBe(refreshedFrame);
-    expect(second).toBe(refreshedFrame);
-
-    await controller.stop();
-  });
-
-  it("rejects queued refreshNow waiters when stopped", async () => {
-    const firstRead = createDeferred<AgentSourceReadResult>();
-    const source = {
-      sourceKind: "cursor-transcripts" as const,
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      readSnapshot: vi.fn().mockImplementation(() => firstRead.promise),
-      getWatchPaths: vi.fn().mockReturnValue(["/tmp/agent.jsonl"]),
-    };
-    const store = { update: vi.fn().mockReturnValue(createFrame()) };
-
-    const controller = createWatchController({
-      projectPath: "/tmp/project",
-      store,
-      now: () => 1234,
-      sourceFactory: () => source,
-      watchFactory: (_path, _onEvent) => ({
-        close: vi.fn(),
-        on: vi.fn(),
-      }),
-    });
-
-    await controller.start();
-    await Promise.resolve();
-    expect(source.readSnapshot).toHaveBeenCalledTimes(1);
 
     const waiter = controller.refreshNow();
     await controller.stop();
 
     await expect(waiter).rejects.toThrow("Watch controller stopped before refresh completed.");
 
-    firstRead.resolve(createReadResult());
+    firstRead.resolve({ agents: createAgents() });
     await Promise.resolve();
   });
 });

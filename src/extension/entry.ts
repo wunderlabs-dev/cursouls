@@ -45,7 +45,6 @@ export function activate(context: vscode.ExtensionContext): void {
     const workspacePaths = (vscode.workspace.workspaceFolders ?? []).map(
       (folder) => folder.uri.fsPath,
     );
-    const projectPath = workspacePaths[0] ?? "";
 
     if (workspacePaths.length === 0) {
       logger.warn("Cursor Cafe watch is idle: open a workspace folder to start watching agents.");
@@ -66,8 +65,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
 
     const nextController = createWatchController({
-      projectPath,
-      projectPaths: workspacePaths,
+      workspacePaths,
       store,
       debounceMs: config.refreshMs,
       logger,

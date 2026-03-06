@@ -1,39 +1,66 @@
 import { describe, expect, it, vi } from "vitest";
 import { AGENT_LIFECYCLE_EVENT_KIND } from "@shared/types";
-import { createAgentSubscription } from "@shared/watch";
+import {
+  createObserver,
+  WATCH_LIFECYCLE_KIND,
+  type CanonicalAgentSnapshot,
+  type TranscriptProvider,
+} from "@agentprobe/core";
 
 interface TestAgent {
   id: string;
   status: "running" | "idle";
 }
 
-function createReadResult(agent: TestAgent) {
+function createMockProvider(
+  readSnapshotFn: () => Promise<{ agents: CanonicalAgentSnapshot[] }> | { agents: CanonicalAgentSnapshot[] },
+): TranscriptProvider {
   return {
-    agents: [agent],
-    connected: true,
-    sourceLabel: "test-source",
-    warnings: [],
+    id: "mock",
+    discover: () => ({ inputs: [], watchPaths: [], warnings: [] }),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    read: () => ({
+      records: [],
+      health: { connected: true, sourceLabel: "test-source", warnings: [] },
+    }),
+    normalize: async (_readResult, now) => {
+      const result = await readSnapshotFn();
+      return {
+        agents: result.agents,
+        health: { connected: true, sourceLabel: "test-source", warnings: [] },
+      };
+    },
   };
 }
 
-describe("agent subscription facade", () => {
-  it("emits changes from lifecycle with the latest snapshot", async () => {
-    const source = {
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      readSnapshot: vi.fn().mockResolvedValue(createReadResult({ id: "a-1", status: "running" })),
-      getWatchPaths: vi.fn().mockReturnValue([]),
-    };
+function toSnapshot(agent: TestAgent): CanonicalAgentSnapshot {
+  return {
+    id: agent.id,
+    name: `Agent ${agent.id}`,
+    kind: "local",
+    isSubagent: false,
+    status: agent.status,
+    taskSummary: "Working",
+    updatedAt: Date.now(),
+    source: "mock",
+  };
+}
 
-    const subscription = createAgentSubscription({
-      projectPath: "/tmp/project",
+describe("observer facade (migrated from agent subscription)", () => {
+  it("emits changes from lifecycle with the latest snapshot", async () => {
+    const provider = createMockProvider(() => ({
+      agents: [toSnapshot({ id: "a-1", status: "running" })],
+    }));
+
+    const observer = createObserver({
+      workspacePaths: ["/tmp/project"],
       now: () => 1234,
-      sourceFactory: () => source as never,
-      watchFactory: () => ({ close: vi.fn(), on: vi.fn() }),
+      provider,
     });
 
     const seen: Array<{ type: string }> = [];
-    subscription.subscribe((event) => {
+    observer.subscribe((event) => {
       seen.push({ type: event.type });
       if (event.type === "updated") {
         expect(event.snapshot.agents[0]?.id).toBe("a-1");
@@ -42,127 +69,104 @@ describe("agent subscription facade", () => {
       }
     });
 
-    await subscription.start();
+    await observer.start();
     await Promise.resolve();
     await Promise.resolve();
-    await subscription.stop();
+    await observer.stop();
 
     expect(seen.some((event) => event.type === "started")).toBe(true);
     expect(seen.some((event) => event.type === "updated")).toBe(true);
   });
 
   it("exposes an updated-only subscription helper", async () => {
-    const source = {
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      readSnapshot: vi.fn().mockResolvedValue(createReadResult({ id: "a-1", status: "running" })),
-      getWatchPaths: vi.fn().mockReturnValue([]),
-    };
+    const provider = createMockProvider(() => ({
+      agents: [toSnapshot({ id: "a-1", status: "running" })],
+    }));
 
-    const subscription = createAgentSubscription({
-      projectPath: "/tmp/project",
+    const observer = createObserver({
+      workspacePaths: ["/tmp/project"],
       now: () => 1234,
-      sourceFactory: () => source as never,
-      watchFactory: () => ({ close: vi.fn(), on: vi.fn() }),
+      provider,
     });
 
     const kinds: string[] = [];
-    subscription.subscribeToAgentChanges((event) => {
+    observer.subscribeToAgentChanges((event) => {
       kinds.push(event.change.kind);
       expect(event.agent.id).toBe("a-1");
     });
 
-    await subscription.start();
+    await observer.start();
     await Promise.resolve();
     await Promise.resolve();
-    await subscription.stop();
+    await observer.stop();
 
-    expect(kinds).toContain(AGENT_LIFECYCLE_EVENT_KIND.joined);
+    expect(kinds).toContain(WATCH_LIFECYCLE_KIND.joined);
   });
 
   it("emits snapshot events even with empty agent lists", async () => {
-    const source = {
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      readSnapshot: vi.fn().mockResolvedValue({
-        agents: [],
-        connected: false,
-        sourceLabel: "test-source",
-        warnings: ["empty"],
-      }),
-      getWatchPaths: vi.fn().mockReturnValue([]),
-    };
+    const provider = createMockProvider(() => ({ agents: [] }));
 
-    const subscription = createAgentSubscription({
-      projectPath: "/tmp/project",
+    const observer = createObserver({
+      workspacePaths: ["/tmp/project"],
       now: () => 1234,
-      sourceFactory: () => source as never,
-      watchFactory: () => ({ close: vi.fn(), on: vi.fn() }),
+      provider,
     });
     const onSnapshot = vi.fn();
-    subscription.subscribeToSnapshots(onSnapshot);
+    observer.subscribeToSnapshots(onSnapshot);
 
-    await subscription.start();
+    await observer.start();
     await vi.waitFor(() => {
       expect(onSnapshot).toHaveBeenCalled();
     });
-    await subscription.stop();
+    await observer.stop();
   });
 
   it("tracks latest snapshot across refreshNow", async () => {
-    const source = {
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      readSnapshot: vi
-        .fn()
-        .mockResolvedValueOnce(createReadResult({ id: "a-1", status: "running" }))
-        .mockResolvedValueOnce(createReadResult({ id: "a-1", status: "idle" })),
-      getWatchPaths: vi.fn().mockReturnValue([]),
-    };
-
-    const subscription = createAgentSubscription({
-      projectPath: "/tmp/project",
-      now: () => 1234,
-      sourceFactory: () => source as never,
-      watchFactory: () => ({ close: vi.fn(), on: vi.fn() }),
+    let callCount = 0;
+    const provider = createMockProvider(() => {
+      callCount += 1;
+      return {
+        agents: [
+          toSnapshot({ id: "a-1", status: callCount <= 1 ? "running" : "idle" }),
+        ],
+      };
     });
 
-    await subscription.start();
+    const observer = createObserver({
+      workspacePaths: ["/tmp/project"],
+      now: () => 1234,
+      provider,
+    });
+
+    await observer.start();
     await Promise.resolve();
     await Promise.resolve();
 
-    const refreshed = await subscription.refreshNow();
+    const refreshed = await observer.refreshNow();
     expect(refreshed.agents[0]?.status).toBe("idle");
-    expect(subscription.getLatestSnapshot()?.agents[0]?.status).toBe("idle");
+    expect(observer.getLatestSnapshot()?.agents[0]?.status).toBe("idle");
 
-    await subscription.stop();
+    await observer.stop();
   });
 
   it("includes agent metadata for left events", async () => {
-    const source = {
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      readSnapshot: vi
-        .fn()
-        .mockResolvedValueOnce(createReadResult({ id: "a-1", status: "running" }))
-        .mockResolvedValueOnce({
-          agents: [],
-          connected: true,
-          sourceLabel: "test-source",
-          warnings: [],
-        }),
-      getWatchPaths: vi.fn().mockReturnValue([]),
-    };
+    let callCount = 0;
+    const provider = createMockProvider(() => {
+      callCount += 1;
+      if (callCount <= 1) {
+        return { agents: [toSnapshot({ id: "a-1", status: "running" })] };
+      }
+      return { agents: [] };
+    });
 
-    const subscription = createAgentSubscription({
-      projectPath: "/tmp/project",
+    const observer = createObserver({
+      workspacePaths: ["/tmp/project"],
       now: () => 1234,
-      sourceFactory: () => source as never,
-      watchFactory: () => ({ close: vi.fn(), on: vi.fn() }),
+      provider,
     });
 
     const seen: Array<{ agent?: string; type?: string }> = [];
-    subscription.subscribe((event) => {
+    observer.subscribe((event) => {
       if (event.type === "updated") {
         seen.push({
           type: event.change.kind,
@@ -171,11 +175,11 @@ describe("agent subscription facade", () => {
       }
     });
 
-    await subscription.start();
+    await observer.start();
     await Promise.resolve();
     await Promise.resolve();
-    await subscription.refreshNow();
-    await subscription.stop();
+    await observer.refreshNow();
+    await observer.stop();
 
     const left = seen.find((entry) => entry.type === "left");
     expect(left?.agent).toBe("a-1");

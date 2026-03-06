@@ -65,7 +65,6 @@
     "@biomejs/biome": "^2.4.5",
     "@tailwindcss/cli": "^4.1.13",
     "@types/lodash.truncate": "^4.4.9",
-    "@types/lodash.uniq": "^4.5.9",
     "@types/lodash.upperfirst": "^4.3.9",
     "@types/lodash.words": "^4.2.9",
     "@types/node": "^24.0.0",
@@ -78,11 +77,11 @@
     "vitest": "^3.0.0"
   },
   "dependencies": {
+    "@agentprobe/core": "^0.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lodash.truncate": "^4.4.2",
-    "lodash.uniq": "^4.5.0",
     "lodash.upperfirst": "^4.3.1",
     "lodash.words": "^4.2.0",
     "react": "^19.2.4",

@@ -66,4 +66,4 @@ This command performs a one-shot refresh against the current transcript source/w
 ## Notes and limitations
 
 - Agent status for conversation-style transcript lines is partially heuristic (time-window based) when explicit status fields are not present.
-- Lifecycle events are emitted by the shared agent subscription pipeline (`@shared/watch`) as joined/status-changed/heartbeat/left and forwarded to the webview.
+- Lifecycle events are emitted by [`@agentprobe/core`](https://www.npmjs.com/package/@agentprobe/core) as joined/status-changed/heartbeat/left and forwarded to the webview.

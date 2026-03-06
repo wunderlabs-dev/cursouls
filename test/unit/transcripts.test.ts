@@ -3,12 +3,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import type { AgentSourceReadResult } from "@shared/types";
+import { createCursorTranscriptSource } from "@agentprobe/core";
 
-interface TranscriptSource {
-  connect: () => Promise<void> | void;
-  disconnect: () => Promise<void> | void;
-  readSnapshot: (now?: number) => Promise<AgentSourceReadResult> | AgentSourceReadResult;
+interface TranscriptReadResult {
+  agents: Array<{ id: string; status: string }>;
+  connected: boolean;
+  sourceLabel: string;
+  warnings: string[];
 }
 
 function toFixturePath(name: string): string {
@@ -16,34 +17,14 @@ function toFixturePath(name: string): string {
   return path.resolve(path.dirname(currentFile), "../fixtures/transcripts", name);
 }
 
-async function createSource(sourcePaths: string[]): Promise<TranscriptSource> {
-  let loadedModule: Record<string, unknown>;
-
-  try {
-    loadedModule = (await import("@shared/watch/transcripts")) as Record<string, unknown>;
-  } catch (error) {
-    throw new Error(
-      `CursorTranscriptSource is not implemented at src/shared/watch/transcripts.ts yet: ${String(error)}`,
-    );
-  }
-
-  const create = loadedModule.createCursorTranscriptSource as
-    | ((options: { sourcePaths: string[] }) => TranscriptSource)
-    | undefined;
-  if (!create) {
-    throw new Error("createCursorTranscriptSource export is missing.");
-  }
-  return create({ sourcePaths });
-}
-
 describe("CursorTranscriptSource", () => {
   it("parses transcript JSONL fixtures into AgentSnapshot records", async () => {
     const runningPath = toFixturePath("running.jsonl");
-    const source = await createSource([runningPath]);
+    const source = createCursorTranscriptSource({ sourcePaths: [runningPath] });
 
-    await source.connect();
+    source.connect();
     const result = await source.readSnapshot(1_700_000_010_000);
-    await source.disconnect();
+    source.disconnect();
 
     expect(result.agents.map((entry) => entry.id)).toEqual(["agent-1", "agent-2"]);
     expect(result.agents.map((entry) => entry.status)).toEqual(["running", "running"]);
@@ -54,11 +35,11 @@ describe("CursorTranscriptSource", () => {
 
   it("skips malformed lines while preserving valid records and warnings", async () => {
     const errorPath = toFixturePath("error.jsonl");
-    const source = await createSource([errorPath]);
+    const source = createCursorTranscriptSource({ sourcePaths: [errorPath] });
 
-    await source.connect();
+    source.connect();
     const result = await source.readSnapshot(1_700_000_020_000);
-    await source.disconnect();
+    source.disconnect();
 
     expect(result.agents.map((entry) => entry.id)).toEqual(["agent-7", "agent-8"]);
     expect(result.agents.map((entry) => entry.status)).toEqual(["error", "running"]);
@@ -71,11 +52,11 @@ describe("CursorTranscriptSource", () => {
     await writeFile(transcriptPath, await readFile(toFixturePath("idle.jsonl"), "utf8"), "utf8");
     await rm(transcriptPath);
 
-    const source = await createSource([transcriptPath]);
+    const source = createCursorTranscriptSource({ sourcePaths: [transcriptPath] });
 
-    await source.connect();
+    source.connect();
     const result = await source.readSnapshot(1_700_000_030_000);
-    await source.disconnect();
+    source.disconnect();
     await rm(tempDir, { recursive: true, force: true });
 
     expect(result.agents).toEqual([]);
@@ -101,10 +82,10 @@ describe("CursorTranscriptSource", () => {
     const updatedAtDate = new Date(updatedAt);
     await utimes(transcriptPath, updatedAtDate, updatedAtDate);
 
-    const source = await createSource([transcriptPath]);
-    await source.connect();
+    const source = createCursorTranscriptSource({ sourcePaths: [transcriptPath] });
+    source.connect();
     const result = await source.readSnapshot(updatedAt + 91_000);
-    await source.disconnect();
+    source.disconnect();
     await rm(tempDir, { recursive: true, force: true });
 
     expect(result.agents).toHaveLength(1);
@@ -129,10 +110,10 @@ describe("CursorTranscriptSource", () => {
     const updatedAtDate = new Date(updatedAt);
     await utimes(transcriptPath, updatedAtDate, updatedAtDate);
 
-    const source = await createSource([transcriptPath]);
-    await source.connect();
+    const source = createCursorTranscriptSource({ sourcePaths: [transcriptPath] });
+    source.connect();
     const result = await source.readSnapshot(updatedAt + 61_000);
-    await source.disconnect();
+    source.disconnect();
     await rm(tempDir, { recursive: true, force: true });
 
     expect(result.agents).toHaveLength(1);

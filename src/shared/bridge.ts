@@ -2,7 +2,6 @@ import { z } from "zod";
 import {
   AGENT_KIND,
   AGENT_LIFECYCLE_EVENT_KIND,
-  AGENT_SOURCE_KIND,
   AGENT_STATUS,
   type AgentLifecycleEvent,
   type AgentStatus,
@@ -52,7 +51,7 @@ export type InboundMessageType = InboundMessage["type"];
 
 const agentStatusSchema = z.nativeEnum(AGENT_STATUS);
 const agentKindSchema = z.nativeEnum(AGENT_KIND);
-const sourceKindSchema = z.nativeEnum(AGENT_SOURCE_KIND);
+const sourceKindSchema = z.string();
 const lifecycleEventTypeSchema = z.nativeEnum(AGENT_LIFECYCLE_EVENT_KIND);
 const agentAnchorSchema = z.enum([BRIDGE_AGENT_ANCHOR.seat, BRIDGE_AGENT_ANCHOR.queue]);
 

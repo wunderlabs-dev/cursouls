@@ -38,7 +38,7 @@ Apply these rules unless the user explicitly asks otherwise.
 
 ## UI/State Integration Rules
 
-- `shared/watch/*` is backend watch logic; do not modify unless explicitly requested.
+- Agent observation/lifecycle logic lives in `@agentprobe/core`; do not duplicate it locally.
 - Webview consumes frame/tooltip/lifecycle data through the bridge and renders deterministically.
 - Ensure seat/agent state transitions are animation-safe (no stale tweens/timers/effects).
 - Handle overflow capacity explicitly (queue behavior must remain stable and visible).

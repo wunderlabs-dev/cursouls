@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createCursorTranscriptSource } from "@shared/watch/transcripts";
+import { createCursorTranscriptSource } from "@agentprobe/core";
 import { readCafeConfig } from "@ext/config";
 
 describe("createCursorTranscriptSource", () => {

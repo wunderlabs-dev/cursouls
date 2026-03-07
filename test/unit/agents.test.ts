@@ -70,12 +70,12 @@ describe("observer facade (migrated from agent subscription)", () => {
     });
 
     await observer.start();
-    await Promise.resolve();
-    await Promise.resolve();
+    await vi.waitFor(() => {
+      expect(seen.some((event) => event.type === "updated")).toBe(true);
+    });
     await observer.stop();
 
     expect(seen.some((event) => event.type === "started")).toBe(true);
-    expect(seen.some((event) => event.type === "updated")).toBe(true);
   });
 
   it("exposes an updated-only subscription helper", async () => {
@@ -96,11 +96,10 @@ describe("observer facade (migrated from agent subscription)", () => {
     });
 
     await observer.start();
-    await Promise.resolve();
-    await Promise.resolve();
+    await vi.waitFor(() => {
+      expect(kinds).toContain(WATCH_LIFECYCLE_KIND.joined);
+    });
     await observer.stop();
-
-    expect(kinds).toContain(WATCH_LIFECYCLE_KIND.joined);
   });
 
   it("emits snapshot events even with empty agent lists", async () => {

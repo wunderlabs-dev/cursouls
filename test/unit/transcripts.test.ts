@@ -117,6 +117,6 @@ describe("CursorTranscriptSource", () => {
     await rm(tempDir, { recursive: true, force: true });
 
     expect(result.agents).toHaveLength(1);
-    expect(result.agents[0]?.status).toBe("idle");
+    expect(result.agents[0]?.status).toBe("completed");
   });
 });

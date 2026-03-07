@@ -7,9 +7,6 @@ const sharedOptions = {
   bundle: true,
   sourcemap: true,
   logLevel: "info",
-  loader: {
-    ".png": "dataurl",
-  },
   alias: {
     "@ext": path.resolve("src/extension"),
     "@web": path.resolve("src/webview"),

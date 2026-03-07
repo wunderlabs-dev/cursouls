@@ -86,13 +86,13 @@ describe("watch controller", () => {
     const dispose = controller.onFrame(onFrame);
 
     await controller.start();
-    await Promise.resolve();
-    await Promise.resolve();
+    await vi.waitFor(() => {
+      expect(onFrame).toHaveBeenCalled();
+    });
     dispose();
     await controller.stop();
 
     expect(provider.connect).toHaveBeenCalledTimes(1);
-    expect(onFrame).toHaveBeenCalled();
     expect(provider.disconnect).toHaveBeenCalledTimes(1);
   });
 
@@ -177,11 +177,11 @@ describe("watch controller", () => {
 
     controller.onLifecycleEvents(onLifecycle);
     await controller.start();
-    await Promise.resolve();
-    await Promise.resolve();
+    await vi.waitFor(() => {
+      expect(onLifecycle).toHaveBeenCalled();
+    });
     await controller.stop();
 
-    expect(onLifecycle).toHaveBeenCalled();
     expect(onLifecycle.mock.calls[0]?.[0]?.[0]?.kind).toBe("joined");
   });
 

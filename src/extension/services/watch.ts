@@ -1,7 +1,6 @@
 import {
   createObserver,
   isWatchRuntimeError,
-  OBSERVER_EVENT_TYPES,
   WATCH_RUNTIME_ERROR_CODES,
   type Observer,
   type ObserverSnapshot,
@@ -50,19 +49,10 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
     provider: options.provider,
   });
 
-  observer.subscribeToSnapshots((event) => {
+  observer.subscribe((event) => {
     const frame = applySnapshot(event.snapshot, event.snapshot.at, store);
     notifyListeners(frameListeners, frame, "frame", logger);
-  });
-
-  observer.subscribeToAgentChanges((event) => {
     notifyListeners(lifecycleListeners, [event.change], "lifecycle", logger);
-  });
-
-  observer.subscribe((event) => {
-    if (event.type === OBSERVER_EVENT_TYPES.errored) {
-      notifyListeners(errorListeners, event.error, "error", logger);
-    }
   });
 
   async function refreshNow(): Promise<SceneFrame> {

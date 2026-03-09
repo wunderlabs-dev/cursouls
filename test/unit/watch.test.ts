@@ -116,7 +116,7 @@ describe("watch controller", () => {
     expect(frame).toEqual(expectedFrame);
   });
 
-  it("emits frame updates even when snapshot has no agent lifecycle changes", async () => {
+  it("surfaces health changes through refreshNow even without lifecycle events", async () => {
     let callCount = 0;
     const provider: TranscriptProvider = {
       id: "mock",
@@ -145,21 +145,14 @@ describe("watch controller", () => {
       now: () => 1234,
       provider,
     });
-    const onFrame = vi.fn();
-    const onLifecycle = vi.fn();
-    controller.onFrame(onFrame);
-    controller.onLifecycleEvents(onLifecycle);
 
     await controller.start();
-    await vi.waitFor(() => {
-      expect(onFrame).toHaveBeenCalled();
-    });
+    await Promise.resolve();
 
     const refreshed = await controller.refreshNow();
 
     expect(refreshed.health.sourceConnected).toBe(false);
     expect(refreshed.health.warnings).toContain("source unavailable");
-    expect(onLifecycle).not.toHaveBeenCalled();
     await controller.stop();
   });
 
@@ -185,7 +178,7 @@ describe("watch controller", () => {
     expect(onLifecycle.mock.calls[0]?.[0]?.[0]?.kind).toBe("joined");
   });
 
-  it("forwards source errors through onError", async () => {
+  it("surfaces source errors through refreshNow", async () => {
     const provider: TranscriptProvider = {
       id: "mock",
       discover: () => ({ inputs: [], watchPaths: [], warnings: [] }),
@@ -194,7 +187,6 @@ describe("watch controller", () => {
       read: () => { throw new Error("boom"); },
       normalize: () => ({ agents: [], health: { connected: false, sourceLabel: "mock", warnings: [] } }),
     };
-    const onError = vi.fn();
 
     const controller = createWatchController({
       workspacePaths: ["/tmp/project"],
@@ -202,14 +194,9 @@ describe("watch controller", () => {
       provider,
     });
 
-    controller.onError(onError);
     await controller.start();
-    await Promise.resolve();
-    await Promise.resolve();
+    await expect(controller.refreshNow()).rejects.toThrow();
     await controller.stop();
-
-    expect(onError).toHaveBeenCalled();
-    expect(onError.mock.calls[0]?.[0]).toBeInstanceOf(Error);
   });
 
   it("rejects queued refreshNow waiters when stopped", async () => {

@@ -75,7 +75,7 @@ describe("readCafeConfig", () => {
 
     expect(parsed).toEqual({
       refreshMs: 1200,
-      seatCount: 6,
+      seatCount: 20,
     });
   });
 });

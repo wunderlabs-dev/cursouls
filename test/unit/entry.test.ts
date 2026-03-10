@@ -9,10 +9,13 @@ type VscodeMock = {
     createOutputChannel: ReturnType<typeof vi.fn>;
     registerWebviewViewProvider: ReturnType<typeof vi.fn>;
     showErrorMessage: ReturnType<typeof vi.fn>;
+    showWarningMessage: ReturnType<typeof vi.fn>;
   };
   workspace: {
     getConfiguration: ReturnType<typeof vi.fn>;
     workspaceFolders: Array<{ uri: { fsPath: string } }>;
+    onDidChangeWorkspaceFolders: ReturnType<typeof vi.fn>;
+    onDidChangeConfiguration: ReturnType<typeof vi.fn>;
   };
   commands: {
     registerCommand: ReturnType<typeof vi.fn>;
@@ -31,6 +34,10 @@ function createSceneFrame(): SceneFrame {
       warnings: [],
     },
   };
+}
+
+function flushAsyncSchedule(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 50));
 }
 
 describe("extension entry wiring", () => {
@@ -98,10 +105,13 @@ describe("extension entry wiring", () => {
           createOutputChannel: vi.fn(() => outputChannel),
           registerWebviewViewProvider: vi.fn(() => ({ dispose: vi.fn() })),
           showErrorMessage: vi.fn().mockResolvedValue(undefined),
+          showWarningMessage: vi.fn().mockResolvedValue(undefined),
         },
         workspace: {
           getConfiguration: vi.fn(() => ({})),
           workspaceFolders: [{ uri: { fsPath: "/tmp/project" } }],
+          onDidChangeWorkspaceFolders: vi.fn(() => ({ dispose: vi.fn() })),
+          onDidChangeConfiguration: vi.fn(() => ({ dispose: vi.fn() })),
         },
         commands: {
           registerCommand: vi.fn((_id: string, callback: () => Promise<void>) => {
@@ -114,7 +124,7 @@ describe("extension entry wiring", () => {
       return mock;
     }, { virtual: true });
 
-    const readCafeConfig = vi.fn(() => ({ refreshMs: 1500, seatCount: 6 }));
+    const readCafeConfig = vi.fn(() => ({ refreshMs: 1500, seatCount: 20 }));
     const createLogger = vi.fn(() => logger);
     const createCafeStore = vi.fn(() => store);
     const createCafeViewProvider = vi.fn(() => viewProvider);
@@ -136,10 +146,11 @@ describe("extension entry wiring", () => {
       subscriptions: [],
     } as never;
     activate(context);
+    await flushAsyncSchedule();
 
     expect(readCafeConfig).toHaveBeenCalled();
     expect(createWatchController).toHaveBeenCalledWith({
-      projectPath: "/tmp/project",
+      workspacePaths: ["/tmp/project"],
       store,
       debounceMs: 1500,
       logger,
@@ -197,10 +208,13 @@ describe("extension entry wiring", () => {
           createOutputChannel: vi.fn(() => outputChannel),
           registerWebviewViewProvider: vi.fn(() => ({ dispose: vi.fn() })),
           showErrorMessage,
+          showWarningMessage: vi.fn().mockResolvedValue(undefined),
         },
         workspace: {
           getConfiguration: vi.fn(() => ({})),
           workspaceFolders: [{ uri: { fsPath: "/tmp/project" } }],
+          onDidChangeWorkspaceFolders: vi.fn(() => ({ dispose: vi.fn() })),
+          onDidChangeConfiguration: vi.fn(() => ({ dispose: vi.fn() })),
         },
         commands: {
           registerCommand: vi.fn((_id: string, callback: () => Promise<void>) => {
@@ -213,7 +227,7 @@ describe("extension entry wiring", () => {
       return mock;
     }, { virtual: true });
 
-    vi.doMock("@ext/config", () => ({ readCafeConfig: vi.fn(() => ({ refreshMs: 1500, seatCount: 6 })) }));
+    vi.doMock("@ext/config", () => ({ readCafeConfig: vi.fn(() => ({ refreshMs: 1500, seatCount: 20 })) }));
     vi.doMock("@ext/logging", () => ({ createLogger: vi.fn(() => logger) }));
     vi.doMock("@ext/services/store", () => ({ createCafeStore: vi.fn(() => store) }));
     vi.doMock("@ext/providers/provider", () => ({
@@ -224,6 +238,7 @@ describe("extension entry wiring", () => {
 
     const { activate } = await import("@ext/entry");
     activate({ extensionUri: {} as never, subscriptions: [] } as never);
+    await flushAsyncSchedule();
 
     expect(refreshCommand).toBeDefined();
     await refreshCommand?.();
@@ -266,10 +281,13 @@ describe("extension entry wiring", () => {
           createOutputChannel: vi.fn(() => outputChannel),
           registerWebviewViewProvider: vi.fn(() => ({ dispose: vi.fn() })),
           showErrorMessage: vi.fn().mockResolvedValue(undefined),
+          showWarningMessage: vi.fn().mockResolvedValue(undefined),
         },
         workspace: {
           getConfiguration: vi.fn(() => ({})),
           workspaceFolders: [{ uri: { fsPath: "/tmp/project" } }],
+          onDidChangeWorkspaceFolders: vi.fn(() => ({ dispose: vi.fn() })),
+          onDidChangeConfiguration: vi.fn(() => ({ dispose: vi.fn() })),
         },
         commands: {
           registerCommand: vi.fn(() => ({ dispose: vi.fn() })),
@@ -279,7 +297,7 @@ describe("extension entry wiring", () => {
       return mock;
     }, { virtual: true });
 
-    vi.doMock("@ext/config", () => ({ readCafeConfig: vi.fn(() => ({ refreshMs: 1500, seatCount: 6 })) }));
+    vi.doMock("@ext/config", () => ({ readCafeConfig: vi.fn(() => ({ refreshMs: 1500, seatCount: 20 })) }));
     vi.doMock("@ext/logging", () => ({ createLogger: vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })) }));
     vi.doMock("@ext/services/store", () => ({ createCafeStore: vi.fn(() => store) }));
     vi.doMock("@ext/providers/provider", () => ({
@@ -290,6 +308,7 @@ describe("extension entry wiring", () => {
 
     const { activate, deactivate } = await import("@ext/entry");
     activate({ extensionUri: {} as never, subscriptions: [] } as never);
+    await flushAsyncSchedule();
 
     await deactivate();
     await deactivate();

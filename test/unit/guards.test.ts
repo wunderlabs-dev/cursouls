@@ -17,6 +17,7 @@ function buildFrame(): SceneFrame {
           id: "a-1",
           name: "Ada",
           kind: AGENT_KIND.local,
+          isSubagent: false,
           status: AGENT_STATUS.running,
           taskSummary: "Reviewing bridge",
           startedAt: 1_700_000_000_000 - 180_000,

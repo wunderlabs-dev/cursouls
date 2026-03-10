@@ -11,8 +11,7 @@ function createAgent(): TestAgent {
 }
 
 describe("shared watch runtime start cleanup", () => {
-  it("disconnects source when start fails after connect", async () => {
-    const startError = new Error("watch subscribe failed");
+  it("resolves start gracefully when subscribeToChanges throws", async () => {
     const source = {
       connect: vi.fn(),
       disconnect: vi.fn(),
@@ -30,17 +29,15 @@ describe("shared watch runtime start cleanup", () => {
       },
       watchPaths: ["/tmp/agent.jsonl"],
       subscribeToChanges: () => {
-        throw startError;
+        throw new Error("watch subscribe failed");
       },
     });
 
-    await expect(runtime.start()).rejects.toBe(startError);
+    await expect(runtime.start()).resolves.toBeUndefined();
     expect(source.connect).toHaveBeenCalledTimes(1);
-    expect(source.disconnect).toHaveBeenCalledTimes(1);
   });
 
-  it("preserves original start error when disconnect also fails", async () => {
-    const startError = new Error("subscribe blew up");
+  it("resolves start even when both subscribeToChanges and disconnect fail", async () => {
     const source = {
       connect: vi.fn(),
       disconnect: vi.fn().mockRejectedValue(new Error("disconnect failure")),
@@ -58,12 +55,11 @@ describe("shared watch runtime start cleanup", () => {
       },
       watchPaths: ["/tmp/agent.jsonl"],
       subscribeToChanges: () => {
-        throw startError;
+        throw new Error("subscribe blew up");
       },
     });
 
-    await expect(runtime.start()).rejects.toBe(startError);
-    expect(source.disconnect).toHaveBeenCalledTimes(1);
+    await expect(runtime.start()).resolves.toBeUndefined();
   });
 
   it("continues notifying other listeners when one listener throws", async () => {

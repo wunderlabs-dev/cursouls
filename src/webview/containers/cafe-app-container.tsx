@@ -65,7 +65,7 @@ export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }) {
 function updateAgentNames(
   names: Map<string, string>,
   frame: SceneFrame,
-  events: AgentLifecycleEvent[],
+  events: readonly AgentLifecycleEvent[],
 ): void {
   const activeIds = new Set<string>();
   for (const seat of frame.seats) {

@@ -2,8 +2,8 @@ import { DEFAULT_SEAT_COUNT } from "@shared/constants";
 import type { AgentSnapshot, SeatFrame } from "@shared/types";
 
 export interface SeatAllocationResult {
-  seats: SeatFrame[];
-  queue: AgentSnapshot[];
+  seats: readonly SeatFrame[];
+  queue: readonly AgentSnapshot[];
 }
 
 export interface SeatAllocator {
@@ -11,17 +11,11 @@ export interface SeatAllocator {
   reset(): void;
 }
 
-export function normalizeSeatCount(
-  seatCount: number | { maxTables?: number } = DEFAULT_SEAT_COUNT,
-): number {
-  const resolvedSeatCount =
-    typeof seatCount === "number" ? seatCount : (seatCount.maxTables ?? DEFAULT_SEAT_COUNT);
-  return Math.max(1, Math.floor(resolvedSeatCount));
+export function normalizeSeatCount(seatCount: number = DEFAULT_SEAT_COUNT): number {
+  return Math.max(1, Math.floor(seatCount));
 }
 
-export function createSeatAllocator(
-  seatCount: number | { maxTables?: number } = DEFAULT_SEAT_COUNT,
-): SeatAllocator {
+export function createSeatAllocator(seatCount: number = DEFAULT_SEAT_COUNT): SeatAllocator {
   const normalizedSeatCount = normalizeSeatCount(seatCount);
   const seatByAgentId = new Map<string, number>();
   const agentIdBySeat: Array<string | null> = new Array(normalizedSeatCount).fill(null);

@@ -16,7 +16,7 @@ export type LifecycleListener = (events: AgentLifecycleEvent[]) => void;
 export type ErrorListener = (error: unknown) => void;
 
 export interface WatchControllerOptions {
-  workspacePaths: string[];
+  workspacePaths: readonly string[];
   store?: CafeStore;
   logger?: Logger;
   now?: () => number;
@@ -43,7 +43,7 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
   const errorListeners = new Set<ErrorListener>();
 
   const observer: Observer = createObserver({
-    workspacePaths: options.workspacePaths,
+    workspacePaths: [...options.workspacePaths],
     debounceMs: options.debounceMs,
     now,
     provider: options.provider,

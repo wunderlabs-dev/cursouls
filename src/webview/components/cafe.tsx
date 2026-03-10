@@ -10,7 +10,7 @@ import { TooltipCard } from "@web/components/ui/tooltip-card";
 interface CafeProps {
   frame?: SceneFrame;
   tooltip?: TooltipData;
-  lifecycleEvents: AgentLifecycleEvent[];
+  lifecycleEvents: readonly AgentLifecycleEvent[];
   agentNames: ReadonlyMap<string, string>;
   onSeatClick: (agentId: string) => void;
   onQueueClick: (agentId: string) => void;

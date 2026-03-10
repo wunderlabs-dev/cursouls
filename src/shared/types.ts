@@ -45,13 +45,13 @@ export interface SeatFrame {
 export interface SourceHealth {
   sourceConnected: boolean;
   sourceLabel: string;
-  warnings: string[];
+  warnings: readonly string[];
 }
 
 export interface SceneFrame {
   generatedAt: number;
-  seats: SeatFrame[];
-  queue: AgentSnapshot[];
+  seats: readonly SeatFrame[];
+  queue: readonly AgentSnapshot[];
   health: SourceHealth;
 }
 

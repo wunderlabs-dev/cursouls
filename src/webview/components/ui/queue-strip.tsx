@@ -5,7 +5,7 @@ import { initialsFor } from "@web/present";
 import { cn } from "@web/utils/helpers";
 
 interface QueueStripProps {
-  queue: AgentSnapshot[];
+  queue: readonly AgentSnapshot[];
   onQueueClick: (agentId: string) => void;
 }
 

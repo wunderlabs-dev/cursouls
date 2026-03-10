@@ -3,8 +3,8 @@ import { AGENT_STATUS, type AgentSnapshot, type SceneFrame, type SourceHealth } 
 import { createSeatAllocator, normalizeSeatCount, type SeatAllocator } from "./seats";
 
 export interface CafeStoreUpdateInput {
-  agents: AgentSnapshot[];
-  health?: Partial<SourceHealth>;
+  agents: readonly AgentSnapshot[];
+  health: SourceHealth;
 }
 
 export interface CafeStore {
@@ -38,12 +38,7 @@ export function createCafeStore(seatCount: number = DEFAULT_SEAT_COUNT): CafeSto
       generatedAt: at,
       seats: allocation.seats,
       queue: allocation.queue,
-      health: {
-        sourceConnected: input.health?.sourceConnected ?? true,
-        sourceLabel:
-          input.health?.sourceLabel ?? input.agents[0]?.source ?? frame.health.sourceLabel,
-        warnings: input.health?.warnings ?? [],
-      },
+      health: input.health,
     };
 
     return frame;

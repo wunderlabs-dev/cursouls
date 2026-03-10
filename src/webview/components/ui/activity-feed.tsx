@@ -13,7 +13,7 @@ import {
 import { cn } from "@web/utils/helpers";
 
 interface ActivityFeedProps {
-  events: AgentLifecycleEvent[];
+  events: readonly AgentLifecycleEvent[];
   agentNames: ReadonlyMap<string, string>;
 }
 

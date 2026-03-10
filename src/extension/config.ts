@@ -3,8 +3,11 @@ import {
   DEFAULT_SEAT_COUNT,
   EXTENSION_CONFIG_SECTION,
   MAX_REFRESH_MS,
+  MAX_SEAT_COUNT,
   MIN_REFRESH_MS,
+  MIN_SEAT_COUNT,
   REFRESH_MS_CONFIG_KEY,
+  SEAT_COUNT_CONFIG_KEY,
 } from "@shared/constants";
 
 export interface ConfigReader {
@@ -38,6 +41,10 @@ export function readCafeConfig(
     `${EXTENSION_CONFIG_SECTION}.${REFRESH_MS_CONFIG_KEY}`,
     defaults.refreshMs ?? DEFAULT_REFRESH_MS,
   );
+  const seatCountRaw = config?.get<number>(
+    `${EXTENSION_CONFIG_SECTION}.${SEAT_COUNT_CONFIG_KEY}`,
+    defaults.seatCount ?? DEFAULT_SEAT_COUNT,
+  );
   return {
     refreshMs: clampInt(
       refreshRaw ?? defaults.refreshMs ?? DEFAULT_REFRESH_MS,
@@ -45,6 +52,11 @@ export function readCafeConfig(
       MAX_REFRESH_MS,
       defaults.refreshMs ?? DEFAULT_REFRESH_MS,
     ),
-    seatCount: defaults.seatCount ?? DEFAULT_SEAT_COUNT,
+    seatCount: clampInt(
+      seatCountRaw ?? defaults.seatCount ?? DEFAULT_SEAT_COUNT,
+      MIN_SEAT_COUNT,
+      MAX_SEAT_COUNT,
+      defaults.seatCount ?? DEFAULT_SEAT_COUNT,
+    ),
   };
 }

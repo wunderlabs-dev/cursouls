@@ -6,8 +6,8 @@ import {
   AGENT_SHADOW_CLASS,
   AGENT_SHADOW_HOVER_CLASS,
   AGENT_SKIN_CLASS,
-  BODY_COLOR,
-  STATUS_STYLE,
+  bodyColorVariants,
+  statusBadgeVariants,
 } from "@web/scene/constants";
 import { initialsFor, statusGlyph } from "@web/present";
 
@@ -24,7 +24,6 @@ export function SceneAgents({ sceneModel, onSeatClick }: SceneAgentsProps) {
         if (!agent) {
           return null;
         }
-        const statusClass = STATUS_STYLE[agent.status] ?? STATUS_STYLE.idle;
         return (
           <button
             key={`${seat.tableIndex}-${agent.id}`}
@@ -35,15 +34,11 @@ export function SceneAgents({ sceneModel, onSeatClick }: SceneAgentsProps) {
             aria-label={`Agent ${agent.name}, status ${agent.status}`}
           >
             <div className={`absolute left-1/2 top-[60%] h-4 w-11 -translate-x-1/2 rounded-full transition-colors duration-300 ${AGENT_SHADOW_CLASS} ${AGENT_SHADOW_HOVER_CLASS}`} />
-            <div
-              className={`absolute left-1/2 top-[26%] -translate-x-1/2 rounded-md border px-1.5 py-0.5 text-[9px] font-bold transition-colors duration-300 ${statusClass}`}
-            >
+            <div className={statusBadgeVariants({ status: agent.status })}>
               {statusGlyph(agent.status)}
             </div>
             <div className={`absolute left-1/2 top-[40%] h-9 w-7 -translate-x-1/2 rounded-sm border-2 ${AGENT_OUTLINE_CLASS} ${AGENT_SKIN_CLASS}`} />
-            <div
-              className={`absolute left-1/2 top-[55%] h-6 w-8 -translate-x-1/2 rounded-sm border-2 transition-colors duration-300 ${AGENT_OUTLINE_CLASS} ${BODY_COLOR[agent.status] ?? BODY_COLOR.idle}`}
-            />
+            <div className={bodyColorVariants({ status: agent.status })} />
             <div className={`absolute left-1/2 top-[63%] h-2 w-10 -translate-x-1/2 rounded ${AGENT_LEGS_CLASS}`} />
             <div className={`absolute left-1/2 top-[9%] -translate-x-1/2 rounded px-1.5 py-0.5 text-[9px] ${AGENT_LABEL_CLASS}`}>
               {initialsFor(agent.name)}

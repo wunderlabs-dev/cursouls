@@ -13,7 +13,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const outputChannel = vscode.window.createOutputChannel("Cursor Cafe");
   const logger = createLogger("extension", outputChannel);
   let config = readCafeConfig(vscode.workspace.getConfiguration());
-  const store = createCafeStore(config.seatCount);
+  let store = createCafeStore(config.seatCount);
   const viewProvider = createCafeViewProvider(context.extensionUri, logger);
   let currentController: WatchController | undefined;
   let isDisposed = false;
@@ -151,7 +151,11 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("cursorCafe")) {
+        const previousSeatCount = config.seatCount;
         config = readCafeConfig(vscode.workspace.getConfiguration());
+        if (config.seatCount !== previousSeatCount) {
+          store = createCafeStore(config.seatCount);
+        }
         scheduleWatchControllerReplace();
       }
     }),

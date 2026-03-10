@@ -1,4 +1,4 @@
-import type { AgentStatus } from "@shared/types";
+import { cva } from "class-variance-authority";
 
 export const SCENE_MIN_WIDTH = 360;
 export const SCENE_MIN_HEIGHT = 280;
@@ -37,16 +37,32 @@ export const SEATING_REGION_OFFSET_Y_MULTIPLIER = 2.4;
 export const TABLE_ORIGIN_OFFSET_X_MULTIPLIER = -0.2;
 export const TABLE_ORIGIN_OFFSET_Y_MULTIPLIER = 0.38;
 
-export const STATUS_STYLE: Record<AgentStatus, string> = {
-  running: "border-emerald-500 bg-emerald-300/20 text-emerald-200 animate-pulse",
-  idle: "border-stone-500 bg-stone-300/10 text-stone-200",
-  completed: "border-teal-500 bg-teal-300/20 text-teal-200",
-  error: "border-red-500 bg-red-300/20 text-red-200 animate-bounce",
-};
+export const statusBadgeVariants = cva(
+  "absolute left-1/2 top-[26%] -translate-x-1/2 rounded-md border px-1.5 py-0.5 text-[9px] font-bold transition-colors duration-300",
+  {
+    variants: {
+      status: {
+        running: "border-emerald-500 bg-emerald-300/20 text-emerald-200 animate-pulse",
+        idle: "border-stone-500 bg-stone-300/10 text-stone-200",
+        completed: "border-teal-500 bg-teal-300/20 text-teal-200",
+        error: "border-red-500 bg-red-300/20 text-red-200 animate-bounce",
+      },
+    },
+    defaultVariants: { status: "idle" },
+  },
+);
 
-export const BODY_COLOR: Record<AgentStatus, string> = {
-  running: "bg-[#5fa26a]",
-  idle: "bg-[#5c7b96]",
-  completed: "bg-[#4c8f5f]",
-  error: "bg-[#8f4c4c]",
-};
+export const bodyColorVariants = cva(
+  `absolute left-1/2 top-[55%] h-6 w-8 -translate-x-1/2 rounded-sm border-2 transition-colors duration-300 ${AGENT_OUTLINE_CLASS}`,
+  {
+    variants: {
+      status: {
+        running: "bg-[#5fa26a]",
+        idle: "bg-[#5c7b96]",
+        completed: "bg-[#4c8f5f]",
+        error: "bg-[#8f4c4c]",
+      },
+    },
+    defaultVariants: { status: "idle" },
+  },
+);

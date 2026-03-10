@@ -4,7 +4,6 @@ import {
   AGENT_LIFECYCLE_EVENT_KIND,
   AGENT_STATUS,
   type AgentLifecycleEvent,
-  type AgentStatus,
   type SceneFrame,
 } from "./types";
 
@@ -27,27 +26,6 @@ export const BRIDGE_INBOUND_TYPE = {
 } as const;
 
 export const BRIDGE_LIFECYCLE_REPLAY_LIMIT = 200;
-
-export interface TooltipData {
-  id: string;
-  name: string;
-  status: AgentStatus;
-  task: string;
-  elapsed: string;
-  updated: string;
-}
-
-export type OutboundMessage =
-  | { type: typeof BRIDGE_OUTBOUND_TYPE.ready }
-  | { type: typeof BRIDGE_OUTBOUND_TYPE.agentClick; agentId: string; anchor: AgentAnchor };
-
-export type InboundMessage =
-  | { type: typeof BRIDGE_INBOUND_TYPE.sceneFrame; frame: SceneFrame }
-  | { type: typeof BRIDGE_INBOUND_TYPE.lifecycleEvents; events: AgentLifecycleEvent[] }
-  | { type: typeof BRIDGE_INBOUND_TYPE.tooltipData; tooltip: TooltipData }
-  | { type: typeof BRIDGE_INBOUND_TYPE.hideTooltip };
-
-export type InboundMessageType = InboundMessage["type"];
 
 const agentStatusSchema = z.nativeEnum(AGENT_STATUS);
 const agentKindSchema = z.nativeEnum(AGENT_KIND);
@@ -93,7 +71,7 @@ const sceneFrameSchema: z.ZodType<SceneFrame> = z
   })
   .strict();
 
-const tooltipDataSchema: z.ZodType<TooltipData> = z
+const tooltipDataSchema = z
   .object({
     id: z.string(),
     name: z.string(),
@@ -114,7 +92,7 @@ const lifecycleEventSchema: z.ZodType<AgentLifecycleEvent> = z
   })
   .strict();
 
-export const inboundBridgeMessageSchema: z.ZodType<InboundMessage> = z.discriminatedUnion("type", [
+export const inboundBridgeMessageSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal(BRIDGE_INBOUND_TYPE.sceneFrame),
@@ -140,7 +118,7 @@ export const inboundBridgeMessageSchema: z.ZodType<InboundMessage> = z.discrimin
     .strict(),
 ]);
 
-export const outboundBridgeMessageSchema: z.ZodType<OutboundMessage> = z.discriminatedUnion("type", [
+export const outboundBridgeMessageSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal(BRIDGE_OUTBOUND_TYPE.ready),
@@ -154,6 +132,11 @@ export const outboundBridgeMessageSchema: z.ZodType<OutboundMessage> = z.discrim
     })
     .strict(),
 ]);
+
+export type TooltipData = z.infer<typeof tooltipDataSchema>;
+export type InboundMessage = z.infer<typeof inboundBridgeMessageSchema>;
+export type OutboundMessage = z.infer<typeof outboundBridgeMessageSchema>;
+export type InboundMessageType = InboundMessage["type"];
 
 export function safeParseInboundBridgeMessage(value: unknown) {
   return inboundBridgeMessageSchema.safeParse(value);

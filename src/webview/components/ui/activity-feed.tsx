@@ -1,5 +1,5 @@
 import { useMemo, useRef, useEffect } from "react";
-import { AGENT_LIFECYCLE_EVENT_KIND, type AgentLifecycleEvent } from "@shared/types";
+import { AGENT_LIFECYCLE_EVENT_KIND, type AgentLifecycleEvent, type AgentLifecycleEventType } from "@shared/types";
 import {
   ACTIVITY_FEED_EMPTY_LABEL,
   ACTIVITY_FEED_LABEL,
@@ -17,7 +17,7 @@ interface ActivityFeedProps {
   agentNames: ReadonlyMap<string, string>;
 }
 
-const KIND_COLOR: Record<string, string> = {
+const KIND_COLOR: Partial<Record<AgentLifecycleEventType, string>> = {
   [AGENT_LIFECYCLE_EVENT_KIND.joined]: "text-emerald-400",
   [AGENT_LIFECYCLE_EVENT_KIND.left]: "text-stone-500",
   [AGENT_LIFECYCLE_EVENT_KIND.statusChanged]: "text-amber-400",

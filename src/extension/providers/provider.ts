@@ -147,7 +147,7 @@ export function createCafeViewProvider(
 }
 
 function formatElapsed(startedAt: number | undefined): string {
-  if (!startedAt) {
+  if (startedAt == null) {
     return "-";
   }
   const { hours = 0, minutes = 0 } = intervalToDuration({

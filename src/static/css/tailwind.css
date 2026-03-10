@@ -23,3 +23,18 @@
     overflow: hidden;
   }
 }
+
+@keyframes cafe-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@utility animate-cafe-enter {
+  animation: cafe-enter 0.3s ease-out both;
+}

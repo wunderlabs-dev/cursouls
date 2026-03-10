@@ -7,9 +7,21 @@ export const SCENE_BACKGROUND_DARK = "#1b1411";
 export const SCENE_BACKGROUND_GRADIENT_FROM = "#281e18";
 export const SCENE_BACKGROUND_GRADIENT_TO = "#18120f";
 
+export const WALL_TOP_ROW_COUNT = 3;
 export const WALL_TILE_CLASS = "bg-[#7f4f33]";
 export const FLOOR_TILE_CLASS = "bg-[#b98958]";
 export const TILE_BORDER_CLASS = "border-[#4f3a2d]/65";
+
+export const TABLE_BORDER_CLASS = "border-[#54453a]";
+export const TABLE_BG_CLASS = "bg-[#b78f67]";
+export const TABLE_SHADOW_CLASS = "shadow-[0_4px_0_0_#3f3129]";
+
+export const AGENT_SKIN_CLASS = "bg-[#ebc39f]";
+export const AGENT_OUTLINE_CLASS = "border-[#2f2620]";
+export const AGENT_LEGS_CLASS = "bg-[#2b3942]";
+export const AGENT_LABEL_CLASS = "bg-black/65 text-[#f5ecdd]";
+export const AGENT_SHADOW_CLASS = "bg-black/20";
+export const AGENT_SHADOW_HOVER_CLASS = "group-hover:bg-black/30";
 
 export const TABLE_OFFSET_X_MULTIPLIER = -0.25;
 export const TABLE_OFFSET_Y_MULTIPLIER = -0.35;
@@ -30,4 +42,11 @@ export const STATUS_STYLE: Record<AgentStatus, string> = {
   idle: "border-stone-500 bg-stone-300/10 text-stone-200",
   completed: "border-teal-500 bg-teal-300/20 text-teal-200",
   error: "border-red-500 bg-red-300/20 text-red-200 animate-bounce",
+};
+
+export const BODY_COLOR: Record<AgentStatus, string> = {
+  running: "bg-[#5fa26a]",
+  idle: "bg-[#5c7b96]",
+  completed: "bg-[#4c8f5f]",
+  error: "bg-[#8f4c4c]",
 };

@@ -1,56 +1,51 @@
-import type { SceneFrame, SeatFrame } from "@shared/types";
 import type { CafeSceneModel } from "@web/scene/model";
-import { STATUS_STYLE } from "@web/scene/constants";
+import {
+  AGENT_LABEL_CLASS,
+  AGENT_LEGS_CLASS,
+  AGENT_OUTLINE_CLASS,
+  AGENT_SHADOW_CLASS,
+  AGENT_SHADOW_HOVER_CLASS,
+  AGENT_SKIN_CLASS,
+  BODY_COLOR,
+  STATUS_STYLE,
+} from "@web/scene/constants";
 import { initialsFor, statusGlyph } from "@web/present";
 
 interface SceneAgentsProps {
-  frame?: SceneFrame;
   sceneModel: CafeSceneModel;
   onSeatClick: (agentId: string) => void;
 }
 
-export function SceneAgents({ frame, sceneModel, onSeatClick }: SceneAgentsProps) {
-  const seatByTable = new Map<number, SeatFrame>();
-  frame?.seats.forEach((seat) => seatByTable.set(seat.tableIndex, seat));
-
+export function SceneAgents({ sceneModel, onSeatClick }: SceneAgentsProps) {
   return (
     <>
       {sceneModel.seats.map((seat) => {
-        const mapped = seatByTable.get(seat.tableIndex);
-        const agent = mapped?.agent ?? seat.agent;
+        const agent = seat.agent;
         if (!agent) {
           return null;
         }
         const statusClass = STATUS_STYLE[agent.status] ?? STATUS_STYLE.idle;
         return (
           <button
-            key={seat.tableIndex}
+            key={`${seat.tableIndex}-${agent.id}`}
             type="button"
             onClick={() => onSeatClick(agent.id)}
-            className="group absolute text-left"
+            className="group absolute animate-cafe-enter text-left"
             style={{ left: seat.x, top: seat.y, width: seat.width, height: seat.height }}
             aria-label={`Agent ${agent.name}, status ${agent.status}`}
           >
-            <div className="absolute left-1/2 top-[60%] h-4 w-11 -translate-x-1/2 rounded-full bg-black/20 group-hover:bg-black/30" />
+            <div className={`absolute left-1/2 top-[60%] h-4 w-11 -translate-x-1/2 rounded-full transition-colors duration-300 ${AGENT_SHADOW_CLASS} ${AGENT_SHADOW_HOVER_CLASS}`} />
             <div
-              className={`absolute left-1/2 top-[26%] -translate-x-1/2 rounded-md border px-1.5 py-0.5 text-[9px] font-bold ${statusClass}`}
+              className={`absolute left-1/2 top-[26%] -translate-x-1/2 rounded-md border px-1.5 py-0.5 text-[9px] font-bold transition-colors duration-300 ${statusClass}`}
             >
               {statusGlyph(agent.status)}
             </div>
-            <div className="absolute left-1/2 top-[40%] h-9 w-7 -translate-x-1/2 rounded-sm border-2 border-[#2f2620] bg-[#ebc39f]" />
+            <div className={`absolute left-1/2 top-[40%] h-9 w-7 -translate-x-1/2 rounded-sm border-2 ${AGENT_OUTLINE_CLASS} ${AGENT_SKIN_CLASS}`} />
             <div
-              className={`absolute left-1/2 top-[55%] h-6 w-8 -translate-x-1/2 rounded-sm border-2 border-[#2f2620] ${
-                agent.status === "running"
-                  ? "bg-[#5fa26a]"
-                  : agent.status === "completed"
-                    ? "bg-[#4c8f5f]"
-                    : agent.status === "error"
-                      ? "bg-[#8f4c4c]"
-                      : "bg-[#5c7b96]"
-              }`}
+              className={`absolute left-1/2 top-[55%] h-6 w-8 -translate-x-1/2 rounded-sm border-2 transition-colors duration-300 ${AGENT_OUTLINE_CLASS} ${BODY_COLOR[agent.status] ?? BODY_COLOR.idle}`}
             />
-            <div className="absolute left-1/2 top-[63%] h-2 w-10 -translate-x-1/2 rounded bg-[#2b3942]" />
-            <div className="absolute left-1/2 top-[9%] -translate-x-1/2 rounded bg-black/65 px-1.5 py-0.5 text-[9px] text-[#f5ecdd]">
+            <div className={`absolute left-1/2 top-[63%] h-2 w-10 -translate-x-1/2 rounded ${AGENT_LEGS_CLASS}`} />
+            <div className={`absolute left-1/2 top-[9%] -translate-x-1/2 rounded px-1.5 py-0.5 text-[9px] ${AGENT_LABEL_CLASS}`}>
               {initialsFor(agent.name)}
             </div>
           </button>

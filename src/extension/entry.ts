@@ -12,7 +12,7 @@ let stopActiveSession: (() => Promise<void>) | undefined;
 export function activate(context: vscode.ExtensionContext): void {
   const outputChannel = vscode.window.createOutputChannel("Cursor Cafe");
   const logger = createLogger("extension", outputChannel);
-  const config = readCafeConfig(vscode.workspace.getConfiguration());
+  let config = readCafeConfig(vscode.workspace.getConfiguration());
   const store = createCafeStore(config.seatCount);
   const viewProvider = createCafeViewProvider(context.extensionUri, logger);
   let currentController: WatchController | undefined;
@@ -31,6 +31,14 @@ export function activate(context: vscode.ExtensionContext): void {
     disposeErrorListener = () => undefined;
   }
 
+  async function stopControllerSafely(controller: WatchController): Promise<void> {
+    try {
+      await controller.stop();
+    } catch (error) {
+      logger.error(`Failed to stop transcript watch: ${formatUnknownError(error)}`);
+    }
+  }
+
   async function replaceWatchController(): Promise<void> {
     if (isDisposed) {
       return;
@@ -38,7 +46,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const previousController = currentController;
     if (previousController) {
       detachControllerListeners();
-      await stopController(previousController, logger);
+      await stopControllerSafely(previousController);
       currentController = undefined;
     }
 
@@ -84,6 +92,21 @@ export function activate(context: vscode.ExtensionContext): void {
       .start()
       .catch((error: unknown) => {
         logger.error(`Failed to start transcript watch: ${formatUnknownError(error)}`);
+        detachControllerListeners();
+        currentController = undefined;
+        viewProvider.updateFrame(
+          store.update(
+            {
+              agents: [],
+              health: {
+                sourceConnected: false,
+                sourceLabel: AGENT_SOURCE_KIND.cursorTranscripts,
+                warnings: ["Transcript watch failed to start."],
+              },
+            },
+            Date.now(),
+          ),
+        );
       });
   }
 
@@ -100,7 +123,7 @@ export function activate(context: vscode.ExtensionContext): void {
     detachControllerListeners();
     await replacePromise.catch(() => undefined);
     if (currentController) {
-      await stopController(currentController, logger);
+      await stopControllerSafely(currentController);
       currentController = undefined;
     }
   }
@@ -126,6 +149,12 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       scheduleWatchControllerReplace();
     }),
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration("cursorCafe")) {
+        config = readCafeConfig(vscode.workspace.getConfiguration());
+        scheduleWatchControllerReplace();
+      }
+    }),
     new vscode.Disposable(() => {
       void shutdownSession();
     }),
@@ -144,11 +173,4 @@ export function deactivate(): Thenable<void> | void {
   const stop = stopActiveSession;
   stopActiveSession = undefined;
   return stop();
-}
-async function stopController(controller: WatchController, logger?: { error(message: string): void }): Promise<void> {
-  try {
-    await controller.stop();
-  } catch (error) {
-    logger?.error(`Failed to stop transcript watch: ${formatUnknownError(error)}`);
-  }
 }

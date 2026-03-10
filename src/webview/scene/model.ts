@@ -31,7 +31,7 @@ const TABLE_BOTTOM_PADDING = 16;
 export const SCENE_WIDTH = 760;
 export const SCENE_HEIGHT = 560;
 
-interface SceneLayoutBounds {
+export interface SceneLayoutBounds {
   width: number;
   height: number;
   offsetX?: number;
@@ -39,26 +39,40 @@ interface SceneLayoutBounds {
   preferredTableOrigins?: readonly { x: number; y: number }[];
 }
 
-export function buildCafeSceneModel(
+export function buildSceneTableAnchors(
+  tableCount: number,
+  bounds: SceneLayoutBounds,
+): readonly TableAnchor[] {
+  return buildTableAnchors(Math.max(1, tableCount), bounds);
+}
+
+export function applyAgentsToAnchors(
+  anchors: readonly TableAnchor[],
   frame?: SceneFrame,
-  bounds: SceneLayoutBounds = { width: SCENE_WIDTH, height: SCENE_HEIGHT },
 ): CafeSceneModel {
-  const tableCount = Math.max(1, frame?.seats.length ?? DEFAULT_SEAT_COUNT);
-  const tableAnchors = buildTableAnchors(tableCount, bounds);
   const byTable = new Map<number, AgentSnapshot | null>();
   frame?.seats.forEach((seat) => {
-    if (seat.tableIndex >= 0 && seat.tableIndex < tableCount) {
+    if (seat.tableIndex >= 0 && seat.tableIndex < anchors.length) {
       byTable.set(seat.tableIndex, seat.agent);
     }
   });
 
   return {
     generatedAt: frame?.generatedAt ?? Date.now(),
-    seats: tableAnchors.map((anchor) => ({
+    seats: anchors.map((anchor) => ({
       ...anchor,
       agent: byTable.get(anchor.tableIndex) ?? null,
     })),
   };
+}
+
+export function buildCafeSceneModel(
+  frame?: SceneFrame,
+  bounds: SceneLayoutBounds = { width: SCENE_WIDTH, height: SCENE_HEIGHT },
+): CafeSceneModel {
+  const tableCount = Math.max(1, frame?.seats.length ?? DEFAULT_SEAT_COUNT);
+  const anchors = buildTableAnchors(tableCount, bounds);
+  return applyAgentsToAnchors(anchors, frame);
 }
 
 function buildTableAnchors(tableCount: number, bounds: SceneLayoutBounds): readonly TableAnchor[] {

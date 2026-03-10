@@ -5,13 +5,13 @@ import {
   TOOLTIP_STATUS_LABEL,
   TOOLTIP_TASK_LABEL,
   TOOLTIP_UPDATED_LABEL,
+  TOOLTIP_VALUE_MAX_LENGTH,
 } from "@web/constants";
 import { cn } from "@web/utils/helpers";
 
 interface TooltipCardProps {
   tooltip?: TooltipData;
 }
-const TOOLTIP_VALUE_MAX_LENGTH = 80;
 
 export function TooltipCard({ tooltip }: TooltipCardProps) {
   return (

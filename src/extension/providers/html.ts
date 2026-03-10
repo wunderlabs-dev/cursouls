@@ -1,3 +1,4 @@
+import * as crypto from "node:crypto";
 import * as vscode from "vscode";
 
 export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
@@ -27,11 +28,6 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
 </html>`;
 }
 
-function createNonce(length = 24): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "";
-  for (let i = 0; i < length; i += 1) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+function createNonce(byteLength = 18): string {
+  return crypto.randomBytes(byteLength).toString("base64url");
 }

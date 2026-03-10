@@ -41,6 +41,7 @@ export function QueueStrip({ queue, onQueueClick }: QueueStripProps) {
               className={cn(chipVariants({ status: agent.status }))}
               type="button"
               title={agent.name}
+              aria-label={`Agent ${agent.name}, position ${index + 1}, status ${agent.status}`}
               onClick={() => onQueueClick(agent.id)}
             >
               <span className="text-[10px] text-[#b8aa96]">{index + 1}</span>

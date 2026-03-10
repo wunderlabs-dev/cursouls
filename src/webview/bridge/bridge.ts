@@ -95,8 +95,9 @@ function parseInboundMessage(
   if (!parsed.success) {
     const reason = parsed.error.issues.map((issue) => issue.message).join("; ");
     onInvalid(reason || "schema validation failed");
+    return undefined;
   }
-  return parsed.success ? parsed.data : undefined;
+  return parsed.data;
 }
 
 function bufferMessage(buffer: PendingMessageBuffer, message: InboundMessage): void {

@@ -1,7 +1,10 @@
 import type { SceneComposition } from "@web/scene/composition";
 import {
+  TABLE_BG_CLASS,
+  TABLE_BORDER_CLASS,
   TABLE_OFFSET_X_MULTIPLIER,
   TABLE_OFFSET_Y_MULTIPLIER,
+  TABLE_SHADOW_CLASS,
   TABLE_SIZE_MULTIPLIER,
 } from "@web/scene/constants";
 
@@ -17,7 +20,7 @@ export function SceneTables({ composition }: SceneTablesProps) {
         .map((cell) => (
           <div
             key={`table-${cell.row}-${cell.column}`}
-            className="absolute rounded-md border-2 border-[#54453a] bg-[#b78f67] shadow-[0_4px_0_0_#3f3129]"
+            className={`absolute rounded-md border-2 ${TABLE_BORDER_CLASS} ${TABLE_BG_CLASS} ${TABLE_SHADOW_CLASS}`}
             style={{
               left: cell.x + cell.size * TABLE_OFFSET_X_MULTIPLIER,
               top: cell.y + cell.size * TABLE_OFFSET_Y_MULTIPLIER,

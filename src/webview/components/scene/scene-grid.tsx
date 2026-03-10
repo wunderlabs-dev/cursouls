@@ -1,5 +1,10 @@
 import type { SceneComposition } from "@web/scene/composition";
-import { FLOOR_TILE_CLASS, TILE_BORDER_CLASS, WALL_TILE_CLASS } from "@web/scene/constants";
+import {
+  FLOOR_TILE_CLASS,
+  TILE_BORDER_CLASS,
+  WALL_TOP_ROW_COUNT,
+  WALL_TILE_CLASS,
+} from "@web/scene/constants";
 
 interface SceneGridProps {
   composition: SceneComposition;
@@ -10,7 +15,7 @@ export function SceneGrid({ composition }: SceneGridProps) {
     <>
       {composition.cells.map((cell) => {
         const baseClass =
-          cell.row < 3 || cell.symbol === "W" || cell.symbol === "w" || cell.symbol === "C"
+          cell.row < WALL_TOP_ROW_COUNT || cell.symbol === "W" || cell.symbol === "w" || cell.symbol === "C"
             ? WALL_TILE_CLASS
             : FLOOR_TILE_CLASS;
         return (

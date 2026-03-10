@@ -55,9 +55,3 @@ export interface SceneFrame {
   health: SourceHealth;
 }
 
-export interface AgentSourceReadResult {
-  agents: AgentSnapshot[];
-  connected: boolean;
-  sourceLabel: string;
-  warnings: string[];
-}

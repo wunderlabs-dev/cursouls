@@ -51,7 +51,7 @@ export type InboundMessageType = InboundMessage["type"];
 
 const agentStatusSchema = z.nativeEnum(AGENT_STATUS);
 const agentKindSchema = z.nativeEnum(AGENT_KIND);
-const sourceKindSchema = z.string();
+const sourceKindSchema = z.string().min(1);
 const lifecycleEventTypeSchema = z.nativeEnum(AGENT_LIFECYCLE_EVENT_KIND);
 const agentAnchorSchema = z.enum([BRIDGE_AGENT_ANCHOR.seat, BRIDGE_AGENT_ANCHOR.queue]);
 

@@ -50,9 +50,13 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
   });
 
   observer.subscribe((event) => {
-    const frame = applySnapshot(event.snapshot, event.snapshot.at, store);
-    notifyListeners(frameListeners, frame, "frame", logger);
-    notifyListeners(lifecycleListeners, [event.change], "lifecycle", logger);
+    try {
+      const frame = applySnapshot(event.snapshot, event.snapshot.at, store);
+      notifyListeners(frameListeners, frame, "frame", logger);
+      notifyListeners(lifecycleListeners, [event.change], "lifecycle", logger);
+    } catch (error) {
+      notifyListeners(errorListeners, error, "error", logger);
+    }
   });
 
   async function refreshNow(): Promise<SceneFrame> {

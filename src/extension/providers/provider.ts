@@ -11,6 +11,7 @@ import {
   type TooltipData,
 } from "@shared/bridge";
 import { findAgentInFrame } from "@shared/frame";
+import { formatUnknown } from "@ext/errors";
 import { getWebviewHtml } from "./html";
 
 export const CAFE_VIEW_TYPE = "cursorCafe.sidebar";
@@ -154,15 +155,4 @@ function formatElapsed(startedAt: number | undefined): string {
     end: Date.now(),
   });
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-}
-
-function formatUnknown(value: unknown): string {
-  if (value instanceof Error) {
-    return value.message;
-  }
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
 }

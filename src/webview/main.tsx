@@ -11,10 +11,16 @@ function mountWebviewApp(): void {
   const bridge = createBridge();
   const appController = mountApp(root, bridge);
 
-  window.addEventListener("beforeunload", () => {
+  let disposed = false;
+  const cleanup = () => {
+    if (disposed) return;
+    disposed = true;
     appController.destroy();
     bridge.dispose();
-  });
+  };
+
+  window.addEventListener("beforeunload", cleanup);
+  window.addEventListener("unload", cleanup);
 }
 
 mountWebviewApp();

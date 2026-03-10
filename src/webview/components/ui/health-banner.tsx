@@ -11,6 +11,7 @@ export function HealthBanner({ frame, fallbackLabel }: HealthBannerProps) {
   const label = frame ? buildHealthLabel(frame) : fallbackLabel;
   return (
     <header
+      role="status"
       className={cn(
         "rounded-lg border px-2 py-1 text-[11px] text-[#b8aa96]",
         "border-[#3d3229] bg-[#2a221d]",

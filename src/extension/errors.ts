@@ -4,3 +4,14 @@ export function formatUnknownError(error: unknown): string {
   }
   return String(error);
 }
+
+export function formatUnknown(value: unknown): string {
+  if (value instanceof Error) {
+    return value.message;
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}

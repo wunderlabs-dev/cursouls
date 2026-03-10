@@ -4,7 +4,7 @@ import { SceneAgents } from "@web/components/scene/scene-agents";
 import { SceneGrid } from "@web/components/scene/scene-grid";
 import { SceneTables } from "@web/components/scene/scene-tables";
 import { buildSceneComposition } from "@web/scene/composition";
-import { buildCafeSceneModel } from "@web/scene/model";
+import { applyAgentsToAnchors, buildSceneTableAnchors } from "@web/scene/model";
 import {
   SCENE_BACKGROUND_DARK,
   SCENE_BACKGROUND_GRADIENT_FROM,
@@ -35,7 +35,9 @@ export function CafeScene({ frame, onSeatClick }: CafeSceneProps) {
     if (!node) {
       return;
     }
+    let mounted = true;
     const sync = () => {
+      if (!mounted) return;
       const rect = node.getBoundingClientRect();
       setSize({
         width: Math.max(SCENE_MIN_WIDTH, Math.floor(rect.width)),
@@ -45,7 +47,10 @@ export function CafeScene({ frame, onSeatClick }: CafeSceneProps) {
     sync();
     const observer = new ResizeObserver(sync);
     observer.observe(node);
-    return () => observer.disconnect();
+    return () => {
+      mounted = false;
+      observer.disconnect();
+    };
   }, []);
 
   const composition = useMemo(
@@ -53,7 +58,9 @@ export function CafeScene({ frame, onSeatClick }: CafeSceneProps) {
     [size.height, size.width],
   );
 
-  const sceneModel = useMemo(() => {
+  const seatCount = frame?.seats.length ?? 0;
+
+  const tableAnchors = useMemo(() => {
     const seatingRegion = {
       width: Math.max(SEATING_REGION_MIN_WIDTH, composition.width - composition.tileSize * SEATING_REGION_WIDTH_TILE_SUBTRACT),
       height: Math.max(
@@ -69,8 +76,13 @@ export function CafeScene({ frame, onSeatClick }: CafeSceneProps) {
           y: cell.y + composition.tileSize * TABLE_ORIGIN_OFFSET_Y_MULTIPLIER,
         })),
     };
-    return buildCafeSceneModel(frame, seatingRegion);
-  }, [composition, frame]);
+    return buildSceneTableAnchors(seatCount, seatingRegion);
+  }, [composition, seatCount]);
+
+  const sceneModel = useMemo(
+    () => applyAgentsToAnchors(tableAnchors, frame),
+    [tableAnchors, frame],
+  );
 
   return (
     <div
@@ -86,7 +98,7 @@ export function CafeScene({ frame, onSeatClick }: CafeSceneProps) {
       />
       <SceneGrid composition={composition} />
       <SceneTables composition={composition} />
-      <SceneAgents frame={frame} sceneModel={sceneModel} onSeatClick={onSeatClick} />
+      <SceneAgents sceneModel={sceneModel} onSeatClick={onSeatClick} />
     </div>
   );
 }

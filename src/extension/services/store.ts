@@ -25,7 +25,7 @@ export function createCafeStore(seatCount: number = DEFAULT_SEAT_COUNT): CafeSto
     queue: [],
     health: {
       sourceConnected: false,
-      sourceLabel: "uninitialized",
+      sourceLabel: "connecting…",
       warnings: [],
     },
   };
@@ -56,7 +56,7 @@ export function createCafeStore(seatCount: number = DEFAULT_SEAT_COUNT): CafeSto
       queue: [],
       health: {
         sourceConnected: false,
-        sourceLabel: "uninitialized",
+        sourceLabel: "connecting…",
         warnings: [],
       },
     };

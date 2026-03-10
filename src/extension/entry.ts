@@ -88,26 +88,36 @@ export function activate(context: vscode.ExtensionContext): void {
     disposeErrorListener = nextController.onError((error) => {
       logger.error(`Watch refresh error: ${formatUnknownError(error)}`);
     });
-    await nextController
-      .start()
-      .catch((error: unknown) => {
-        logger.error(`Failed to start transcript watch: ${formatUnknownError(error)}`);
-        detachControllerListeners();
-        currentController = undefined;
-        viewProvider.updateFrame(
-          store.update(
-            {
-              agents: [],
-              health: {
-                sourceConnected: false,
-                sourceLabel: AGENT_SOURCE_KIND.cursorTranscripts,
-                warnings: ["Transcript watch failed to start."],
-              },
+    try {
+      await nextController.start();
+    } catch (error: unknown) {
+      logger.error(`Failed to start transcript watch: ${formatUnknownError(error)}`);
+      detachControllerListeners();
+      currentController = undefined;
+      viewProvider.updateFrame(
+        store.update(
+          {
+            agents: [],
+            health: {
+              sourceConnected: false,
+              sourceLabel: AGENT_SOURCE_KIND.cursorTranscripts,
+              warnings: ["Transcript watch failed to start."],
             },
-            Date.now(),
-          ),
-        );
-      });
+          },
+          Date.now(),
+        ),
+      );
+      return;
+    }
+
+    if (currentController === nextController) {
+      nextController
+        .refreshNow()
+        .then((frame) => viewProvider.updateFrame(frame))
+        .catch((error: unknown) => {
+          logger.error(`Initial refresh failed: ${formatUnknownError(error)}`);
+        });
+    }
   }
 
   function scheduleWatchControllerReplace(): void {

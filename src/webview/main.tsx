@@ -1,21 +1,25 @@
-import { mountApp } from "@web/app";
-import { createBridge } from "@web/bridge/bridge";
-import { APP_ROOT_ID } from "@web/constants";
+import { createRoot } from "react-dom/client";
 
-function mountWebviewApp(): void {
-  const root = document.getElementById(APP_ROOT_ID);
-  if (!root) {
+import { APP_ROOT_ID } from "@web/helpers/constants";
+import { createBridge } from "@web/bridge/bridge";
+
+import { CafeAppContainer } from "@web/components/cafe-app-container";
+
+function mount(): void {
+  const el = document.getElementById(APP_ROOT_ID);
+  if (!el) {
     throw new Error(`Missing #${APP_ROOT_ID} root`);
   }
 
   const bridge = createBridge();
-  const appController = mountApp(root, bridge);
+  const root = createRoot(el);
+  root.render(<CafeAppContainer bridge={bridge} />);
 
   let disposed = false;
   const cleanup = () => {
     if (disposed) return;
     disposed = true;
-    appController.destroy();
+    root.unmount();
     bridge.dispose();
   };
 
@@ -23,4 +27,4 @@ function mountWebviewApp(): void {
   window.addEventListener("unload", cleanup);
 }
 
-mountWebviewApp();
+mount();

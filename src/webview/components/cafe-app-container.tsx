@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
-import { BRIDGE_AGENT_ANCHOR, BRIDGE_INBOUND_TYPE } from "@shared/bridge";
+import { useEffect, useRef, useState } from "react";
+import type { AgentLifecycleEvent, AgentSnapshot, SceneFrame } from "@shared/types";
+import { BRIDGE_INBOUND_TYPE } from "@shared/bridge";
 import type { VsCodeBridge } from "@web/bridge/bridge";
-import type { TooltipData } from "@web/bridge/types";
-import { Cafe } from "@web/components/cafe";
-import { FEED_BUFFER_LIMIT } from "@web/constants";
+import { AgentPanel } from "@web/components/agent-panel";
+import { FEED_BUFFER_LIMIT } from "@web/helpers/constants";
 
 export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }) {
-  const [frame, setFrame] = useState<SceneFrame | undefined>(undefined);
-  const [tooltip, setTooltip] = useState<TooltipData | undefined>(undefined);
+  const [agents, setAgents] = useState<AgentSnapshot[]>([]);
   const [lifecycleEvents, setLifecycleEvents] = useState<AgentLifecycleEvent[]>([]);
   const agentNames = useRef(new Map<string, string>());
   const lifecycleEventsRef = useRef<AgentLifecycleEvent[]>([]);
@@ -22,16 +20,13 @@ export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }) {
       switch (message.type) {
         case BRIDGE_INBOUND_TYPE.sceneFrame:
           updateAgentNames(agentNames.current, message.frame, lifecycleEventsRef.current);
-          setFrame(message.frame);
-          return;
-        case BRIDGE_INBOUND_TYPE.tooltipData:
-          setTooltip(message.tooltip);
+          setAgents(collectAgents(message.frame));
           return;
         case BRIDGE_INBOUND_TYPE.lifecycleEvents:
           setLifecycleEvents(message.events.slice(-FEED_BUFFER_LIMIT));
           return;
+        case BRIDGE_INBOUND_TYPE.tooltipData:
         case BRIDGE_INBOUND_TYPE.hideTooltip:
-          setTooltip(undefined);
           return;
         default:
           assertNever(message);
@@ -41,25 +36,18 @@ export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }) {
     return () => unsubscribe();
   }, [bridge]);
 
-  const handleSeatClick = useCallback(
-    (agentId: string) => bridge.postAgentClick(agentId, BRIDGE_AGENT_ANCHOR.seat),
-    [bridge],
-  );
-  const handleQueueClick = useCallback(
-    (agentId: string) => bridge.postAgentClick(agentId, BRIDGE_AGENT_ANCHOR.queue),
-    [bridge],
-  );
-
   return (
-    <Cafe
-      frame={frame}
-      tooltip={tooltip}
+    <AgentPanel
+      agents={agents}
       lifecycleEvents={lifecycleEvents}
       agentNames={agentNames.current}
-      onSeatClick={handleSeatClick}
-      onQueueClick={handleQueueClick}
     />
   );
+}
+
+function collectAgents(frame: SceneFrame): AgentSnapshot[] {
+  const seated = frame.seats.filter((s) => s.agent).map((s) => s.agent!);
+  return [...seated, ...frame.queue];
 }
 
 function updateAgentNames(

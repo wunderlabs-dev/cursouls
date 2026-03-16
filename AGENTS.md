@@ -1,59 +1,76 @@
-# Cursor UI Engineering Rules
+# Webview Engineering Rules
 
-This document defines the default implementation style for this repository.
-Apply these rules unless the user explicitly asks otherwise.
+This document defines the implementation style for the `src/webview/` module. Apply these rules unless explicitly asked otherwise.
 
-## Core Principles
+## Project Overview
 
-- Prefer one canonical way for each concern. Avoid parallel patterns for the same job.
-- Keep implementations simple, explicit, and easy to review.
+VS Code extension sidebar webview built with React 19, TypeScript, and Tailwind CSS v4. Bundled with esbuild.
+
+## Commands
+
+- `npm run typecheck` — type-check extension and webview
+- `npm run lint` — run Biome linter
+- `npm run check` — run Biome checks
+- `npm run format` — format with Biome
+- `npm run test` — run Vitest
+- `npm run compile` — build CSS + bundle
+
+Always run `npm run lint` and `npm run typecheck` after making changes.
+
+## Project Structure
+
+```
+src/webview/
+├── main.tsx          # Entry point (mount React app, create bridge, cleanup)
+├── bridge/           # VS Code ↔ webview communication
+│   ├── bridge.ts     # VsCodeBridge: message parsing, buffering, subscribe/post
+│   └── types.ts      # Re-exported bridge types from @shared/bridge
+├── components/       # React components
+│   └── agent-panel.tsx
+└── helpers/          # Constants, utilities, formatting
+    ├── constants.ts
+    └── present.ts
+```
+
+## Code Conventions
+
+### Core Principles
+
 - Never use classes for app logic or UI components.
 - Use functional composition (functions, hooks, object modules).
+- Prefer one canonical way for each concern. Avoid parallel patterns for the same job.
 
-## React + TypeScript Patterns
+### Component Structure
 
 - Use function components only.
-- Split orchestration from presentation:
-  - `containers/` handle bridge state, effects, and derived data.
-  - `components/` and `components/ui/` render UI.
-- Extract reusable logic into hooks or utility modules instead of large component bodies.
-- Type component props with `type` aliases (`ComponentNameProps`).
+- Type component props with `type` or `interface` aliases (`ComponentNameProps`).
 - Prefer `import type` for type-only imports.
-- Prefer named exports in shared code; keep default exports for framework entry points only.
+- Prefer named exports. No default exports.
 
-## Tailwind Patterns
+### Naming Conventions
 
-- Use Tailwind utilities as the default styling mechanism.
-- Use a shared `cn()` helper (`clsx` + `tailwind-merge`) for class composition.
-- Use `class-variance-authority` (`cva`) for component variants/state classes.
-- Keep semantic custom styles in Tailwind layers when needed; avoid ad hoc CSS files.
-- Keep state styling explicit (`running`, `idle`, `completed`, `error`) and visually distinct.
+- **Files**: lowercase kebab-case (`agent-panel.tsx`, `constants.ts`)
+- **Types**: `ComponentNameProps`
+- **Constants**: UPPER_SNAKE_CASE (`FEED_BUFFER_LIMIT`)
 
-## File and Naming Conventions
+### Styling
 
-- Use lowercase kebab-case file names.
-- Use clear, specific module names (`health-banner`, `queue-strip`, `cafe-app-container`), not vague names.
-- Group by feature/domain before by technical type when practical.
-- Keep constants in dedicated modules; avoid magic values in JSX bodies.
+Tailwind CSS v4 utility classes. No CSS files beyond the global Tailwind entry point.
 
-## UI/State Integration Rules
+### Import Order
 
-- Agent observation/lifecycle logic lives in `@agentprobe/core`; do not duplicate it locally.
-- Webview consumes frame/tooltip/lifecycle data through the bridge and renders deterministically.
-- Ensure seat/agent state transitions are animation-safe (no stale tweens/timers/effects).
-- Handle overflow capacity explicitly (queue behavior must remain stable and visible).
+1. React imports
+2. External libraries
+3. Type imports from `@shared/`
+4. Imports from `@shared/`
+5. Imports from `@web/`
 
-## Code Quality Constraints
+Path aliases: `@web/*` → `src/webview/*`, `@shared/*` → `src/shared/*`.
+
+### Code Quality
 
 - No nested `try/catch`.
 - No dead code, unused exports, or deprecated paths after refactors.
-- Keep modules focused and small; split when responsibilities diverge.
-- Run typecheck + compile after substantial UI changes.
-
-## Quick Checklist Before Finishing
-
-- Is the change functional-first (no classes)?
-- Does it follow container/presentational boundaries?
-- Are Tailwind patterns consistent (`cn`, `cva`, utility-first)?
-- Are naming and structure aligned with these rules?
-- Did we verify typecheck and build?
+- Keep modules focused and small.
+- Agent observation/lifecycle logic lives in `@agentprobe/core`; do not duplicate it locally.
+- Webview consumes data through the bridge and renders deterministically.

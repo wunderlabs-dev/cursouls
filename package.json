@@ -95,11 +95,11 @@
   },
   "dependencies": {
     "@agentprobe/core": "^0.1.5",
-    "@types/ramda": "^0.31.1",
+    "@types/lodash": "^4.17.24",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "ramda": "^0.32.0",
+    "lodash": "^4.17.23",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwind-merge": "^3.5.0",

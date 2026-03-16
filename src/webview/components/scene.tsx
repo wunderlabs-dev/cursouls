@@ -10,8 +10,10 @@ export const Scene = () => {
   const { agents, lifecycleEvents, agentNames } = useAgents();
 
   return (
-    <main className="w-full h-full bg-cream">
-      <h1>test12</h1>
+    <main className="w-full min-h-screen flex py-4">
+      <div className="bg-cream flex-1 rounded-sm">
+
+      </div>
     </main>
   );
 }

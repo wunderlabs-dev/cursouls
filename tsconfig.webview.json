@@ -13,6 +13,8 @@
     "types": []
   },
   "include": [
-    "src/webview/main.tsx"
+    "src/webview/**/*.ts",
+    "src/webview/**/*.tsx",
+    "src/shared/**/*.ts"
   ]
 }

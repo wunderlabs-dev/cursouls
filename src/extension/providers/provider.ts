@@ -1,6 +1,6 @@
 import type * as vscode from "vscode";
 import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
-import truncate from "lodash.truncate";
+import { truncate } from "lodash";
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import {
   BRIDGE_LIFECYCLE_REPLAY_LIMIT,

@@ -1,4 +1,4 @@
-import type * as vscode from "vscode";
+import * as vscode from "vscode";
 import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
 import { truncate } from "lodash";
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
@@ -21,6 +21,7 @@ const MAX_TOOLTIP_TASK_LENGTH = 120;
 export interface CafeViewProvider extends vscode.WebviewViewProvider {
   updateFrame(frame: SceneFrame): void;
   updateLifecycleEvents(events: AgentLifecycleEvent[]): void;
+  createDistWatcher(): vscode.Disposable;
 }
 
 export function createCafeViewProvider(
@@ -139,10 +140,26 @@ export function createCafeViewProvider(
     void view.webview.postMessage(message);
   }
 
+  function reloadWebview(): void {
+    if (!view) {
+      return;
+    }
+    view.webview.html = getWebviewHtml(view.webview, extensionUri);
+  }
+
+  function createDistWatcher(): vscode.Disposable {
+    const pattern = new vscode.RelativePattern(extensionUri, "dist/**");
+    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+    watcher.onDidChange(() => reloadWebview());
+    watcher.onDidCreate(() => reloadWebview());
+    return watcher;
+  }
+
   return {
     resolveWebviewView,
     updateFrame,
     updateLifecycleEvents,
+    createDistWatcher,
   };
 }
 

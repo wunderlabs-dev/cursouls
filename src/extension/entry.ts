@@ -141,6 +141,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     outputChannel,
     vscode.window.registerWebviewViewProvider(CAFE_VIEW_TYPE, viewProvider),
+    viewProvider.createDistWatcher(),
     vscode.commands.registerCommand("cursorCafe.refresh", async () => {
       if (!currentController) {
         const message = "Open a workspace folder to enable Cursor Cafe refresh.";

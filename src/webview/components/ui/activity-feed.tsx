@@ -63,13 +63,12 @@ export function ActivityFeed({ events, agentNames }: ActivityFeedProps): JSX.Ele
   );
 }
 
-function FeedEntry({
-  event,
-  agentNames,
-}: {
+interface FeedEntryProps {
   event: AgentLifecycleEvent;
   agentNames: ReadonlyMap<string, string>;
-}): JSX.Element {
+}
+
+function FeedEntry({ event, agentNames }: FeedEntryProps): JSX.Element {
   const label = formatLifecycleEvent(event, agentNames);
   const glyph = lifecycleGlyph(event.kind);
   const color = KIND_COLOR[event.kind] ?? "text-[#6b5f52]";

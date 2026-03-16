@@ -1,10 +1,9 @@
 import type { AgentSnapshot, SceneFrame } from "@shared/types";
+import { SCENE_HEIGHT, SCENE_WIDTH } from "@web/scene/constants";
 import {
   applyAgentsToAnchors,
   buildCafeSceneModel,
   buildSceneTableAnchors,
-  SCENE_HEIGHT,
-  SCENE_WIDTH,
 } from "@web/scene/model";
 import { describe, expect, it } from "vitest";
 

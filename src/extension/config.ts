@@ -35,17 +35,6 @@ export function clampInt(
   return Math.max(minValue, Math.min(maxValue, rounded));
 }
 
-function readConfigNumber(
-  config: ConfigReader | undefined,
-  key: CafeConfigKey,
-  fallback: number,
-  min: number,
-  max: number,
-): number {
-  const raw = config?.get<number>(`${EXTENSION_CONFIG_SECTION}.${key}`, fallback);
-  return clampInt(raw ?? fallback, min, max, fallback);
-}
-
 export function readCafeConfig(
   config?: ConfigReader,
   defaults: Partial<CafeConfig> = {},
@@ -66,4 +55,15 @@ export function readCafeConfig(
       MAX_SEAT_COUNT,
     ),
   };
+}
+
+function readConfigNumber(
+  config: ConfigReader | undefined,
+  key: CafeConfigKey,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  const raw = config?.get<number>(`${EXTENSION_CONFIG_SECTION}.${key}`, fallback);
+  return clampInt(raw ?? fallback, min, max, fallback);
 }

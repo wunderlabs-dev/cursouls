@@ -1,5 +1,6 @@
 import { DEFAULT_SEAT_COUNT } from "@shared/constants";
 import type { AgentSnapshot, SceneFrame } from "@shared/types";
+import { SCENE_HEIGHT, SCENE_WIDTH } from "./constants";
 
 export interface TableAnchor {
   tableIndex: number;
@@ -16,7 +17,7 @@ export interface SeatRenderModel extends TableAnchor {
 
 export interface CafeSceneModel {
   generatedAt: number;
-  seats: SeatRenderModel[];
+  seats: readonly SeatRenderModel[];
 }
 
 const TABLE_WIDTH = 116;
@@ -31,9 +32,6 @@ const MIN_AVAILABLE_DIMENSION = 120;
 const MIN_TABLE_WIDTH = 80;
 const MIN_TABLE_HEIGHT = 56;
 const TABLE_GAP = 8;
-
-export const SCENE_WIDTH = 760;
-export const SCENE_HEIGHT = 560;
 
 export interface SceneLayoutBounds {
   width: number;

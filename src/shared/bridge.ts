@@ -29,6 +29,7 @@ export const BRIDGE_LIFECYCLE_REPLAY_LIMIT = 200;
 
 const agentStatusSchema = z.nativeEnum(AGENT_STATUS);
 const agentKindSchema = z.nativeEnum(AGENT_KIND);
+// Intentionally loose: @agentprobe/core may introduce new source kinds without a bridge update
 const sourceKindSchema = z.string().min(1);
 const lifecycleEventTypeSchema = z.nativeEnum(AGENT_LIFECYCLE_EVENT_KIND);
 const agentAnchorSchema = z.enum([BRIDGE_AGENT_ANCHOR.seat, BRIDGE_AGENT_ANCHOR.queue]);

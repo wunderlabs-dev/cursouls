@@ -5,9 +5,13 @@ import type { TooltipData } from "@web/bridge/types";
 import { Cafe } from "@web/components/cafe";
 import { FEED_BUFFER_LIMIT } from "@web/constants";
 import type { JSX } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }): JSX.Element {
+interface CafeAppContainerProps {
+  bridge: VsCodeBridge;
+}
+
+export function CafeAppContainer({ bridge }: CafeAppContainerProps): JSX.Element {
   const { frame, tooltip, lifecycleEvents } = useBridgeSubscription(bridge);
   const agentNames = useRef(new Map<string, string>());
 
@@ -20,9 +24,9 @@ export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }): JSX.Elem
     [bridge],
   );
 
-  if (frame) {
-    updateAgentNames(agentNames.current, frame, lifecycleEvents);
-  }
+  useMemo(() => {
+    if (frame) updateAgentNames(agentNames.current, frame, lifecycleEvents);
+  }, [frame, lifecycleEvents]);
 
   return (
     <Cafe

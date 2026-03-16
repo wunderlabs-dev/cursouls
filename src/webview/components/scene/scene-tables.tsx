@@ -1,4 +1,4 @@
-import type { SceneComposition } from "@web/scene/composition";
+import { LAYOUT_SYMBOL, type SceneComposition } from "@web/scene/composition";
 import {
   TABLE_BG_CLASS,
   TABLE_BORDER_CLASS,
@@ -17,7 +17,7 @@ export function SceneTables({ composition }: SceneTablesProps): JSX.Element {
   return (
     <>
       {composition.cells
-        .filter((cell) => cell.symbol === "t")
+        .filter((cell) => cell.symbol === LAYOUT_SYMBOL.table)
         .map((cell) => (
           <div
             key={`table-${cell.row}-${cell.column}`}

@@ -17,6 +17,7 @@ import { getWebviewHtml } from "./html";
 export const CAFE_VIEW_TYPE = "cursorCafe.sidebar";
 const FALLBACK_TASK_LABEL = "No active task";
 const MAX_TOOLTIP_TASK_LENGTH = 120;
+const NO_ELAPSED_PLACEHOLDER = "-";
 
 export interface CafeViewProvider extends vscode.WebviewViewProvider {
   updateFrame(frame: SceneFrame): void;
@@ -33,6 +34,7 @@ interface ProviderState {
 export function createCafeViewProvider(
   extensionUri: vscode.Uri,
   logger?: { warn(message: string): void },
+  now: () => number = () => Date.now(),
 ): CafeViewProvider {
   const state: ProviderState = { lifecycleReplayEvents: [] };
   const post = (message: InboundMessage): void => {
@@ -48,13 +50,13 @@ export function createCafeViewProvider(
         state.view = undefined;
       });
       nextView.webview.onDidReceiveMessage((msg: unknown) =>
-        handleOutboundMessage(msg, state, post, logger),
+        handleOutboundMessage(msg, state, post, now, logger),
       );
     },
     updateFrame(frame: SceneFrame): void {
       state.latestFrame = frame;
       post({ type: BRIDGE_INBOUND_TYPE.sceneFrame, frame });
-      syncSelectedTooltip(state, post);
+      syncSelectedTooltip(state, post, now);
     },
     updateLifecycleEvents(events: AgentLifecycleEvent[]): void {
       state.lifecycleReplayEvents = appendLifecycleEvents(state.lifecycleReplayEvents, events);
@@ -67,6 +69,7 @@ function handleOutboundMessage(
   message: unknown,
   state: ProviderState,
   post: (msg: InboundMessage) => void,
+  now: () => number,
   logger?: { warn(msg: string): void },
 ): void {
   const parsed = safeParseOutboundBridgeMessage(message);
@@ -81,13 +84,17 @@ function handleOutboundMessage(
   }
   if (outbound.type === BRIDGE_OUTBOUND_TYPE.agentClick) {
     state.selectedTooltipAgentId = outbound.agentId;
-    syncSelectedTooltip(state, post);
+    syncSelectedTooltip(state, post, now);
   }
 }
 
-function syncSelectedTooltip(state: ProviderState, post: (msg: InboundMessage) => void): void {
+function syncSelectedTooltip(
+  state: ProviderState,
+  post: (msg: InboundMessage) => void,
+  now: () => number,
+): void {
   if (!state.selectedTooltipAgentId) return;
-  const tooltip = buildTooltip(state.latestFrame, state.selectedTooltipAgentId);
+  const tooltip = buildTooltip(state.latestFrame, state.selectedTooltipAgentId, now);
   if (tooltip) {
     post({ type: BRIDGE_INBOUND_TYPE.tooltipData, tooltip });
     return;
@@ -130,7 +137,11 @@ function logInvalidMessage(
   }
 }
 
-function buildTooltip(frame: SceneFrame | undefined, agentId: string): TooltipData | undefined {
+function buildTooltip(
+  frame: SceneFrame | undefined,
+  agentId: string,
+  now: () => number,
+): TooltipData | undefined {
   if (!frame) return undefined;
   const agent = findAgentInFrame(frame, agentId);
   if (!agent) return undefined;
@@ -139,13 +150,13 @@ function buildTooltip(frame: SceneFrame | undefined, agentId: string): TooltipDa
     name: agent.name,
     status: agent.status,
     task: truncate(agent.taskSummary || FALLBACK_TASK_LABEL, { length: MAX_TOOLTIP_TASK_LENGTH }),
-    elapsed: formatElapsed(agent.startedAt),
+    elapsed: formatElapsed(agent.startedAt, now()),
     updated: formatDistanceToNowStrict(agent.updatedAt, { addSuffix: true }),
   };
 }
 
-function formatElapsed(startedAt: number | undefined): string {
-  if (startedAt == null) return "-";
-  const { hours = 0, minutes = 0 } = intervalToDuration({ start: startedAt, end: Date.now() });
+function formatElapsed(startedAt: number | undefined, timestamp: number): string {
+  if (startedAt == null) return NO_ELAPSED_PLACEHOLDER;
+  const { hours = 0, minutes = 0 } = intervalToDuration({ start: startedAt, end: timestamp });
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }

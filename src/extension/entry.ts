@@ -166,15 +166,17 @@ function wireControllerListeners(
   viewProvider: CafeViewProvider,
   logger: Logger,
 ): () => void {
-  const off1 = controller.onFrame((frame) => viewProvider.updateFrame(frame));
-  const off2 = controller.onLifecycleEvents((events) => viewProvider.updateLifecycleEvents(events));
-  const off3 = controller.onError((error) =>
+  const detachFrame = controller.onFrame((frame) => viewProvider.updateFrame(frame));
+  const detachLifecycle = controller.onLifecycleEvents((events) =>
+    viewProvider.updateLifecycleEvents(events),
+  );
+  const detachError = controller.onError((error: unknown) =>
     logger.error(`Watch refresh error: ${formatUnknownError(error)}`),
   );
   return () => {
-    off1();
-    off2();
-    off3();
+    detachFrame();
+    detachLifecycle();
+    detachError();
   };
 }
 
@@ -218,7 +220,7 @@ function triggerInitialRefresh(
 async function stopControllerSafely(controller: WatchController, logger: Logger): Promise<void> {
   try {
     await controller.stop();
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error(`Failed to stop transcript watch: ${formatUnknownError(error)}`);
   }
 }
@@ -232,7 +234,7 @@ async function handleRefreshCommand(session: WatchSession, logger: Logger): Prom
   }
   try {
     await session.currentController.refreshNow();
-  } catch (error) {
+  } catch (error: unknown) {
     const message = `Cursor Cafe refresh failed: ${formatUnknownError(error)}`;
     logger.error(message);
     void vscode.window.showErrorMessage(message);

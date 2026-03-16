@@ -1,5 +1,14 @@
 export type LayoutSymbol = "W" | "w" | "C" | "F" | "t" | "d";
 
+export const LAYOUT_SYMBOL = {
+  wall: "W",
+  windowFrame: "w",
+  counter: "C",
+  floor: "F",
+  table: "t",
+  decor: "d",
+} as const satisfies Record<string, LayoutSymbol>;
+
 export interface CompositionCell {
   symbol: LayoutSymbol;
   row: number;
@@ -17,7 +26,7 @@ export interface SceneComposition {
   rows: number;
   width: number;
   height: number;
-  cells: CompositionCell[];
+  cells: readonly CompositionCell[];
 }
 
 const MIN_TILE_SIZE = 18;

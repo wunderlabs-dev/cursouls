@@ -33,7 +33,12 @@ export function TooltipCard({ tooltip }: TooltipCardProps): JSX.Element {
   );
 }
 
-function TooltipLine({ label, value }: { label: string; value: string }): JSX.Element {
+interface TooltipLineProps {
+  label: string;
+  value: string;
+}
+
+function TooltipLine({ label, value }: TooltipLineProps): JSX.Element {
   return (
     <div className="mb-1 flex items-center justify-between text-[11px]">
       <span className="text-[#b8aa96]">{label}</span>

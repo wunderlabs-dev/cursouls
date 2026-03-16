@@ -36,7 +36,7 @@
   - `containers/` handle bridge state, effects, and derived data
   - `components/` and `components/ui/` render UI
 - Extract reusable logic into hooks or utility modules instead of large component bodies
-- Type component props with `type` aliases (`ComponentNameProps`)
+- Type component props with named interfaces (`ComponentNameProps`)
 - Use Tailwind utilities as the default styling mechanism
 - Use a shared `cn()` helper (`clsx` + `tailwind-merge`) for class composition
 - Use `class-variance-authority` (`cva`) for component variants/state classes

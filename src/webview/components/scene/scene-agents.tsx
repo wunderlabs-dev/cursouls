@@ -33,13 +33,12 @@ export function SceneAgents({ sceneModel, onSeatClick }: SceneAgentsProps): JSX.
   );
 }
 
-function AgentSprite({
-  seat,
-  onSeatClick,
-}: {
+interface AgentSpriteProps {
   seat: SeatRenderModel;
   onSeatClick: (id: string) => void;
-}): JSX.Element {
+}
+
+function AgentSprite({ seat, onSeatClick }: AgentSpriteProps): JSX.Element {
   const agent = seat.agent;
   if (!agent) throw new Error("AgentSprite rendered without agent");
 

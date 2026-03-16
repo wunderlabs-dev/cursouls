@@ -46,7 +46,7 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
       const frame = applySnapshot(event.snapshot, event.snapshot.at, store);
       notifyListeners(frameListeners, frame, "frame", logger);
       notifyListeners(lifecycleListeners, [event.change], "lifecycle", logger);
-    } catch (error) {
+    } catch (error: unknown) {
       notifyListeners(errorListeners, error, "error", logger);
     }
   });
@@ -104,7 +104,7 @@ function notifyListeners<T>(
   for (const listener of listeners) {
     try {
       listener(payload);
-    } catch (error) {
+    } catch (error: unknown) {
       logger?.error(`Watch ${channel} listener failed: ${formatUnknownError(error)}`);
     }
   }

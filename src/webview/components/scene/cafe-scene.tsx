@@ -2,9 +2,14 @@ import type { SceneFrame } from "@shared/types";
 import { SceneAgents } from "@web/components/scene/scene-agents";
 import { SceneGrid } from "@web/components/scene/scene-grid";
 import { SceneTables } from "@web/components/scene/scene-tables";
-import type { SceneComposition } from "@web/scene/composition";
-import { buildSceneComposition } from "@web/scene/composition";
 import {
+  buildSceneComposition,
+  LAYOUT_SYMBOL,
+  type SceneComposition,
+} from "@web/scene/composition";
+import {
+  DEFAULT_CONTAINER_HEIGHT,
+  DEFAULT_CONTAINER_WIDTH,
   SCENE_BACKGROUND_DARK,
   SCENE_BACKGROUND_GRADIENT_FROM,
   SCENE_BACKGROUND_GRADIENT_TO,
@@ -69,7 +74,10 @@ function useContainerSize(ref: React.RefObject<HTMLDivElement | null>): {
   width: number;
   height: number;
 } {
-  const [size, setSize] = useState({ width: 640, height: 460 });
+  const [size, setSize] = useState({
+    width: DEFAULT_CONTAINER_WIDTH,
+    height: DEFAULT_CONTAINER_HEIGHT,
+  });
 
   useEffect(() => {
     const node = ref.current;
@@ -108,7 +116,7 @@ function toSeatingRegion(composition: SceneComposition): SceneLayoutBounds {
     offsetX: composition.originX + composition.tileSize * SEATING_REGION_OFFSET_X_MULTIPLIER,
     offsetY: composition.originY + composition.tileSize * SEATING_REGION_OFFSET_Y_MULTIPLIER,
     preferredTableOrigins: composition.cells
-      .filter((cell) => cell.symbol === "t")
+      .filter((cell) => cell.symbol === LAYOUT_SYMBOL.table)
       .map((cell) => ({
         x: cell.x + composition.tileSize * TABLE_ORIGIN_OFFSET_X_MULTIPLIER,
         y: cell.y + composition.tileSize * TABLE_ORIGIN_OFFSET_Y_MULTIPLIER,

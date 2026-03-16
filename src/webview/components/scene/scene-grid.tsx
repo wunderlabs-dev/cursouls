@@ -1,4 +1,4 @@
-import type { SceneComposition } from "@web/scene/composition";
+import { LAYOUT_SYMBOL, type SceneComposition } from "@web/scene/composition";
 import {
   FLOOR_TILE_CLASS,
   TILE_BORDER_CLASS,
@@ -17,9 +17,9 @@ export function SceneGrid({ composition }: SceneGridProps): JSX.Element {
       {composition.cells.map((cell) => {
         const baseClass =
           cell.row < WALL_TOP_ROW_COUNT ||
-          cell.symbol === "W" ||
-          cell.symbol === "w" ||
-          cell.symbol === "C"
+          cell.symbol === LAYOUT_SYMBOL.wall ||
+          cell.symbol === LAYOUT_SYMBOL.windowFrame ||
+          cell.symbol === LAYOUT_SYMBOL.counter
             ? WALL_TILE_CLASS
             : FLOOR_TILE_CLASS;
         return (

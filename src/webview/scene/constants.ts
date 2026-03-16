@@ -37,6 +37,12 @@ export const SEATING_REGION_OFFSET_Y_MULTIPLIER = 2.4;
 export const TABLE_ORIGIN_OFFSET_X_MULTIPLIER = -0.2;
 export const TABLE_ORIGIN_OFFSET_Y_MULTIPLIER = 0.38;
 
+export const DEFAULT_CONTAINER_WIDTH = 640;
+export const DEFAULT_CONTAINER_HEIGHT = 460;
+
+export const SCENE_WIDTH = 760;
+export const SCENE_HEIGHT = 560;
+
 export const statusBadgeVariants = cva(
   "absolute left-1/2 top-[26%] -translate-x-1/2 rounded-md border px-1.5 py-0.5 text-[9px] font-bold transition-colors duration-300",
   {

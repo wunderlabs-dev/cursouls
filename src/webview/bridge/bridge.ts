@@ -54,9 +54,7 @@ export function createBridge(): VsCodeBridge {
       bufferMessage(pending, message);
       return;
     }
-    for (const listener of listeners) {
-      listener(message);
-    }
+    dispatchToListeners(listeners, message);
   };
 
   window.addEventListener("message", onWindowMessage);
@@ -78,6 +76,16 @@ export function createBridge(): VsCodeBridge {
       window.removeEventListener("message", onWindowMessage);
     },
   };
+}
+
+function dispatchToListeners(listeners: Set<MessageListener>, message: InboundMessage): void {
+  for (const listener of listeners) {
+    try {
+      listener(message);
+    } catch (error: unknown) {
+      console.error("[cursor-cafe] Bridge listener threw:", error);
+    }
+  }
 }
 
 function createEmptyBuffer(): PendingMessageBuffer {

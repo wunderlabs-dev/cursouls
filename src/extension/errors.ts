@@ -11,7 +11,7 @@ export function formatUnknown(value: unknown): string {
   }
   try {
     return JSON.stringify(value);
-  } catch {
+  } catch (_error: unknown) {
     return String(value);
   }
 }

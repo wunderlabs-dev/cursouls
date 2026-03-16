@@ -11,14 +11,14 @@ const LIFECYCLE_GLYPH: Record<AgentLifecycleEventType, string> = {
   [AGENT_LIFECYCLE_EVENT_KIND.heartbeat]: "·",
 };
 
-export function lifecycleGlyph(kind: AgentLifecycleEventType): string {
+export const lifecycleGlyph = (kind: AgentLifecycleEventType): string => {
   return LIFECYCLE_GLYPH[kind] ?? "?";
-}
+};
 
-export function formatLifecycleEvent(
+export const formatLifecycleEvent = (
   event: AgentLifecycleEvent,
   agentNames: ReadonlyMap<string, string>,
-): string {
+): string => {
   const name = agentNames.get(event.agentId) ?? truncateId(event.agentId);
   switch (event.kind) {
     case AGENT_LIFECYCLE_EVENT_KIND.joined:
@@ -33,10 +33,10 @@ export function formatLifecycleEvent(
   return `${name} ${String(event.kind)}`;
 }
 
-export function isVisibleLifecycleEvent(event: AgentLifecycleEvent): boolean {
+export const isVisibleLifecycleEvent = (event: AgentLifecycleEvent): boolean => {
   return event.kind !== AGENT_LIFECYCLE_EVENT_KIND.heartbeat;
-}
+};
 
-function truncateId(id: string): string {
+const truncateId = (id: string): string => {
   return id.length > 8 ? `${id.slice(0, 8)}…` : id;
-}
+};

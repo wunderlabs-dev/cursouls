@@ -1,11 +1,26 @@
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { AgentLifecycleEvent, AgentSnapshot, SceneFrame } from "@shared/types";
 import { BRIDGE_INBOUND_TYPE } from "@shared/bridge";
 import type { VsCodeBridge } from "@web/bridge/bridge";
-import { AgentPanel } from "@web/components/agent-panel";
 import { FEED_BUFFER_LIMIT } from "@web/helpers/constants";
 
-export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }) {
+type AgentsContextValue = {
+  agents: AgentSnapshot[];
+  lifecycleEvents: AgentLifecycleEvent[];
+  agentNames: ReadonlyMap<string, string>;
+};
+
+const AgentsContext = createContext<AgentsContextValue | null>(null);
+
+export const useAgents = (): AgentsContextValue => {
+  const value = useContext(AgentsContext);
+  if (!value) {
+    throw new Error("useAgents must be used within AgentsProvider");
+  }
+  return value;
+};
+
+export const AgentsProvider = ({ bridge, children }: { bridge: VsCodeBridge; children: ReactNode }) => {
   const [agents, setAgents] = useState<AgentSnapshot[]>([]);
   const [lifecycleEvents, setLifecycleEvents] = useState<AgentLifecycleEvent[]>([]);
   const agentNames = useRef(new Map<string, string>());
@@ -37,24 +52,22 @@ export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }) {
   }, [bridge]);
 
   return (
-    <AgentPanel
-      agents={agents}
-      lifecycleEvents={lifecycleEvents}
-      agentNames={agentNames.current}
-    />
+    <AgentsContext.Provider value={{ agents, lifecycleEvents, agentNames: agentNames.current }}>
+      {children}
+    </AgentsContext.Provider>
   );
-}
+};
 
-function collectAgents(frame: SceneFrame): AgentSnapshot[] {
+const collectAgents = (frame: SceneFrame): AgentSnapshot[] => {
   const seated = frame.seats.filter((s) => s.agent).map((s) => s.agent!);
   return [...seated, ...frame.queue];
-}
+};
 
-function updateAgentNames(
+const updateAgentNames = (
   names: Map<string, string>,
   frame: SceneFrame,
   events: readonly AgentLifecycleEvent[],
-): void {
+): void => {
   const activeIds = new Set<string>();
   for (const seat of frame.seats) {
     if (seat.agent) {
@@ -74,8 +87,8 @@ function updateAgentNames(
       names.delete(id);
     }
   }
-}
+};
 
-function assertNever(_value: never): never {
+const assertNever = (_value: never): never => {
   throw new Error("Unhandled inbound bridge message.");
-}
+};

@@ -4,6 +4,7 @@ import {
   safeParseInboundBridgeMessage,
   type AgentAnchor,
 } from "@shared/bridge";
+
 import type { InboundMessage, OutboundMessage } from "./types";
 
 type MessageListener = (message: InboundMessage) => void;
@@ -32,7 +33,7 @@ export interface VsCodeBridge {
   dispose(): void;
 }
 
-export function createBridge(): VsCodeBridge {
+export const createBridge = (): VsCodeBridge => {
   const vscode = acquireVsCodeApi();
   const listeners = new Set<MessageListener>();
   const pending: PendingMessageBuffer = {
@@ -87,10 +88,10 @@ export function createBridge(): VsCodeBridge {
   };
 }
 
-function parseInboundMessage(
+const parseInboundMessage = (
   value: unknown,
   onInvalid: (reason: string) => void,
-): InboundMessage | undefined {
+): InboundMessage | undefined => {
   const parsed = safeParseInboundBridgeMessage(value);
   if (!parsed.success) {
     const reason = parsed.error.issues.map((issue) => issue.message).join("; ");
@@ -100,7 +101,7 @@ function parseInboundMessage(
   return parsed.data;
 }
 
-function bufferMessage(buffer: PendingMessageBuffer, message: InboundMessage): void {
+const bufferMessage = (buffer: PendingMessageBuffer, message: InboundMessage): void => {
   if (message.type === BRIDGE_INBOUND_TYPE.sceneFrame) {
     buffer.latestFrame = message;
     return;
@@ -121,7 +122,7 @@ function bufferMessage(buffer: PendingMessageBuffer, message: InboundMessage): v
   buffer.latestLifecycleEvents = message;
 }
 
-function flushBufferedMessages(listener: MessageListener, buffer: PendingMessageBuffer): void {
+const flushBufferedMessages = (listener: MessageListener, buffer: PendingMessageBuffer): void => {
   if (buffer.latestFrame) {
     listener(buffer.latestFrame);
   }
@@ -136,7 +137,7 @@ function flushBufferedMessages(listener: MessageListener, buffer: PendingMessage
   clearBufferedMessages(buffer);
 }
 
-function clearBufferedMessages(buffer: PendingMessageBuffer): void {
+const clearBufferedMessages = (buffer: PendingMessageBuffer): void => {
   buffer.latestFrame = undefined;
   buffer.latestTooltip = undefined;
   buffer.hideTooltip = undefined;

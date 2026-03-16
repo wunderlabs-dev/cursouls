@@ -21,7 +21,7 @@ export interface WatchControllerOptions {
   logger?: Logger;
   now?: () => number;
   debounceMs?: number;
-  provider?: TranscriptProvider;
+  providers?: TranscriptProvider[];
 }
 
 export interface WatchController {
@@ -46,7 +46,7 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
     workspacePaths: [...options.workspacePaths],
     debounceMs: options.debounceMs,
     now,
-    provider: options.provider,
+    providers: options.providers,
   });
 
   observer.subscribe((event) => {

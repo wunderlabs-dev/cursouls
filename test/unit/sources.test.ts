@@ -1,43 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createCursorTranscriptSource } from "@agentprobe/core";
 import { readCafeConfig } from "@ext/config";
-
-describe("createCursorTranscriptSource", () => {
-  it("creates transcript source with explicit source paths", () => {
-    const source = createCursorTranscriptSource({
-      sourcePaths: ["/tmp/transcript.jsonl"],
-    });
-
-    expect(source.sourceKind).toBe("cursor-transcripts");
-  });
-
-  it("returns disconnected health with empty source paths", async () => {
-    const source = createCursorTranscriptSource({
-      sourcePaths: [],
-    });
-
-    source.connect();
-    const result = await source.readSnapshot(1234);
-    source.disconnect();
-
-    expect(result.connected).toBe(false);
-    expect(result.warnings).toContain("No transcript paths configured.");
-  });
-
-  it("uses provided source label", async () => {
-    const source = createCursorTranscriptSource({
-      sourcePaths: [],
-      sourceLabel: "custom-source",
-    });
-
-    source.connect();
-    const result = await source.readSnapshot(1234);
-    source.disconnect();
-
-    expect(result.connected).toBe(false);
-    expect(result.sourceLabel).toBe("custom-source");
-  });
-});
 
 describe("readCafeConfig", () => {
   it("keeps refresh config without source mode options", () => {

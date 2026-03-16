@@ -74,7 +74,7 @@ describe("watch controller", () => {
       workspacePaths: ["/tmp/project"],
       store,
       now: () => 1234,
-      provider,
+      providers: [provider],
     });
 
     expect(typeof controller.start).toBe("function");
@@ -86,6 +86,7 @@ describe("watch controller", () => {
     const dispose = controller.onFrame(onFrame);
 
     await controller.start();
+    await controller.refreshNow();
     await vi.waitFor(() => {
       expect(onFrame).toHaveBeenCalled();
     });
@@ -105,7 +106,7 @@ describe("watch controller", () => {
       workspacePaths: ["/tmp/project"],
       store,
       now: () => 1234,
-      provider,
+      providers: [provider],
     });
 
     await controller.start();
@@ -143,11 +144,11 @@ describe("watch controller", () => {
     const controller = createWatchController({
       workspacePaths: ["/tmp/project"],
       now: () => 1234,
-      provider,
+      providers: [provider],
     });
 
     await controller.start();
-    await Promise.resolve();
+    await controller.refreshNow();
 
     const refreshed = await controller.refreshNow();
 
@@ -165,11 +166,12 @@ describe("watch controller", () => {
       workspacePaths: ["/tmp/project"],
       store,
       now: () => 1234,
-      provider,
+      providers: [provider],
     });
 
     controller.onLifecycleEvents(onLifecycle);
     await controller.start();
+    await controller.refreshNow();
     await vi.waitFor(() => {
       expect(onLifecycle).toHaveBeenCalled();
     });
@@ -191,7 +193,7 @@ describe("watch controller", () => {
     const controller = createWatchController({
       workspacePaths: ["/tmp/project"],
       now: () => 1234,
-      provider,
+      providers: [provider],
     });
 
     await controller.start();
@@ -224,7 +226,7 @@ describe("watch controller", () => {
       workspacePaths: ["/tmp/project"],
       store,
       now: () => 1234,
-      provider,
+      providers: [provider],
     });
 
     await controller.start();

@@ -57,7 +57,7 @@ describe("observer facade", () => {
     const observer = createObserver({
       workspacePaths: ["/tmp/project"],
       now: () => 1234,
-      provider,
+      providers: [provider],
     });
 
     const seen: ObserverChangeEvent[] = [];
@@ -66,6 +66,7 @@ describe("observer facade", () => {
     });
 
     await observer.start();
+    await observer.refreshNow();
     await vi.waitFor(() => {
       expect(seen.length).toBeGreaterThan(0);
     });
@@ -85,7 +86,7 @@ describe("observer facade", () => {
     const observer = createObserver({
       workspacePaths: ["/tmp/project"],
       now: () => 1234,
-      provider,
+      providers: [provider],
     });
 
     const kinds: string[] = [];
@@ -95,6 +96,7 @@ describe("observer facade", () => {
     });
 
     await observer.start();
+    await observer.refreshNow();
     await vi.waitFor(() => {
       expect(kinds).toContain(WATCH_LIFECYCLE_KIND.joined);
     });
@@ -115,10 +117,11 @@ describe("observer facade", () => {
     const observer = createObserver({
       workspacePaths: ["/tmp/project"],
       now: () => 1234,
-      provider,
+      providers: [provider],
     });
 
     await observer.start();
+    await observer.refreshNow();
     await vi.waitFor(async () => {
       const refreshed = await observer.refreshNow();
       expect(refreshed.agents[0]?.status).toBe("idle");
@@ -140,7 +143,7 @@ describe("observer facade", () => {
     const observer = createObserver({
       workspacePaths: ["/tmp/project"],
       now: () => 1234,
-      provider,
+      providers: [provider],
     });
 
     const seen: Array<{ kind: string; agent: string }> = [];
@@ -152,6 +155,7 @@ describe("observer facade", () => {
     });
 
     await observer.start();
+    await observer.refreshNow();
     await vi.waitFor(() => {
       expect(seen.length).toBeGreaterThan(0);
     });

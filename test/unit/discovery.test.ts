@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { resolveTranscriptSourcePaths } from "@agentprobe/core";
+import { resolveTranscriptSourcePaths } from "@agentprobe/core/providers/cursor";
 
 describe("resolveTranscriptSourcePaths", () => {
   it("discovers nested jsonl transcript files under workspace-derived directory", async () => {

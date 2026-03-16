@@ -5,8 +5,10 @@ import {
   type AgentLifecycleEventType,
   type AgentStatus,
 } from "@shared/types";
-import words from "lodash.words";
 import upperFirst from "lodash.upperfirst";
+import words from "lodash.words";
+
+const TRUNCATED_ID_LENGTH = 8;
 
 export function initialsFor(name: string): string {
   const parts = words(name.trim());
@@ -68,7 +70,7 @@ export function isVisibleLifecycleEvent(event: AgentLifecycleEvent): boolean {
 }
 
 function truncateId(id: string): string {
-  return id.length > 8 ? `${id.slice(0, 8)}…` : id;
+  return id.length > TRUNCATED_ID_LENGTH ? `${id.slice(0, TRUNCATED_ID_LENGTH)}…` : id;
 }
 
 function assertNeverStatus(value: never): never {

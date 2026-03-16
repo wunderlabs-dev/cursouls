@@ -1,17 +1,17 @@
-import type * as vscode from "vscode";
-import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
-import truncate from "lodash.truncate";
-import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
+import { formatUnknown } from "@ext/errors";
 import {
-  BRIDGE_LIFECYCLE_REPLAY_LIMIT,
   BRIDGE_INBOUND_TYPE,
+  BRIDGE_LIFECYCLE_REPLAY_LIMIT,
   BRIDGE_OUTBOUND_TYPE,
-  safeParseOutboundBridgeMessage,
   type InboundMessage,
+  safeParseOutboundBridgeMessage,
   type TooltipData,
 } from "@shared/bridge";
 import { findAgentInFrame } from "@shared/frame";
-import { formatUnknown } from "@ext/errors";
+import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
+import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
+import truncate from "lodash.truncate";
+import type * as vscode from "vscode";
 import { getWebviewHtml } from "./html";
 
 export const CAFE_VIEW_TYPE = "cursorCafe.sidebar";
@@ -23,136 +23,129 @@ export interface CafeViewProvider extends vscode.WebviewViewProvider {
   updateLifecycleEvents(events: AgentLifecycleEvent[]): void;
 }
 
+interface ProviderState {
+  view?: vscode.WebviewView;
+  latestFrame?: SceneFrame;
+  lifecycleReplayEvents: AgentLifecycleEvent[];
+  selectedTooltipAgentId?: string;
+}
+
 export function createCafeViewProvider(
   extensionUri: vscode.Uri,
   logger?: { warn(message: string): void },
 ): CafeViewProvider {
-  let view: vscode.WebviewView | undefined;
-  let latestFrame: SceneFrame | undefined;
-  let lifecycleReplayEvents: AgentLifecycleEvent[] = [];
-  let selectedTooltipAgentId: string | undefined;
-
-  function resolveWebviewView(nextView: vscode.WebviewView): void {
-    view = nextView;
-    nextView.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [extensionUri],
-    };
-    nextView.webview.html = getWebviewHtml(nextView.webview, extensionUri);
-
-    nextView.onDidDispose(() => {
-      view = undefined;
-    });
-
-    nextView.webview.onDidReceiveMessage((message: unknown) => {
-      const parsedMessage = safeParseOutboundBridgeMessage(message);
-      if (!parsedMessage.success) {
-        const reason = parsedMessage.error.issues.map((issue) => issue.message).join("; ");
-        const details = `[cursor-cafe] Ignoring malformed webview message: ${reason || formatUnknown(message)}`;
-        if (logger) {
-          logger.warn(details);
-        } else {
-          console.warn(details);
-        }
-        return;
-      }
-      const outboundMessage = parsedMessage.data;
-
-      if (outboundMessage.type === BRIDGE_OUTBOUND_TYPE.ready) {
-        if (latestFrame) {
-          postMessage({ type: BRIDGE_INBOUND_TYPE.sceneFrame, frame: latestFrame });
-        }
-        if (lifecycleReplayEvents.length > 0) {
-          postMessage({
-            type: BRIDGE_INBOUND_TYPE.lifecycleEvents,
-            events: lifecycleReplayEvents,
-          });
-        }
-        return;
-      }
-
-      if (outboundMessage.type === BRIDGE_OUTBOUND_TYPE.agentClick) {
-        selectedTooltipAgentId = outboundMessage.agentId;
-        syncSelectedTooltip();
-      }
-    });
-  }
-
-  function updateFrame(frame: SceneFrame): void {
-    latestFrame = frame;
-    postMessage({ type: BRIDGE_INBOUND_TYPE.sceneFrame, frame });
-    syncSelectedTooltip();
-  }
-
-  function updateLifecycleEvents(events: AgentLifecycleEvent[]): void {
-    lifecycleReplayEvents = [...lifecycleReplayEvents, ...events];
-    if (lifecycleReplayEvents.length > BRIDGE_LIFECYCLE_REPLAY_LIMIT) {
-      lifecycleReplayEvents = lifecycleReplayEvents.slice(
-        lifecycleReplayEvents.length - BRIDGE_LIFECYCLE_REPLAY_LIMIT,
-      );
-    }
-    postMessage({ type: BRIDGE_INBOUND_TYPE.lifecycleEvents, events: lifecycleReplayEvents });
-  }
-
-  function buildTooltip(agentId: string): TooltipData | undefined {
-    if (!latestFrame) {
-      return undefined;
-    }
-
-    const agent = findAgentInFrame(latestFrame, agentId);
-
-    if (!agent) {
-      return undefined;
-    }
-
-    const elapsed = formatElapsed(agent.startedAt);
-
-    const updated = formatDistanceToNowStrict(agent.updatedAt, { addSuffix: true });
-
-    return {
-      id: agent.id,
-      name: agent.name,
-      status: agent.status,
-      task: truncate(agent.taskSummary || FALLBACK_TASK_LABEL, { length: MAX_TOOLTIP_TASK_LENGTH }),
-      elapsed,
-      updated,
-    };
-  }
-
-  function syncSelectedTooltip(): void {
-    if (!selectedTooltipAgentId) {
-      return;
-    }
-    const tooltip = buildTooltip(selectedTooltipAgentId);
-    if (tooltip) {
-      postMessage({ type: BRIDGE_INBOUND_TYPE.tooltipData, tooltip });
-      return;
-    }
-    selectedTooltipAgentId = undefined;
-    postMessage({ type: BRIDGE_INBOUND_TYPE.hideTooltip });
-  }
-
-  function postMessage(message: InboundMessage): void {
-    if (!view) {
-      return;
-    }
-    void view.webview.postMessage(message);
-  }
+  const state: ProviderState = { lifecycleReplayEvents: [] };
+  const post = (message: InboundMessage): void => {
+    if (state.view) void state.view.webview.postMessage(message);
+  };
 
   return {
-    resolveWebviewView,
-    updateFrame,
-    updateLifecycleEvents,
+    resolveWebviewView(nextView: vscode.WebviewView): void {
+      state.view = nextView;
+      nextView.webview.options = { enableScripts: true, localResourceRoots: [extensionUri] };
+      nextView.webview.html = getWebviewHtml(nextView.webview, extensionUri);
+      nextView.onDidDispose(() => {
+        state.view = undefined;
+      });
+      nextView.webview.onDidReceiveMessage((msg: unknown) =>
+        handleOutboundMessage(msg, state, post, logger),
+      );
+    },
+    updateFrame(frame: SceneFrame): void {
+      state.latestFrame = frame;
+      post({ type: BRIDGE_INBOUND_TYPE.sceneFrame, frame });
+      syncSelectedTooltip(state, post);
+    },
+    updateLifecycleEvents(events: AgentLifecycleEvent[]): void {
+      state.lifecycleReplayEvents = appendLifecycleEvents(state.lifecycleReplayEvents, events);
+      post({ type: BRIDGE_INBOUND_TYPE.lifecycleEvents, events: state.lifecycleReplayEvents });
+    },
+  };
+}
+
+function handleOutboundMessage(
+  message: unknown,
+  state: ProviderState,
+  post: (msg: InboundMessage) => void,
+  logger?: { warn(msg: string): void },
+): void {
+  const parsed = safeParseOutboundBridgeMessage(message);
+  if (!parsed.success) {
+    logInvalidMessage(parsed, message, logger);
+    return;
+  }
+  const outbound = parsed.data;
+  if (outbound.type === BRIDGE_OUTBOUND_TYPE.ready) {
+    replayState(post, state.latestFrame, state.lifecycleReplayEvents);
+    return;
+  }
+  if (outbound.type === BRIDGE_OUTBOUND_TYPE.agentClick) {
+    state.selectedTooltipAgentId = outbound.agentId;
+    syncSelectedTooltip(state, post);
+  }
+}
+
+function syncSelectedTooltip(state: ProviderState, post: (msg: InboundMessage) => void): void {
+  if (!state.selectedTooltipAgentId) return;
+  const tooltip = buildTooltip(state.latestFrame, state.selectedTooltipAgentId);
+  if (tooltip) {
+    post({ type: BRIDGE_INBOUND_TYPE.tooltipData, tooltip });
+    return;
+  }
+  state.selectedTooltipAgentId = undefined;
+  post({ type: BRIDGE_INBOUND_TYPE.hideTooltip });
+}
+
+function replayState(
+  post: (message: InboundMessage) => void,
+  frame: SceneFrame | undefined,
+  events: AgentLifecycleEvent[],
+): void {
+  if (frame) post({ type: BRIDGE_INBOUND_TYPE.sceneFrame, frame });
+  if (events.length > 0) post({ type: BRIDGE_INBOUND_TYPE.lifecycleEvents, events });
+}
+
+function appendLifecycleEvents(
+  existing: AgentLifecycleEvent[],
+  incoming: AgentLifecycleEvent[],
+): AgentLifecycleEvent[] {
+  const combined = [...existing, ...incoming];
+  if (combined.length > BRIDGE_LIFECYCLE_REPLAY_LIMIT) {
+    return combined.slice(combined.length - BRIDGE_LIFECYCLE_REPLAY_LIMIT);
+  }
+  return combined;
+}
+
+function logInvalidMessage(
+  parsed: { error: { issues: { message: string }[] } },
+  raw: unknown,
+  logger?: { warn(message: string): void },
+): void {
+  const reason = parsed.error.issues.map((issue: { message: string }) => issue.message).join("; ");
+  const details = `[cursor-cafe] Ignoring malformed webview message: ${reason || formatUnknown(raw)}`;
+  if (logger) {
+    logger.warn(details);
+  } else {
+    console.warn(details);
+  }
+}
+
+function buildTooltip(frame: SceneFrame | undefined, agentId: string): TooltipData | undefined {
+  if (!frame) return undefined;
+  const agent = findAgentInFrame(frame, agentId);
+  if (!agent) return undefined;
+  return {
+    id: agent.id,
+    name: agent.name,
+    status: agent.status,
+    task: truncate(agent.taskSummary || FALLBACK_TASK_LABEL, { length: MAX_TOOLTIP_TASK_LENGTH }),
+    elapsed: formatElapsed(agent.startedAt),
+    updated: formatDistanceToNowStrict(agent.updatedAt, { addSuffix: true }),
   };
 }
 
 function formatElapsed(startedAt: number | undefined): string {
-  if (startedAt == null) {
-    return "-";
-  }
-  const { hours = 0, minutes = 0 } = intervalToDuration({
-    start: startedAt,
-    end: Date.now(),
-  });
+  if (startedAt == null) return "-";
+  const { hours = 0, minutes = 0 } = intervalToDuration({ start: startedAt, end: Date.now() });
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }

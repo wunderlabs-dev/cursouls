@@ -2,20 +2,24 @@ import type { SceneComposition } from "@web/scene/composition";
 import {
   FLOOR_TILE_CLASS,
   TILE_BORDER_CLASS,
-  WALL_TOP_ROW_COUNT,
   WALL_TILE_CLASS,
+  WALL_TOP_ROW_COUNT,
 } from "@web/scene/constants";
+import type { JSX } from "react";
 
 interface SceneGridProps {
   composition: SceneComposition;
 }
 
-export function SceneGrid({ composition }: SceneGridProps) {
+export function SceneGrid({ composition }: SceneGridProps): JSX.Element {
   return (
     <>
       {composition.cells.map((cell) => {
         const baseClass =
-          cell.row < WALL_TOP_ROW_COUNT || cell.symbol === "W" || cell.symbol === "w" || cell.symbol === "C"
+          cell.row < WALL_TOP_ROW_COUNT ||
+          cell.symbol === "W" ||
+          cell.symbol === "w" ||
+          cell.symbol === "C"
             ? WALL_TILE_CLASS
             : FLOOR_TILE_CLASS;
         return (

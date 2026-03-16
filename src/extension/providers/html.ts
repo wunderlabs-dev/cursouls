@@ -1,13 +1,20 @@
 import * as crypto from "node:crypto";
 import * as vscode from "vscode";
 
+const CACHE_BUST_RADIX = 36;
+const NONCE_BYTE_LENGTH = 18;
+
 export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
   const nonce = createNonce();
-  const cacheBust = Date.now().toString(36);
+  const cacheBust = Date.now().toString(CACHE_BUST_RADIX);
   const scriptUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, "dist", "webview-main.js"),
   );
-  const globalCssUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, "dist", "webview.css"));
+  const globalCssUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(extensionUri, "dist", "webview.css"),
+  );
+  const scriptHref = String(scriptUri);
+  const cssHref = String(globalCssUri);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -18,16 +25,16 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
       http-equiv="Content-Security-Policy"
       content="default-src 'none'; img-src ${webview.cspSource} data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'nonce-${nonce}';"
     />
-    <link rel="stylesheet" href="${globalCssUri}?v=${cacheBust}" />
+    <link rel="stylesheet" href="${cssHref}?v=${cacheBust}" />
     <title>Cursor Cafe</title>
   </head>
   <body>
     <div id="app"></div>
-    <script nonce="${nonce}" type="module" src="${scriptUri}?v=${cacheBust}"></script>
+    <script nonce="${nonce}" type="module" src="${scriptHref}?v=${cacheBust}"></script>
   </body>
 </html>`;
 }
 
-function createNonce(byteLength = 18): string {
-  return crypto.randomBytes(byteLength).toString("base64url");
+function createNonce(): string {
+  return crypto.randomBytes(NONCE_BYTE_LENGTH).toString("base64url");
 }

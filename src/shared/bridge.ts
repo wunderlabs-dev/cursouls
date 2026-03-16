@@ -138,10 +138,14 @@ export type InboundMessage = z.infer<typeof inboundBridgeMessageSchema>;
 export type OutboundMessage = z.infer<typeof outboundBridgeMessageSchema>;
 export type InboundMessageType = InboundMessage["type"];
 
-export function safeParseInboundBridgeMessage(value: unknown) {
+export function safeParseInboundBridgeMessage(
+  value: unknown,
+): z.ZodSafeParseResult<InboundMessage> {
   return inboundBridgeMessageSchema.safeParse(value);
 }
 
-export function safeParseOutboundBridgeMessage(value: unknown) {
+export function safeParseOutboundBridgeMessage(
+  value: unknown,
+): z.ZodSafeParseResult<OutboundMessage> {
   return outboundBridgeMessageSchema.safeParse(value);
 }

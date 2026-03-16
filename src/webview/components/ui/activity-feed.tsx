@@ -1,16 +1,17 @@
-import { useMemo, useRef, useEffect } from "react";
-import { AGENT_LIFECYCLE_EVENT_KIND, type AgentLifecycleEvent, type AgentLifecycleEventType } from "@shared/types";
+import {
+  AGENT_LIFECYCLE_EVENT_KIND,
+  type AgentLifecycleEvent,
+  type AgentLifecycleEventType,
+} from "@shared/types";
 import {
   ACTIVITY_FEED_EMPTY_LABEL,
   ACTIVITY_FEED_LABEL,
   ACTIVITY_FEED_VISIBLE_LIMIT,
 } from "@web/constants";
-import {
-  formatLifecycleEvent,
-  isVisibleLifecycleEvent,
-  lifecycleGlyph,
-} from "@web/present";
+import { formatLifecycleEvent, isVisibleLifecycleEvent, lifecycleGlyph } from "@web/present";
 import { cn } from "@web/utils/helpers";
+import type { JSX } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 interface ActivityFeedProps {
   events: readonly AgentLifecycleEvent[];
@@ -23,7 +24,7 @@ const KIND_COLOR: Partial<Record<AgentLifecycleEventType, string>> = {
   [AGENT_LIFECYCLE_EVENT_KIND.statusChanged]: "text-amber-400",
 };
 
-export function ActivityFeed({ events, agentNames }: ActivityFeedProps) {
+export function ActivityFeed({ events, agentNames }: ActivityFeedProps): JSX.Element {
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const visibleEvents = useMemo(
@@ -31,6 +32,7 @@ export function ActivityFeed({ events, agentNames }: ActivityFeedProps) {
     [events],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on derived visibleEvents change
   useEffect(() => {
     const node = scrollRef.current;
     if (node) {
@@ -43,19 +45,14 @@ export function ActivityFeed({ events, agentNames }: ActivityFeedProps) {
       className="rounded-lg border border-[#3d3229] bg-[#2a221d] p-2"
       aria-label={ACTIVITY_FEED_LABEL}
     >
-      <div className="mb-1 text-[10px] font-medium text-[#b8aa96]">
-        {ACTIVITY_FEED_LABEL}
-      </div>
+      <div className="mb-1 text-[10px] font-medium text-[#b8aa96]">{ACTIVITY_FEED_LABEL}</div>
       {visibleEvents.length === 0 ? (
         <div className="text-[10px] text-[#6b5f52]">{ACTIVITY_FEED_EMPTY_LABEL}</div>
       ) : (
-        <div
-          ref={scrollRef}
-          className="flex max-h-24 flex-col gap-0.5 overflow-y-auto"
-        >
-          {visibleEvents.map((event, index) => (
+        <div ref={scrollRef} className="flex max-h-24 flex-col gap-0.5 overflow-y-auto">
+          {visibleEvents.map((event) => (
             <FeedEntry
-              key={`${event.agentId}-${event.at}-${index}`}
+              key={`${event.agentId}-${event.kind}-${event.at}`}
               event={event}
               agentNames={agentNames}
             />
@@ -72,7 +69,7 @@ function FeedEntry({
 }: {
   event: AgentLifecycleEvent;
   agentNames: ReadonlyMap<string, string>;
-}) {
+}): JSX.Element {
   const label = formatLifecycleEvent(event, agentNames);
   const glyph = lifecycleGlyph(event.kind);
   const color = KIND_COLOR[event.kind] ?? "text-[#6b5f52]";

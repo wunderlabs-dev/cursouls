@@ -1,27 +1,56 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import { BRIDGE_AGENT_ANCHOR, BRIDGE_INBOUND_TYPE } from "@shared/bridge";
+import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import type { TooltipData } from "@web/bridge/types";
 import { Cafe } from "@web/components/cafe";
 import { FEED_BUFFER_LIMIT } from "@web/constants";
+import type { JSX } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }) {
+export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }): JSX.Element {
+  const { frame, tooltip, lifecycleEvents } = useBridgeSubscription(bridge);
+  const agentNames = useRef(new Map<string, string>());
+
+  const handleSeatClick = useCallback(
+    (agentId: string) => bridge.postAgentClick(agentId, BRIDGE_AGENT_ANCHOR.seat),
+    [bridge],
+  );
+  const handleQueueClick = useCallback(
+    (agentId: string) => bridge.postAgentClick(agentId, BRIDGE_AGENT_ANCHOR.queue),
+    [bridge],
+  );
+
+  if (frame) {
+    updateAgentNames(agentNames.current, frame, lifecycleEvents);
+  }
+
+  return (
+    <Cafe
+      frame={frame}
+      tooltip={tooltip}
+      lifecycleEvents={lifecycleEvents}
+      agentNames={agentNames.current}
+      onSeatClick={handleSeatClick}
+      onQueueClick={handleQueueClick}
+    />
+  );
+}
+
+interface BridgeState {
+  frame?: SceneFrame;
+  tooltip?: TooltipData;
+  lifecycleEvents: AgentLifecycleEvent[];
+}
+
+function useBridgeSubscription(bridge: VsCodeBridge): BridgeState {
   const [frame, setFrame] = useState<SceneFrame | undefined>(undefined);
   const [tooltip, setTooltip] = useState<TooltipData | undefined>(undefined);
   const [lifecycleEvents, setLifecycleEvents] = useState<AgentLifecycleEvent[]>([]);
-  const agentNames = useRef(new Map<string, string>());
-  const lifecycleEventsRef = useRef<AgentLifecycleEvent[]>([]);
-
-  useEffect(() => {
-    lifecycleEventsRef.current = lifecycleEvents;
-  }, [lifecycleEvents]);
 
   useEffect(() => {
     const unsubscribe = bridge.subscribe((message) => {
       switch (message.type) {
         case BRIDGE_INBOUND_TYPE.sceneFrame:
-          updateAgentNames(agentNames.current, message.frame, lifecycleEventsRef.current);
           setFrame(message.frame);
           return;
         case BRIDGE_INBOUND_TYPE.tooltipData:
@@ -41,25 +70,7 @@ export function CafeAppContainer({ bridge }: { bridge: VsCodeBridge }) {
     return () => unsubscribe();
   }, [bridge]);
 
-  const handleSeatClick = useCallback(
-    (agentId: string) => bridge.postAgentClick(agentId, BRIDGE_AGENT_ANCHOR.seat),
-    [bridge],
-  );
-  const handleQueueClick = useCallback(
-    (agentId: string) => bridge.postAgentClick(agentId, BRIDGE_AGENT_ANCHOR.queue),
-    [bridge],
-  );
-
-  return (
-    <Cafe
-      frame={frame}
-      tooltip={tooltip}
-      lifecycleEvents={lifecycleEvents}
-      agentNames={agentNames.current}
-      onSeatClick={handleSeatClick}
-      onQueueClick={handleQueueClick}
-    />
-  );
+  return { frame, tooltip, lifecycleEvents };
 }
 
 function updateAgentNames(

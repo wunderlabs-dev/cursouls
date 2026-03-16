@@ -1,8 +1,9 @@
-import { cva } from "class-variance-authority";
 import type { AgentSnapshot } from "@shared/types";
 import { NO_QUEUE_LABEL, QUEUE_VISIBLE_LIMIT } from "@web/constants";
 import { initialsFor } from "@web/present";
 import { cn } from "@web/utils/helpers";
+import { cva } from "class-variance-authority";
+import type { JSX } from "react";
 
 interface QueueStripProps {
   queue: readonly AgentSnapshot[];
@@ -26,11 +27,14 @@ const chipVariants = cva(
   },
 );
 
-export function QueueStrip({ queue, onQueueClick }: QueueStripProps) {
+export function QueueStrip({ queue, onQueueClick }: QueueStripProps): JSX.Element {
   const visible = queue.slice(0, QUEUE_VISIBLE_LIMIT);
   const overflow = Math.max(0, queue.length - visible.length);
   return (
-    <section className="min-h-12 rounded-lg border border-[#3d3229] bg-[#2a221d] p-2" aria-label="Overflow queue">
+    <section
+      className="min-h-12 rounded-lg border border-[#3d3229] bg-[#2a221d] p-2"
+      aria-label="Overflow queue"
+    >
       {visible.length === 0 ? (
         <div className="text-[11px] text-[#b8aa96]">{NO_QUEUE_LABEL}</div>
       ) : (

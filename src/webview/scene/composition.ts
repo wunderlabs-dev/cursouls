@@ -65,7 +65,10 @@ function toLayoutSymbol(value: string): LayoutSymbol {
 export function buildSceneComposition(sceneWidth: number, sceneHeight: number): SceneComposition {
   const columns = ROOM_LAYOUT[0].length;
   const rows = ROOM_LAYOUT.length;
-  const maxTileByWidth = Math.max(MIN_TILE_SIZE, Math.floor((sceneWidth - FRAME_PADDING) / columns));
+  const maxTileByWidth = Math.max(
+    MIN_TILE_SIZE,
+    Math.floor((sceneWidth - FRAME_PADDING) / columns),
+  );
   const maxTileByHeight = Math.max(MIN_TILE_SIZE, Math.floor((sceneHeight - FRAME_PADDING) / rows));
   const tileSize = Math.max(MIN_TILE_SIZE, Math.min(maxTileByWidth, maxTileByHeight));
   const width = columns * tileSize;

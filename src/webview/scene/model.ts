@@ -27,6 +27,10 @@ const TABLE_MAX_COLUMNS = 6;
 const TABLE_HORIZONTAL_PADDING = 12;
 const TABLE_TOP_PADDING = 36;
 const TABLE_BOTTOM_PADDING = 16;
+const MIN_AVAILABLE_DIMENSION = 120;
+const MIN_TABLE_WIDTH = 80;
+const MIN_TABLE_HEIGHT = 56;
+const TABLE_GAP = 8;
 
 export const SCENE_WIDTH = 760;
 export const SCENE_HEIGHT = 560;
@@ -77,9 +81,7 @@ export function buildCafeSceneModel(
 
 function buildTableAnchors(tableCount: number, bounds: SceneLayoutBounds): readonly TableAnchor[] {
   const preferredAnchors = buildPreferredTableAnchors(tableCount, bounds);
-  if (preferredAnchors) {
-    return preferredAnchors;
-  }
+  if (preferredAnchors) return preferredAnchors;
   return buildGridAnchors(tableCount, bounds);
 }
 
@@ -88,16 +90,12 @@ function buildPreferredTableAnchors(
   bounds: SceneLayoutBounds,
 ): readonly TableAnchor[] | undefined {
   const preferredOrigins = bounds.preferredTableOrigins;
-  if (!preferredOrigins || preferredOrigins.length === 0) {
-    return undefined;
-  }
+  if (!preferredOrigins || preferredOrigins.length === 0) return undefined;
 
   const fallbackAnchors = buildGridAnchors(tableCount, bounds);
   return Array.from({ length: tableCount }, (_, index) => {
     const origin = preferredOrigins[index];
-    if (!origin) {
-      return fallbackAnchors[index];
-    }
+    if (!origin) return fallbackAnchors[index];
     return {
       tableIndex: index,
       label: `${TABLE_LABEL_PREFIX} ${index + 1}`,
@@ -109,38 +107,60 @@ function buildPreferredTableAnchors(
   });
 }
 
-function buildGridAnchors(tableCount: number, bounds: SceneLayoutBounds): readonly TableAnchor[] {
-  const tableColumnCount = Math.max(
+interface GridLayout {
+  tableWidth: number;
+  tableHeight: number;
+  stepX: number;
+  stepY: number;
+  offsetX: number;
+  offsetY: number;
+  columns: number;
+}
+
+function computeGridLayout(tableCount: number, bounds: SceneLayoutBounds): GridLayout {
+  const columns = Math.max(
     TABLE_MIN_COLUMNS,
     Math.min(TABLE_MAX_COLUMNS, Math.ceil(Math.sqrt(tableCount))),
   );
-  const tableRowCount = Math.max(1, Math.ceil(tableCount / tableColumnCount));
-  const availableWidth = Math.max(120, bounds.width - TABLE_HORIZONTAL_PADDING * 2);
-  const availableHeight = Math.max(120, bounds.height - TABLE_TOP_PADDING - TABLE_BOTTOM_PADDING);
-  const tableWidth = Math.max(80, Math.min(TABLE_WIDTH, availableWidth / Math.max(1, tableColumnCount) - 8));
-  const tableHeight = Math.max(
-    56,
-    Math.min(TABLE_HEIGHT, availableHeight / Math.max(1, tableRowCount) - 8),
+  const rows = Math.max(1, Math.ceil(tableCount / columns));
+  const availW = Math.max(MIN_AVAILABLE_DIMENSION, bounds.width - TABLE_HORIZONTAL_PADDING * 2);
+  const availH = Math.max(
+    MIN_AVAILABLE_DIMENSION,
+    bounds.height - TABLE_TOP_PADDING - TABLE_BOTTOM_PADDING,
   );
-  const stepX =
-    tableColumnCount === 1 ? 0 : Math.max(0, (availableWidth - tableWidth) / (tableColumnCount - 1));
-  const stepY =
-    tableRowCount === 1 ? 0 : Math.max(0, (availableHeight - tableHeight) / (tableRowCount - 1));
-  const offsetX = bounds.offsetX ?? 0;
-  const offsetY = bounds.offsetY ?? 0;
+  const tableWidth = Math.max(
+    MIN_TABLE_WIDTH,
+    Math.min(TABLE_WIDTH, availW / Math.max(1, columns) - TABLE_GAP),
+  );
+  const tableHeight = Math.max(
+    MIN_TABLE_HEIGHT,
+    Math.min(TABLE_HEIGHT, availH / Math.max(1, rows) - TABLE_GAP),
+  );
+  const stepX = columns === 1 ? 0 : Math.max(0, (availW - tableWidth) / (columns - 1));
+  const stepY = rows === 1 ? 0 : Math.max(0, (availH - tableHeight) / (rows - 1));
+  return {
+    tableWidth,
+    tableHeight,
+    stepX,
+    stepY,
+    offsetX: bounds.offsetX ?? 0,
+    offsetY: bounds.offsetY ?? 0,
+    columns,
+  };
+}
 
+function buildGridAnchors(tableCount: number, bounds: SceneLayoutBounds): readonly TableAnchor[] {
+  const layout = computeGridLayout(tableCount, bounds);
   return Array.from({ length: tableCount }, (_, index) => {
-    const rowIndex = Math.floor(index / tableColumnCount);
-    const columnIndex = index % tableColumnCount;
-    const x = offsetX + TABLE_HORIZONTAL_PADDING + columnIndex * stepX;
-    const y = offsetY + TABLE_TOP_PADDING + rowIndex * stepY;
+    const row = Math.floor(index / layout.columns);
+    const col = index % layout.columns;
     return {
       tableIndex: index,
       label: `${TABLE_LABEL_PREFIX} ${index + 1}`,
-      x,
-      y,
-      width: tableWidth,
-      height: tableHeight,
+      x: layout.offsetX + TABLE_HORIZONTAL_PADDING + col * layout.stepX,
+      y: layout.offsetY + TABLE_TOP_PADDING + row * layout.stepY,
+      width: layout.tableWidth,
+      height: layout.tableHeight,
     };
   });
 }

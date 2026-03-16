@@ -1,12 +1,12 @@
-import { describe, expect, it } from "vitest";
 import type { AgentSnapshot, SceneFrame } from "@shared/types";
 import {
-  SCENE_HEIGHT,
-  SCENE_WIDTH,
+  applyAgentsToAnchors,
   buildCafeSceneModel,
   buildSceneTableAnchors,
-  applyAgentsToAnchors,
+  SCENE_HEIGHT,
+  SCENE_WIDTH,
 } from "@web/scene/model";
+import { describe, expect, it } from "vitest";
 
 function makeAgent(id: string, status: AgentSnapshot["status"]): AgentSnapshot {
   return {
@@ -46,12 +46,7 @@ describe("scene model mapping", () => {
 
     expect(view.seats).toHaveLength(frame.seats.length);
     expect(view.seats.map((seat) => seat.tableIndex)).toEqual([0, 1, 2, 3]);
-    expect(view.seats.map((seat) => seat.agent?.id ?? null)).toEqual([
-      "a-0",
-      "a-1",
-      null,
-      null,
-    ]);
+    expect(view.seats.map((seat) => seat.agent?.id ?? null)).toEqual(["a-0", "a-1", null, null]);
   });
 
   it("preserves table anchor geometry while assigning occupants", () => {

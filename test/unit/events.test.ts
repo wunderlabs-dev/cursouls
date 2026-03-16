@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-import type { AgentSnapshot } from "@shared/types";
 import { createLifecycleMapper } from "@agentprobe/core";
+import type { AgentSnapshot } from "@shared/types";
+import { describe, expect, it } from "vitest";
 
 function agent(id: string, status: AgentSnapshot["status"]): AgentSnapshot {
   return {

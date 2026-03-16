@@ -7,12 +7,13 @@ import {
   TABLE_SHADOW_CLASS,
   TABLE_SIZE_MULTIPLIER,
 } from "@web/scene/constants";
+import type { JSX } from "react";
 
 interface SceneTablesProps {
   composition: SceneComposition;
 }
 
-export function SceneTables({ composition }: SceneTablesProps) {
+export function SceneTables({ composition }: SceneTablesProps): JSX.Element {
   return (
     <>
       {composition.cells

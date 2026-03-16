@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import type { CanonicalAgentSnapshot, TranscriptProvider } from "@agentprobe/core";
 import { createWatchController } from "@ext/services/watch";
 import type { SceneFrame } from "@shared/types";
-import type { CanonicalAgentSnapshot, TranscriptProvider } from "@agentprobe/core";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -126,14 +126,18 @@ describe("watch controller", () => {
       disconnect: vi.fn(),
       read: () => ({
         records: [],
-        health: { connected: callCount > 0 ? false : true, sourceLabel: "cursor-transcripts", warnings: callCount > 0 ? ["source unavailable"] : [] },
+        health: {
+          connected: callCount === 0,
+          sourceLabel: "cursor-transcripts",
+          warnings: callCount > 0 ? ["source unavailable"] : [],
+        },
       }),
       normalize: async (_readResult) => {
         callCount += 1;
         return {
           agents: [],
           health: {
-            connected: callCount > 1 ? false : true,
+            connected: callCount <= 1,
             sourceLabel: "cursor-transcripts",
             warnings: callCount > 1 ? ["source unavailable"] : [],
           },
@@ -186,8 +190,13 @@ describe("watch controller", () => {
       discover: () => ({ inputs: [], watchPaths: [], warnings: [] }),
       connect: vi.fn(),
       disconnect: vi.fn(),
-      read: () => { throw new Error("boom"); },
-      normalize: () => ({ agents: [], health: { connected: false, sourceLabel: "mock", warnings: [] } }),
+      read: () => {
+        throw new Error("boom");
+      },
+      normalize: () => ({
+        agents: [],
+        health: { connected: false, sourceLabel: "mock", warnings: [] },
+      }),
     };
 
     const controller = createWatchController({

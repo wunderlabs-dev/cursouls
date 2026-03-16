@@ -1,0 +1,155 @@
+import js from "@eslint/js";
+import reactHooks from "eslint-plugin-react-hooks";
+import sonarjs from "eslint-plugin-sonarjs";
+import unicorn from "eslint-plugin-unicorn";
+import tseslint from "typescript-eslint";
+
+export default [
+  {
+    ignores: [
+      "dist/**",
+      "coverage/**",
+      "node_modules/**",
+      ".refs/**",
+      "*.config.ts",
+      "*.config.js",
+      "*.config.cjs",
+      "esbuild.mjs",
+    ],
+  },
+  js.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  {
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    plugins: {
+      sonarjs,
+      unicorn,
+      "react-hooks": reactHooks,
+    },
+    rules: {
+      // --- Disable rules that overlap with Biome ---
+      indent: "off",
+      quotes: "off",
+      semi: "off",
+      "comma-dangle": "off",
+      "no-unused-vars": "off",
+      "sort-imports": "off",
+      "no-multiple-empty-lines": "off",
+      "eol-last": "off",
+
+      // --- Structural limits ---
+      "max-depth": ["error", 2],
+      "max-lines-per-function": ["error", { max: 40, skipBlankLines: true, skipComments: true }],
+
+      // --- React hooks ---
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
+
+      // --- TypeScript-specific ---
+      "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports" }],
+      "@typescript-eslint/consistent-type-definitions": ["error", "interface"],
+      "@typescript-eslint/prefer-readonly": "error",
+      "@typescript-eslint/use-unknown-in-catch-callback-variable": "error",
+      "@typescript-eslint/explicit-function-return-type": [
+        "error",
+        {
+          allowExpressions: true,
+          allowTypedFunctionExpressions: true,
+          allowHigherOrderFunctions: true,
+        },
+      ],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+      "@typescript-eslint/naming-convention": [
+        "error",
+        { selector: "default", format: ["camelCase"], leadingUnderscore: "allow" },
+        {
+          selector: "variable",
+          format: ["camelCase", "UPPER_CASE"],
+          leadingUnderscore: "allow",
+          filter: {
+            regex: "(Map|Object|String|Array|List|Set|Dict|Number|Boolean|Fn|Func|Callback)$",
+            match: false,
+          },
+        },
+        {
+          selector: "function",
+          format: ["camelCase", "PascalCase"],
+          filter: {
+            regex: "(Map|Object|String|Array|List|Set|Dict|Number|Boolean|Fn|Func|Callback)$",
+            match: false,
+          },
+        },
+        {
+          selector: "parameter",
+          format: ["camelCase"],
+          leadingUnderscore: "allow",
+          filter: {
+            regex: "(Map|Object|String|Array|List|Set|Dict|Number|Boolean|Fn|Func|Callback)$",
+            match: false,
+          },
+        },
+        { selector: "typeLike", format: ["PascalCase"] },
+        {
+          selector: "objectLiteralProperty",
+          format: null,
+          filter: { regex: "^[a-z]+(_[a-z]+)+$", match: true },
+        },
+      ],
+      "@typescript-eslint/no-magic-numbers": [
+        "error",
+        {
+          ignore: [0, 1, -1, 2],
+          ignoreEnums: true,
+          ignoreNumericLiteralTypes: true,
+          ignoreReadonlyClassProperties: true,
+        },
+      ],
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/consistent-type-assertions": ["error", { assertionStyle: "never" }],
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": "error",
+
+      // --- Sonarjs (complexity and duplication) ---
+      "sonarjs/cognitive-complexity": ["error", 10],
+      "sonarjs/no-duplicate-string": ["error", { threshold: 3 }],
+      "sonarjs/no-identical-functions": "error",
+
+      // --- Unicorn (patterns) ---
+      "unicorn/no-nested-ternary": "error",
+    },
+  },
+  {
+    files: ["test/**/*.ts", "**/*.test.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-magic-numbers": "off",
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/no-floating-promises": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/naming-convention": "off",
+      "@typescript-eslint/consistent-type-definitions": "off",
+      "@typescript-eslint/consistent-type-assertions": "off",
+      "@typescript-eslint/prefer-readonly": "off",
+      "@typescript-eslint/unbound-method": "off",
+      "@typescript-eslint/require-await": "off",
+      "sonarjs/no-duplicate-string": "off",
+      "sonarjs/cognitive-complexity": "off",
+      "max-depth": "off",
+      "max-lines-per-function": "off",
+    },
+  },
+];

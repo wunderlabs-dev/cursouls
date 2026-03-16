@@ -12,7 +12,7 @@ function mountWebviewApp(): void {
   const appController = mountApp(root, bridge);
 
   let disposed = false;
-  const cleanup = () => {
+  const cleanup = (): void => {
     if (disposed) return;
     disposed = true;
     appController.destroy();

@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
 import { createWatchRuntime } from "@agentprobe/core";
+import { describe, expect, it, vi } from "vitest";
 
 interface TestAgent {
   id: string;

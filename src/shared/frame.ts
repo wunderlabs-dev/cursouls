@@ -1,6 +1,9 @@
 import type { AgentSnapshot, SceneFrame } from "./types";
 
-export function findAgentInFrame(frame: SceneFrame | undefined, agentId: string): AgentSnapshot | undefined {
+export function findAgentInFrame(
+  frame: SceneFrame | undefined,
+  agentId: string,
+): AgentSnapshot | undefined {
   if (!frame) {
     return undefined;
   }

@@ -1,25 +1,25 @@
 import type { SceneFrame } from "@shared/types";
 import { UNKNOWN_SOURCE_LABEL, WARNING_LABEL_PLURAL, WARNING_LABEL_SINGULAR } from "@web/constants";
 import { cn } from "@web/utils/helpers";
+import type { JSX } from "react";
 
 interface HealthBannerProps {
   frame?: SceneFrame;
   fallbackLabel: string;
 }
 
-export function HealthBanner({ frame, fallbackLabel }: HealthBannerProps) {
+export function HealthBanner({ frame, fallbackLabel }: HealthBannerProps): JSX.Element {
   const label = frame ? buildHealthLabel(frame) : fallbackLabel;
   return (
-    <header
-      role="status"
+    <output
       className={cn(
-        "rounded-lg border px-2 py-1 text-[11px] text-[#b8aa96]",
+        "block rounded-lg border px-2 py-1 text-[11px] text-[#b8aa96]",
         "border-[#3d3229] bg-[#2a221d]",
         frame && !frame.health.sourceConnected && "border-[#f06d5e] text-[#f06d5e]",
       )}
     >
       {label}
-    </header>
+    </output>
   );
 }
 

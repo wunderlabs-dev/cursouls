@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import { readCafeConfig } from "@ext/config";
+import { describe, expect, it } from "vitest";
 
 describe("readCafeConfig", () => {
   it("keeps refresh config without source mode options", () => {

@@ -4,15 +4,15 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "lib": [
-      "ES2022"
+      "ES2020"
     ],
     "types": [
-      "node",
-      "vscode"
+      "node"
     ]
   },
   "include": [
-    "src/extension/**/*.ts",
-    "src/shared/**/*.ts"
+    "test/**/*.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx"
   ]
 }

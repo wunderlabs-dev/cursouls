@@ -73,15 +73,19 @@
     "compile": "npm run css:build && node esbuild.mjs",
     "watch": "npm run css:build && node esbuild.mjs --watch",
     "format": "biome format --write ./src ./test",
-    "lint": "biome lint ./src ./test",
-    "check": "biome check ./src ./test",
+    "lint": "biome check ./src ./test && eslint .",
+    "lint:biome": "biome check ./src ./test",
+    "lint:eslint": "eslint .",
     "typecheck": "npm run typecheck:extension && npm run typecheck:webview",
     "typecheck:extension": "tsc -p tsconfig.extension.json --noEmit",
     "typecheck:webview": "tsc -p tsconfig.webview.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check": "biome check ./src ./test && eslint . && npm run typecheck && npm run test",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.5",
+    "@eslint/js": "^10.0.1",
     "@tailwindcss/cli": "^4.1.13",
     "@types/lodash.truncate": "^4.4.9",
     "@types/lodash.upperfirst": "^4.3.9",
@@ -91,8 +95,15 @@
     "@types/react-dom": "^19.2.3",
     "@types/vscode": "^1.90.0",
     "esbuild": "^0.25.0",
+    "eslint": "^10.0.3",
+    "eslint-plugin-react-hooks": "^6.1.1",
+    "eslint-plugin-sonarjs": "^4.0.2",
+    "eslint-plugin-unicorn": "^63.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.3",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.8.0",
+    "typescript-eslint": "^8.57.0",
     "vitest": "^3.0.0"
   },
   "dependencies": {

@@ -29,6 +29,9 @@
     },
     {
       "path": "./tsconfig.webview.json"
+    },
+    {
+      "path": "./tsconfig.test.json"
     }
   ]
 }

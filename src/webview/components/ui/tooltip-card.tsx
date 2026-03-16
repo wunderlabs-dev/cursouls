@@ -1,5 +1,4 @@
 import type { TooltipData } from "@web/bridge/types";
-import truncate from "lodash.truncate";
 import {
   TOOLTIP_ELAPSED_LABEL,
   TOOLTIP_STATUS_LABEL,
@@ -8,18 +7,17 @@ import {
   TOOLTIP_VALUE_MAX_LENGTH,
 } from "@web/constants";
 import { cn } from "@web/utils/helpers";
+import truncate from "lodash.truncate";
+import type { JSX } from "react";
 
 interface TooltipCardProps {
   tooltip?: TooltipData;
 }
 
-export function TooltipCard({ tooltip }: TooltipCardProps) {
+export function TooltipCard({ tooltip }: TooltipCardProps): JSX.Element {
   return (
     <aside
-      className={cn(
-        "rounded-lg border border-[#3d3229] bg-[#16120ef9] p-2",
-        !tooltip && "hidden",
-      )}
+      className={cn("rounded-lg border border-[#3d3229] bg-[#16120ef9] p-2", !tooltip && "hidden")}
       aria-live="polite"
     >
       {tooltip ? (
@@ -35,7 +33,7 @@ export function TooltipCard({ tooltip }: TooltipCardProps) {
   );
 }
 
-function TooltipLine({ label, value }: { label: string; value: string }) {
+function TooltipLine({ label, value }: { label: string; value: string }): JSX.Element {
   return (
     <div className="mb-1 flex items-center justify-between text-[11px]">
       <span className="text-[#b8aa96]">{label}</span>

@@ -1,29 +1,33 @@
 import {
+  type AgentAnchor,
   BRIDGE_INBOUND_TYPE,
   BRIDGE_OUTBOUND_TYPE,
   safeParseInboundBridgeMessage,
-  type AgentAnchor,
 } from "@shared/bridge";
 import type { InboundMessage, OutboundMessage } from "./types";
 
 type MessageListener = (message: InboundMessage) => void;
 
-type VsCodeApi = {
+interface VsCodeApi {
   postMessage(message: OutboundMessage): void;
-};
+}
 
 declare function acquireVsCodeApi(): VsCodeApi;
 
 const MAX_INVALID_MESSAGE_LOGS = 5;
 
-type PendingMessageBuffer = {
+interface PendingMessageBuffer {
   latestFrame: Extract<InboundMessage, { type: typeof BRIDGE_INBOUND_TYPE.sceneFrame }> | undefined;
-  latestTooltip: Extract<InboundMessage, { type: typeof BRIDGE_INBOUND_TYPE.tooltipData }> | undefined;
-  hideTooltip: Extract<InboundMessage, { type: typeof BRIDGE_INBOUND_TYPE.hideTooltip }> | undefined;
+  latestTooltip:
+    | Extract<InboundMessage, { type: typeof BRIDGE_INBOUND_TYPE.tooltipData }>
+    | undefined;
+  hideTooltip:
+    | Extract<InboundMessage, { type: typeof BRIDGE_INBOUND_TYPE.hideTooltip }>
+    | undefined;
   latestLifecycleEvents:
     | Extract<InboundMessage, { type: typeof BRIDGE_INBOUND_TYPE.lifecycleEvents }>
     | undefined;
-};
+}
 
 export interface VsCodeBridge {
   postReady(): void;
@@ -35,43 +39,32 @@ export interface VsCodeBridge {
 export function createBridge(): VsCodeBridge {
   const vscode = acquireVsCodeApi();
   const listeners = new Set<MessageListener>();
-  const pending: PendingMessageBuffer = {
-    latestFrame: undefined,
-    latestTooltip: undefined,
-    hideTooltip: undefined,
-    latestLifecycleEvents: undefined,
-  };
-  let invalidMessageLogCount = 0;
+  const pending = createEmptyBuffer();
+  let invalidCount = 0;
 
   const onWindowMessage = (event: MessageEvent<unknown>): void => {
     const message = parseInboundMessage(event.data, (reason) => {
-      if (invalidMessageLogCount >= MAX_INVALID_MESSAGE_LOGS) {
-        return;
+      if (invalidCount < MAX_INVALID_MESSAGE_LOGS) {
+        invalidCount += 1;
+        console.warn(`[cursor-cafe] Ignoring malformed inbound message: ${reason}`);
       }
-      invalidMessageLogCount += 1;
-      console.warn(`[cursor-cafe] Ignoring malformed inbound message: ${reason}`);
     });
-    if (!message) {
-      return;
-    }
+    if (!message) return;
     if (listeners.size === 0) {
       bufferMessage(pending, message);
       return;
     }
-    listeners.forEach((listener) => {
+    for (const listener of listeners) {
       listener(message);
-    });
+    }
   };
 
   window.addEventListener("message", onWindowMessage);
 
   return {
-    postReady(): void {
-      vscode.postMessage({ type: BRIDGE_OUTBOUND_TYPE.ready });
-    },
-    postAgentClick(agentId: string, anchor: AgentAnchor): void {
-      vscode.postMessage({ type: BRIDGE_OUTBOUND_TYPE.agentClick, agentId, anchor });
-    },
+    postReady: () => vscode.postMessage({ type: BRIDGE_OUTBOUND_TYPE.ready }),
+    postAgentClick: (agentId, anchor) =>
+      vscode.postMessage({ type: BRIDGE_OUTBOUND_TYPE.agentClick, agentId, anchor }),
     subscribe(listener: MessageListener): () => void {
       listeners.add(listener);
       flushBufferedMessages(listener, pending);
@@ -84,6 +77,15 @@ export function createBridge(): VsCodeBridge {
       clearBufferedMessages(pending);
       window.removeEventListener("message", onWindowMessage);
     },
+  };
+}
+
+function createEmptyBuffer(): PendingMessageBuffer {
+  return {
+    latestFrame: undefined,
+    latestTooltip: undefined,
+    hideTooltip: undefined,
+    latestLifecycleEvents: undefined,
   };
 }
 
@@ -105,29 +107,22 @@ function bufferMessage(buffer: PendingMessageBuffer, message: InboundMessage): v
     buffer.latestFrame = message;
     return;
   }
-
   if (message.type === BRIDGE_INBOUND_TYPE.tooltipData) {
     buffer.latestTooltip = message;
     buffer.hideTooltip = undefined;
     return;
   }
-
   if (message.type === BRIDGE_INBOUND_TYPE.hideTooltip) {
     buffer.latestTooltip = undefined;
     buffer.hideTooltip = message;
     return;
   }
-
   buffer.latestLifecycleEvents = message;
 }
 
 function flushBufferedMessages(listener: MessageListener, buffer: PendingMessageBuffer): void {
-  if (buffer.latestFrame) {
-    listener(buffer.latestFrame);
-  }
-  if (buffer.latestLifecycleEvents) {
-    listener(buffer.latestLifecycleEvents);
-  }
+  if (buffer.latestFrame) listener(buffer.latestFrame);
+  if (buffer.latestLifecycleEvents) listener(buffer.latestLifecycleEvents);
   if (buffer.latestTooltip) {
     listener(buffer.latestTooltip);
   } else if (buffer.hideTooltip) {

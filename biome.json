@@ -17,7 +17,31 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "correctness": {
+        "noUnusedVariables": "off"
+      },
+      "style": {
+        "noParameterAssign": "error",
+        "noDefaultExport": "error",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["../*"],
+                "message": "Use @ext/*, @web/*, or @shared/* path aliases instead of parent-relative imports."
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      "cssModules": false,
+      "tailwindDirectives": true
     }
   },
   "javascript": {
@@ -29,11 +53,23 @@
       "arrowParentheses": "always"
     }
   },
+  "overrides": [
+    {
+      "includes": ["*.config.ts", "*.config.js", "*.config.cjs", "esbuild.mjs"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    }
+  ],
   "assist": {
     "enabled": true,
     "actions": {
       "source": {
-        "organizeImports": "off"
+        "organizeImports": "on"
       }
     }
   }

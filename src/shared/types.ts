@@ -54,4 +54,3 @@ export interface SceneFrame {
   queue: readonly AgentSnapshot[];
   health: SourceHealth;
 }
-

@@ -1,9 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BRIDGE_INBOUND_TYPE } from "@shared/bridge";
-import { AGENT_KIND, AGENT_LIFECYCLE_EVENT_KIND, AGENT_SOURCE_KIND, AGENT_STATUS } from "@shared/types";
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
+import {
+  AGENT_KIND,
+  AGENT_LIFECYCLE_EVENT_KIND,
+  AGENT_SOURCE_KIND,
+  AGENT_STATUS,
+} from "@shared/types";
 import { createBridge } from "@web/bridge/bridge";
 import type { InboundMessage } from "@web/bridge/types";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type MessageHandler = (event: MessageEvent<unknown>) => void;
 

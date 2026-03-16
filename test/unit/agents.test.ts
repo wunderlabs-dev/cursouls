@@ -1,12 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
-import { AGENT_LIFECYCLE_EVENT_KIND } from "@shared/types";
 import {
-  createObserver,
-  WATCH_LIFECYCLE_KIND,
   type CanonicalAgentSnapshot,
+  createObserver,
   type ObserverChangeEvent,
   type TranscriptProvider,
+  WATCH_LIFECYCLE_KIND,
 } from "@agentprobe/core";
+import { AGENT_LIFECYCLE_EVENT_KIND } from "@shared/types";
+import { describe, expect, it, vi } from "vitest";
 
 interface TestAgent {
   id: string;
@@ -14,7 +14,9 @@ interface TestAgent {
 }
 
 function createMockProvider(
-  readSnapshotFn: () => Promise<{ agents: CanonicalAgentSnapshot[] }> | { agents: CanonicalAgentSnapshot[] },
+  readSnapshotFn: () =>
+    | Promise<{ agents: CanonicalAgentSnapshot[] }>
+    | { agents: CanonicalAgentSnapshot[] },
 ): TranscriptProvider {
   return {
     id: "mock",
@@ -25,7 +27,7 @@ function createMockProvider(
       records: [],
       health: { connected: true, sourceLabel: "test-source", warnings: [] },
     }),
-    normalize: async (_readResult, now) => {
+    normalize: async (_readResult, _now) => {
       const result = await readSnapshotFn();
       return {
         agents: result.agents,
@@ -74,8 +76,8 @@ describe("observer facade", () => {
 
     const joined = seen.find((e) => e.change.kind === AGENT_LIFECYCLE_EVENT_KIND.joined);
     expect(joined).toBeDefined();
-    expect(joined!.agent.id).toBe("a-1");
-    expect(joined!.snapshot.agents[0]?.id).toBe("a-1");
+    expect(joined?.agent.id).toBe("a-1");
+    expect(joined?.snapshot.agents[0]?.id).toBe("a-1");
   });
 
   it("delivers lifecycle kind through subscribe", async () => {
@@ -108,9 +110,7 @@ describe("observer facade", () => {
     const provider = createMockProvider(() => {
       callCount += 1;
       return {
-        agents: [
-          toSnapshot({ id: "a-1", status: callCount <= 1 ? "running" : "idle" }),
-        ],
+        agents: [toSnapshot({ id: "a-1", status: callCount <= 1 ? "running" : "idle" })],
       };
     });
 

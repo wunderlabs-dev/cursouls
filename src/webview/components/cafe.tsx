@@ -1,11 +1,12 @@
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import type { TooltipData } from "@web/bridge/types";
-import { INITIALIZING_LABEL } from "@web/constants";
 import { CafeScene } from "@web/components/scene/cafe-scene";
 import { ActivityFeed } from "@web/components/ui/activity-feed";
 import { HealthBanner } from "@web/components/ui/health-banner";
 import { QueueStrip } from "@web/components/ui/queue-strip";
 import { TooltipCard } from "@web/components/ui/tooltip-card";
+import { INITIALIZING_LABEL } from "@web/constants";
+import type { JSX } from "react";
 
 interface CafeProps {
   frame?: SceneFrame;
@@ -23,7 +24,7 @@ export function Cafe({
   agentNames,
   onSeatClick,
   onQueueClick,
-}: CafeProps) {
+}: CafeProps): JSX.Element {
   return (
     <main
       className="grid h-full min-h-0 grid-rows-[auto_1fr_auto_auto_auto] gap-1.5 p-1.5"

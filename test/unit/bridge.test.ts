@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   BRIDGE_AGENT_ANCHOR,
   BRIDGE_INBOUND_TYPE,
@@ -6,8 +5,14 @@ import {
   type InboundMessage,
   type OutboundMessage,
 } from "@shared/bridge";
-import { AGENT_KIND, AGENT_LIFECYCLE_EVENT_KIND, AGENT_SOURCE_KIND, AGENT_STATUS } from "@shared/types";
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
+import {
+  AGENT_KIND,
+  AGENT_LIFECYCLE_EVENT_KIND,
+  AGENT_SOURCE_KIND,
+  AGENT_STATUS,
+} from "@shared/types";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("vscode", () => ({}), { virtual: true });
 vi.mock("@ext/providers/html", () => ({

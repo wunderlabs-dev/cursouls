@@ -1,10 +1,8 @@
-import {
-  DEFAULT_REFRESH_MS,
-  EXTENSION_CONFIG_SECTION,
-  MAX_REFRESH_MS,
-  MIN_REFRESH_MS,
-  REFRESH_MS_CONFIG_KEY,
-} from "@shared/constants";
+const EXTENSION_CONFIG_SECTION = "cursorCafe";
+const REFRESH_MS_CONFIG_KEY = "refreshMs";
+const DEFAULT_REFRESH_MS = 250;
+const MIN_REFRESH_MS = 100;
+const MAX_REFRESH_MS = 10_000;
 
 export interface ConfigReader {
   get<T>(key: string, defaultValue?: T): T | undefined;

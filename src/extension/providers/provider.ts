@@ -10,7 +10,7 @@ import {
 import { findAgentInFrame } from "@shared/frame";
 import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
 import { formatDistanceToNowStrict, intervalToDuration } from "date-fns";
-import truncate from "lodash.truncate";
+import { truncate } from "lodash";
 import type * as vscode from "vscode";
 import { getWebviewHtml } from "./html";
 

@@ -48,15 +48,19 @@ export const Scene = () => {
 
           <div ref={gridRef} className="grid w-full grid-cols-4">
             {SCENE_GRID.map((cell, index) => {
-              const actor = actors.find((actor) => EMPTY_SLOTS[actor.tableIndex] === index);
+              if (cell) {
+                return (
+                  <AtlasStatic key={cell} atlasConfig={atlasConfig as AtlasConfig} actor={cell} />
+                );
+              }
 
-              return cell ? (
-                <AtlasStatic key={cell} atlasConfig={atlasConfig as AtlasConfig} actor={cell} />
-              ) : (actor ? (
-                <ActorAgent key={actor.id} status={actor.status} />
-              ) : (
-                <div key={index} className="col-span-1 aspect-square" />
-              ));
+              const actor = actors.find((a) => EMPTY_SLOTS[a.tableIndex] === index);
+
+              if (actor) {
+                return <ActorAgent key={actor.id} status={actor.status} />;
+              }
+
+              return <div key={index} className="col-span-1 aspect-square" />;
             })}
           </div>
         </SceneEnvironment>

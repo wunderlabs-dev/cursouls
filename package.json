@@ -69,9 +69,10 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "build": "npm run compile",
+    "assets:copy": "mkdir -p ./dist/static/fonts ./dist/static/images && cp ./src/static/fonts/* ./dist/static/fonts/ && cp ./src/static/images/* ./dist/static/images/",
     "css:build": "tailwindcss -i ./src/static/css/tailwind.css -o ./dist/webview.css --minify",
     "css:watch": "tailwindcss -i ./src/static/css/tailwind.css -o ./dist/webview.css --watch",
-    "compile": "npm run css:build && node esbuild.mjs",
+    "compile": "npm run css:build && npm run assets:copy && node esbuild.mjs",
     "watch": "npm run css:watch & node esbuild.mjs --watch",
     "format": "biome format --write ./src ./test",
     "lint": "biome lint ./src ./test",
@@ -96,7 +97,6 @@
   "dependencies": {
     "@agentprobe/core": "^0.1.5",
     "@types/lodash": "^4.17.24",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lodash": "^4.17.23",

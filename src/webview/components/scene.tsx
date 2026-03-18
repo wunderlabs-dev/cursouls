@@ -1,18 +1,57 @@
-// import { useMemo, useRef, useEffect } from "react";
-// import type { AgentLifecycleEvent, AgentSnapshot } from "@shared/types";
-// import { ACTIVITY_FEED_VISIBLE_LIMIT } from "@web/helpers/constants";
-// import { formatLifecycleEvent, isVisibleLifecycleEvent, lifecycleGlyph } from "@web/helpers/present";
+import { useEffect, useRef, useState } from "react";
+import { find, isNil, last } from "lodash";
 
-import { useAgents } from "@web/context/agents";
+import ActorAgent from "@web/components/actor-agent";
+import ActorBarista from "@web/components/actor-barista";
+import AtlasStatic from "@web/components/atlas-static";
+import SceneDialog from "@web/components/scene-dialog";
+import SceneEnvironment from "@web/components/scene-environment";
+import atlasConfig from "@web/data/atlas.json";
+import { DIALOG_TEXT, SCENE_GRID } from "@web/utils/constants";
 
+import type { Agent, AtlasConfig, SceneEnvironmentHandle } from "@web/types";
 
 export const Scene = () => {
-  const { agents, lifecycleEvents, agentNames } = useAgents();
+  const [agents] = useState<Agent[]>([]);
+  const [dialogText] = useState(DIALOG_TEXT.WELCOME);
+  const sceneRef = useRef<SceneEnvironmentHandle>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const latest = last(agents);
+
+    if (isNil(latest) || isNil(gridRef.current)) {
+      return;
+    }
+
+    const cell = gridRef.current.children[latest.slot] as HTMLElement;
+
+    sceneRef.current?.scrollTo(cell);
+  }, [agents]);
 
   return (
-    <main className="w-full min-h-screen flex py-4">
-      <div className="bg-cream flex-1 rounded-sm">
+    <div className="h-screen w-full bg-surface px-2 py-2 text-black font-sans select-none">
+      <div className="mx-auto flex h-full w-xl flex-col overflow-hidden rounded bg-cream">
+        <SceneEnvironment ref={sceneRef}>
+          <ActorBarista />
+
+          <div ref={gridRef} className="grid w-full grid-cols-4">
+            {SCENE_GRID.map((actor, index) => {
+              const agent = find(agents, { slot: index });
+
+              return actor ? (
+                <AtlasStatic key={actor} atlasConfig={atlasConfig as AtlasConfig} actor={actor} />
+              ) : agent ? (
+                <ActorAgent key={agent.id} ref={agent.ref} />
+              ) : (
+                <div className="col-span-1 aspect-square" />
+              );
+            })}
+          </div>
+        </SceneEnvironment>
+
+        <SceneDialog text={dialogText} />
       </div>
-    </main>
+    </div>
   );
-}
+};

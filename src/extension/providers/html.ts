@@ -16,7 +16,7 @@ export function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; img-src ${webview.cspSource} data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'nonce-${nonce}';"
+      content="default-src 'none'; img-src ${webview.cspSource} data:; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'nonce-${nonce}';"
     />
     <link rel="stylesheet" href="${globalCssUri}?v=${cacheBust}" />
     <title>Cursor Cafe</title>

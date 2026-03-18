@@ -1,11 +1,15 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import type { AgentLifecycleEvent, AgentSnapshot, SceneFrame } from "@shared/types";
+
 import { BRIDGE_INBOUND_TYPE } from "@shared/bridge";
+import type { AgentLifecycleEvent, AgentSnapshot, SceneFrame } from "@shared/types";
+
 import type { VsCodeBridge } from "@web/bridge/bridge";
-import { FEED_BUFFER_LIMIT } from "@web/helpers/constants";
+
+const FEED_BUFFER_LIMIT = 30;
 
 type AgentsContextValue = {
   agents: AgentSnapshot[];
+  frame: SceneFrame | null;
   lifecycleEvents: AgentLifecycleEvent[];
   agentNames: ReadonlyMap<string, string>;
 };
@@ -22,6 +26,7 @@ export const useAgents = (): AgentsContextValue => {
 
 export const AgentsProvider = ({ bridge, children }: { bridge: VsCodeBridge; children: ReactNode }) => {
   const [agents, setAgents] = useState<AgentSnapshot[]>([]);
+  const [frame, setFrame] = useState<SceneFrame | null>(null);
   const [lifecycleEvents, setLifecycleEvents] = useState<AgentLifecycleEvent[]>([]);
   const agentNames = useRef(new Map<string, string>());
   const lifecycleEventsRef = useRef<AgentLifecycleEvent[]>([]);
@@ -35,6 +40,7 @@ export const AgentsProvider = ({ bridge, children }: { bridge: VsCodeBridge; chi
       switch (message.type) {
         case BRIDGE_INBOUND_TYPE.sceneFrame:
           updateAgentNames(agentNames.current, message.frame, lifecycleEventsRef.current);
+          setFrame(message.frame);
           setAgents(collectAgents(message.frame));
           return;
         case BRIDGE_INBOUND_TYPE.lifecycleEvents:
@@ -52,14 +58,14 @@ export const AgentsProvider = ({ bridge, children }: { bridge: VsCodeBridge; chi
   }, [bridge]);
 
   return (
-    <AgentsContext.Provider value={{ agents, lifecycleEvents, agentNames: agentNames.current }}>
+    <AgentsContext.Provider value={{ agents, frame, lifecycleEvents, agentNames: agentNames.current }}>
       {children}
     </AgentsContext.Provider>
   );
 };
 
 const collectAgents = (frame: SceneFrame): AgentSnapshot[] => {
-  const seated = frame.seats.filter((s) => s.agent).map((s) => s.agent!);
+  const seated = frame.seats.flatMap((seat) => (seat.agent ? [seat.agent] : []));
   return [...seated, ...frame.queue];
 };
 

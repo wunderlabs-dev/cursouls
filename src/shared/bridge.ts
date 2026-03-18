@@ -1,5 +1,5 @@
+import type { CanonicalAgentSnapshot } from "@agentprobe/core";
 import { z } from "zod";
-import { type Actor, AGENT_STATUS } from "./types";
 
 export const BRIDGE_OUTBOUND_TYPE = {
   ready: "ready",
@@ -9,23 +9,26 @@ export const BRIDGE_INBOUND_TYPE = {
   agents: "agents",
 } as const;
 
-const agentStatusSchema = z.nativeEnum(AGENT_STATUS);
-
-const actorSchema: z.ZodType<Actor> = z
+const agentSnapshotSchema: z.ZodType<CanonicalAgentSnapshot> = z
   .object({
     id: z.string(),
-    status: agentStatusSchema,
+    name: z.string(),
+    kind: z.enum(["local", "remote"]),
+    isSubagent: z.boolean(),
+    status: z.enum(["running", "idle", "completed", "error"]),
     taskSummary: z.string(),
+    startedAt: z.number().optional(),
+    updatedAt: z.number(),
+    source: z.string(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
   })
-  .strict();
+  .passthrough();
 
 export const inboundBridgeMessageSchema = z.discriminatedUnion("type", [
-  z
-    .object({
-      type: z.literal(BRIDGE_INBOUND_TYPE.agents),
-      actors: z.array(actorSchema),
-    })
-    .strict(),
+  z.object({
+    type: z.literal(BRIDGE_INBOUND_TYPE.agents),
+    agents: z.array(agentSnapshotSchema),
+  }),
 ]);
 
 export const outboundBridgeMessageSchema = z.discriminatedUnion("type", [
@@ -41,12 +44,12 @@ export type OutboundMessage = z.infer<typeof outboundBridgeMessageSchema>;
 
 export function safeParseInboundBridgeMessage(
   value: unknown,
-): z.ZodSafeParseResult<InboundMessage> {
+): z.SafeParseReturnType<unknown, InboundMessage> {
   return inboundBridgeMessageSchema.safeParse(value);
 }
 
 export function safeParseOutboundBridgeMessage(
   value: unknown,
-): z.ZodSafeParseResult<OutboundMessage> {
+): z.SafeParseReturnType<unknown, OutboundMessage> {
   return outboundBridgeMessageSchema.safeParse(value);
 }

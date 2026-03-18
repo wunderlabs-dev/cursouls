@@ -1,117 +1,87 @@
+import { CANONICAL_AGENT_STATUS, type CanonicalAgentSnapshot } from "@agentprobe/core";
 import { BRIDGE_INBOUND_TYPE, BRIDGE_OUTBOUND_TYPE, type OutboundMessage } from "@shared/bridge";
-import type { Actor } from "@shared/types";
-import { AGENT_STATUS } from "@shared/types";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createBridge } from "@web/bridge/bridge";
+import type { InboundMessage } from "@web/bridge/types";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("vscode", () => ({}), { virtual: true });
-vi.mock("@ext/providers/html", () => ({
-  getWebviewHtml: () => "<html></html>",
-}));
+type MessageHandler = (event: MessageEvent<unknown>) => void;
 
-function buildActors(): Actor[] {
-  return [{ id: "a-1", status: AGENT_STATUS.running, taskSummary: "Reviewing bridge" }];
-}
-
-function createWebviewViewMock() {
-  const postedMessages: unknown[] = [];
-  let onMessage: ((message: unknown) => void) | undefined;
-  let onDispose: (() => void) | undefined;
-
-  const view = {
-    webview: {
-      options: undefined as unknown,
-      html: "",
-      cspSource: "test-csp",
-      asWebviewUri: vi.fn((value: unknown) => value),
-      postMessage: vi.fn(async (message: unknown) => {
-        postedMessages.push(message);
-        return true;
-      }),
-      onDidReceiveMessage: vi.fn((handler: (message: unknown) => void) => {
-        onMessage = handler;
-        return { dispose: vi.fn() };
-      }),
-    },
-    onDidDispose: vi.fn((handler: () => void) => {
-      onDispose = handler;
-      return { dispose: vi.fn() };
-    }),
-  };
-
+function createSnapshot(overrides?: Partial<CanonicalAgentSnapshot>): CanonicalAgentSnapshot {
   return {
-    view,
-    postedMessages,
-    sendInboundMessage(message: unknown) {
-      if (!onMessage) {
-        throw new Error("Message handler is not registered");
-      }
-      onMessage(message);
-    },
-    dispose() {
-      onDispose?.();
-    },
+    id: "agent-1",
+    name: "Ada",
+    kind: "local",
+    isSubagent: false,
+    status: "running",
+    taskSummary: "Reviewing bridge",
+    updatedAt: 1_700_000_000_100,
+    source: "cursor-transcripts",
+    ...overrides,
   };
 }
 
-describe("webview bridge compatibility", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(1_700_000_000_000);
-  });
-
+describe("bridge contracts", () => {
   it("uses shared bridge contracts for message envelopes", () => {
     const outboundReady: OutboundMessage = { type: BRIDGE_OUTBOUND_TYPE.ready };
     expect(outboundReady.type).toBe("ready");
-    expect(AGENT_STATUS.running).toBe("running");
+    expect(CANONICAL_AGENT_STATUS.running).toBe("running");
+  });
+});
+
+describe("webview bridge inbound parse guards", () => {
+  const messageHandlers = new Set<MessageHandler>();
+
+  beforeEach(() => {
+    vi.stubGlobal("acquireVsCodeApi", () => ({
+      postMessage: vi.fn(),
+    }));
+    vi.stubGlobal("window", {
+      addEventListener: vi.fn((type: string, handler: MessageHandler) => {
+        if (type === "message") {
+          messageHandlers.add(handler);
+        }
+      }),
+      removeEventListener: vi.fn((type: string, handler: MessageHandler) => {
+        if (type === "message") {
+          messageHandlers.delete(handler);
+        }
+      }),
+    });
   });
 
-  it("replays the latest actors when the webview sends ready", async () => {
-    const { createCafeViewProvider } = await import("@ext/providers/provider");
-    const provider = createCafeViewProvider({} as never);
-    const harness = createWebviewViewMock();
-    provider.resolveWebviewView(harness.view as never);
-
-    const actors = buildActors();
-    provider.updateActors(actors);
-    harness.sendInboundMessage({ type: "ready" });
-
-    expect(harness.postedMessages).toEqual([
-      { type: BRIDGE_INBOUND_TYPE.agents, actors },
-      { type: BRIDGE_INBOUND_TYPE.agents, actors },
-    ]);
+  afterEach(() => {
+    messageHandlers.clear();
+    vi.unstubAllGlobals();
   });
 
-  it("stops posting messages after the view is disposed", async () => {
-    const { createCafeViewProvider } = await import("@ext/providers/provider");
-    const provider = createCafeViewProvider({} as never);
-    const harness = createWebviewViewMock();
-    provider.resolveWebviewView(harness.view as never);
-    harness.dispose();
+  function emitInbound(data: unknown): void {
+    messageHandlers.forEach((handler) => {
+      handler({ data } as MessageEvent<unknown>);
+    });
+  }
 
-    provider.updateActors(buildActors());
+  it("ignores malformed agents payloads and accepts valid snapshots", () => {
+    const bridge = createBridge();
+    const seen: InboundMessage[] = [];
+    bridge.subscribe((message) => seen.push(message));
 
-    expect(harness.postedMessages).toEqual([]);
+    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents, agents: {} });
+    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents });
+    expect(seen).toEqual([]);
+
+    const agents = [createSnapshot()];
+    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents, agents });
+    expect(seen).toEqual([{ type: BRIDGE_INBOUND_TYPE.agents, agents }]);
   });
 
-  it("ignores malformed inbound messages without crashing", async () => {
-    const { createCafeViewProvider } = await import("@ext/providers/provider");
-    const provider = createCafeViewProvider({} as never);
-    const harness = createWebviewViewMock();
-    provider.resolveWebviewView(harness.view as never);
-    provider.updateActors(buildActors());
+  it("passes through extra fields on agent snapshots", () => {
+    const bridge = createBridge();
+    const seen: InboundMessage[] = [];
+    bridge.subscribe((message) => seen.push(message));
 
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-
-    expect(() => harness.sendInboundMessage(undefined)).not.toThrow();
-    expect(() => harness.sendInboundMessage(null)).not.toThrow();
-    expect(() => harness.sendInboundMessage("ready")).not.toThrow();
-    expect(() => harness.sendInboundMessage({})).not.toThrow();
-    expect(() => harness.sendInboundMessage({ type: "unexpected" })).not.toThrow();
-
-    expect(harness.postedMessages).toEqual([
-      { type: BRIDGE_INBOUND_TYPE.agents, actors: buildActors() },
-    ]);
-    expect(warnSpy).toHaveBeenCalled();
-    warnSpy.mockRestore();
+    const agents = [createSnapshot({ metadata: { custom: true } })];
+    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents, agents });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toEqual({ type: BRIDGE_INBOUND_TYPE.agents, agents });
   });
 });

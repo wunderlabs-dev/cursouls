@@ -1,9 +1,12 @@
 import { type ReactNode, forwardRef, useImperativeHandle } from "react";
+import { motion } from "framer-motion";
 import { twMerge } from "tailwind-merge";
 
-import { useSceneDrag } from "../hooks/use-scene-drag";
+import { SCENE_DRAG } from "@web/utils/constants";
 
-import type { SceneEnvironmentHandle } from "../types";
+import { useSceneDrag } from "@web/hooks/use-scene-drag";
+
+import type { SceneEnvironmentHandle } from "@web/types";
 
 interface SceneEnvironmentProps {
   children: ReactNode;
@@ -11,21 +14,25 @@ interface SceneEnvironmentProps {
 
 const SceneEnvironment = forwardRef<SceneEnvironmentHandle, SceneEnvironmentProps>(
   ({ children }, ref) => {
-    const { constraintsRef, contentRef, canDrag, scrollTo } = useSceneDrag();
+    const { y, constraintsRef, contentRef, canDrag, scrollTo } = useSceneDrag();
 
     useImperativeHandle(ref, () => ({ scrollTo }), [scrollTo]);
 
     return (
-      <div ref={constraintsRef} className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div
+      <div ref={constraintsRef} className="flex-1 overflow-hidden">
+        <motion.div
           ref={contentRef}
+          style={{ y }}
           className={twMerge(
             "flex flex-col gap-4 px-8",
             canDrag ? "cursor-grab active:cursor-grabbing" : undefined,
           )}
+          drag={canDrag ? "y" : undefined}
+          dragConstraints={constraintsRef}
+          {...SCENE_DRAG}
         >
           {children}
-        </div>
+        </motion.div>
       </div>
     );
   },

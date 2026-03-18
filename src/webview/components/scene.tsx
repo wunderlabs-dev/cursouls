@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { find, isNil, last } from "lodash";
 
+import atlasConfig from "@web/data/atlas.json";
+
+import { DIALOG_TEXT, SCENE_GRID } from "@web/utils/constants";
+
+import type { Agent, AtlasConfig, SceneEnvironmentHandle } from "@web/types";
+
 import ActorAgent from "@web/components/actor-agent";
 import ActorBarista from "@web/components/actor-barista";
 import AtlasStatic from "@web/components/atlas-static";
 import SceneDialog from "@web/components/scene-dialog";
 import SceneEnvironment from "@web/components/scene-environment";
-import atlasConfig from "@web/data/atlas.json";
-import { DIALOG_TEXT, SCENE_GRID } from "@web/utils/constants";
-
-import type { Agent, AtlasConfig, SceneEnvironmentHandle } from "@web/types";
 
 export const Scene = () => {
   const [agents] = useState<Agent[]>([]);

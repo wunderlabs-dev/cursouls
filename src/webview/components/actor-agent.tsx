@@ -6,8 +6,8 @@ const Marquee = ((
   ReactFastMarquee as unknown as { default?: ComponentType<{ children?: ReactNode }> }
 ).default ?? ReactFastMarquee) as ComponentType<{ children?: ReactNode }>;
 
-import type { CanonicalAgentStatus } from "@agentprobe/core";
-import { CANONICAL_AGENT_STATUS } from "@agentprobe/core";
+import type { AgentStatus } from "@shared/types";
+import { AGENT_STATUS } from "@shared/types";
 import atlasConfig from "@web/data/atlas.json";
 import type { AtlasConfig, AtlasSpriteHandle } from "@web/types";
 import { AGENT_SKINS } from "@web/utils/constants";
@@ -16,14 +16,14 @@ import { Animation } from "./animation";
 import { AtlasSprite } from "./atlas-sprite";
 
 const AGENT_STATUS_ANIMATION: Record<string, string> = {
-  [CANONICAL_AGENT_STATUS.running]: "working",
-  [CANONICAL_AGENT_STATUS.idle]: "idle",
-  [CANONICAL_AGENT_STATUS.completed]: "task-complete",
-  [CANONICAL_AGENT_STATUS.error]: "task-failed",
+  [AGENT_STATUS.running]: "working",
+  [AGENT_STATUS.idle]: "idle",
+  [AGENT_STATUS.completed]: "task-complete",
+  [AGENT_STATUS.error]: "task-failed",
 };
 
 interface ActorAgentProps {
-  status: CanonicalAgentStatus;
+  status: AgentStatus;
   taskSummary: string;
 }
 

@@ -1,21 +1,16 @@
-import type { CanonicalAgentSnapshot } from "@agentprobe/core";
 import { BRIDGE_INBOUND_TYPE } from "@shared/bridge";
+import type { AgentSnapshot } from "@shared/types";
 import { createBridge } from "@web/bridge/bridge";
 import type { InboundMessage } from "@web/bridge/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type MessageHandler = (event: MessageEvent<unknown>) => void;
 
-function createSnapshot(overrides?: Partial<CanonicalAgentSnapshot>): CanonicalAgentSnapshot {
+function createSnapshot(overrides?: Partial<AgentSnapshot>): AgentSnapshot {
   return {
     id: "a-1",
-    name: "Guard Agent",
-    kind: "local",
-    isSubagent: false,
     status: "running",
     taskSummary: "Working",
-    updatedAt: 1_700_000_000_000,
-    source: "cursor-transcripts",
     ...overrides,
   };
 }

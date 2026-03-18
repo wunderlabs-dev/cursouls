@@ -1,12 +1,12 @@
-import type { CanonicalAgentSnapshot } from "@agentprobe/core";
 import { BRIDGE_INBOUND_TYPE } from "@shared/bridge";
+import type { AgentSnapshot } from "@shared/types";
 
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import { isNil } from "lodash";
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 
 interface AgentsContextValue {
-  agents: CanonicalAgentSnapshot[];
+  agents: AgentSnapshot[];
 }
 
 const AgentsContext = createContext<AgentsContextValue | null>(null);
@@ -27,7 +27,7 @@ export const AgentsProvider = ({
   bridge: VsCodeBridge;
   children: ReactNode;
 }) => {
-  const [agents, setAgents] = useState<CanonicalAgentSnapshot[]>([]);
+  const [agents, setAgents] = useState<AgentSnapshot[]>([]);
 
   useEffect(() => {
     const unsubscribe = bridge.subscribe((message) => {

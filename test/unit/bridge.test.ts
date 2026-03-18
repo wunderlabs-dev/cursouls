@@ -1,5 +1,6 @@
-import { CANONICAL_AGENT_STATUS, type CanonicalAgentSnapshot } from "@agentprobe/core";
 import { BRIDGE_INBOUND_TYPE, BRIDGE_OUTBOUND_TYPE, type OutboundMessage } from "@shared/bridge";
+import type { AgentSnapshot } from "@shared/types";
+import { AGENT_STATUS } from "@shared/types";
 import { createBridge } from "@web/bridge/bridge";
 import type { InboundMessage } from "@web/bridge/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,16 +12,11 @@ vi.mock("@ext/providers/html", () => ({
 
 type MessageHandler = (event: MessageEvent<unknown>) => void;
 
-function createSnapshot(overrides?: Partial<CanonicalAgentSnapshot>): CanonicalAgentSnapshot {
+function createSnapshot(overrides?: Partial<AgentSnapshot>): AgentSnapshot {
   return {
     id: "agent-1",
-    name: "Ada",
-    kind: "local",
-    isSubagent: false,
     status: "running",
     taskSummary: "Reviewing bridge",
-    updatedAt: 1_700_000_000_100,
-    source: "cursor-transcripts",
     ...overrides,
   };
 }
@@ -29,7 +25,7 @@ describe("bridge contracts", () => {
   it("uses shared bridge contracts for message envelopes", () => {
     const outboundReady: OutboundMessage = { type: BRIDGE_OUTBOUND_TYPE.ready };
     expect(outboundReady.type).toBe("ready");
-    expect(CANONICAL_AGENT_STATUS.running).toBe("running");
+    expect(AGENT_STATUS.running).toBe("running");
   });
 });
 
@@ -77,17 +73,6 @@ describe("webview bridge inbound parse guards", () => {
     const agents = [createSnapshot()];
     emitInbound({ type: BRIDGE_INBOUND_TYPE.agents, agents });
     expect(seen).toEqual([{ type: BRIDGE_INBOUND_TYPE.agents, agents }]);
-  });
-
-  it("passes through extra fields on agent snapshots", () => {
-    const bridge = createBridge();
-    const seen: InboundMessage[] = [];
-    bridge.subscribe((message) => seen.push(message));
-
-    const agents = [createSnapshot({ metadata: { custom: true } })];
-    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents, agents });
-    expect(seen).toHaveLength(1);
-    expect(seen[0]).toEqual({ type: BRIDGE_INBOUND_TYPE.agents, agents });
   });
 });
 

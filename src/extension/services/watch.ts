@@ -1,5 +1,4 @@
 import {
-  type CanonicalAgentSnapshot,
   createObserver,
   isWatchRuntimeError,
   type Observer,
@@ -8,8 +7,9 @@ import {
 } from "@agentprobe/core";
 import { formatUnknownError } from "@ext/errors";
 import type { Logger } from "@ext/logging";
+import type { AgentSnapshot } from "@shared/types";
 
-export type AgentsListener = (agents: CanonicalAgentSnapshot[]) => void;
+export type AgentsListener = (agents: AgentSnapshot[]) => void;
 export type ErrorListener = (error: unknown) => void;
 
 export interface WatchControllerOptions {
@@ -23,7 +23,7 @@ export interface WatchControllerOptions {
 export interface WatchController {
   start(): Promise<void>;
   stop(): Promise<void>;
-  refreshNow(): Promise<CanonicalAgentSnapshot[]>;
+  refreshNow(): Promise<AgentSnapshot[]>;
   onAgents(listener: AgentsListener): () => void;
   onError(listener: ErrorListener): () => void;
 }
@@ -52,7 +52,7 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
   };
 }
 
-async function refreshNow(observer: Observer): Promise<CanonicalAgentSnapshot[]> {
+async function refreshNow(observer: Observer): Promise<AgentSnapshot[]> {
   try {
     const snapshot = await observer.refreshNow();
     return snapshot.agents;

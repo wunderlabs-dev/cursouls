@@ -1,5 +1,5 @@
-import type { CanonicalAgentSnapshot } from "@agentprobe/core";
 import { z } from "zod";
+import { AGENT_STATUS } from "./types";
 
 export const BRIDGE_OUTBOUND_TYPE = {
   ready: "ready",
@@ -9,20 +9,16 @@ export const BRIDGE_INBOUND_TYPE = {
   agents: "agents",
 } as const;
 
-const agentSnapshotSchema: z.ZodType<CanonicalAgentSnapshot> = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    kind: z.enum(["local", "remote"]),
-    isSubagent: z.boolean(),
-    status: z.enum(["running", "idle", "completed", "error"]),
-    taskSummary: z.string(),
-    startedAt: z.number().optional(),
-    updatedAt: z.number(),
-    source: z.string(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
-  })
-  .passthrough();
+const agentSnapshotSchema = z.object({
+  id: z.string(),
+  status: z.enum([
+    AGENT_STATUS.running,
+    AGENT_STATUS.idle,
+    AGENT_STATUS.completed,
+    AGENT_STATUS.error,
+  ]),
+  taskSummary: z.string(),
+});
 
 export const inboundBridgeMessageSchema = z.discriminatedUnion("type", [
   z.object({

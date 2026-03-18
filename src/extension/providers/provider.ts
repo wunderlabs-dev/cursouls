@@ -1,4 +1,3 @@
-import type { CanonicalAgentSnapshot } from "@agentprobe/core";
 import { formatUnknown } from "@ext/errors";
 import {
   BRIDGE_INBOUND_TYPE,
@@ -6,18 +5,19 @@ import {
   type InboundMessage,
   safeParseOutboundBridgeMessage,
 } from "@shared/bridge";
+import type { AgentSnapshot } from "@shared/types";
 import type * as vscode from "vscode";
 import { getWebviewHtml } from "./html";
 
 export const CAFE_VIEW_TYPE = "cursorCafe.sidebar";
 
 export interface CafeViewProvider extends vscode.WebviewViewProvider {
-  updateAgents(agents: CanonicalAgentSnapshot[]): void;
+  updateAgents(agents: AgentSnapshot[]): void;
 }
 
 interface ProviderState {
   view?: vscode.WebviewView;
-  latestAgents?: CanonicalAgentSnapshot[];
+  latestAgents?: AgentSnapshot[];
 }
 
 export function createCafeViewProvider(
@@ -41,7 +41,7 @@ export function createCafeViewProvider(
         handleOutboundMessage(msg, state, post, logger),
       );
     },
-    updateAgents(agents: CanonicalAgentSnapshot[]): void {
+    updateAgents(agents: AgentSnapshot[]): void {
       state.latestAgents = agents;
       post({ type: BRIDGE_INBOUND_TYPE.agents, agents });
     },

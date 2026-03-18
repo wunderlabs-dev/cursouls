@@ -12,18 +12,6 @@ declare function acquireVsCodeApi(): VsCodeApi;
 
 const MAX_INVALID_MESSAGE_LOGS = 5;
 
-interface ParseSuccess {
-  readonly success: true;
-  readonly data: InboundMessage;
-}
-
-interface ParseFailure {
-  readonly success: false;
-  readonly error: { readonly issues: ReadonlyArray<{ readonly message: string }> };
-}
-
-type ParseResult = ParseSuccess | ParseFailure;
-
 export interface VsCodeBridge {
   postReady(): void;
   subscribe(listener: MessageListener): () => void;
@@ -37,7 +25,7 @@ export const createBridge = (): VsCodeBridge => {
   let invalidMessageLogCount = 0;
 
   const onWindowMessage = (event: MessageEvent<unknown>): void => {
-    const result = safeParseInboundBridgeMessage(event.data) as ParseResult;
+    const result = safeParseInboundBridgeMessage(event.data);
     if (!result.success) {
       if (invalidMessageLogCount < MAX_INVALID_MESSAGE_LOGS) {
         invalidMessageLogCount += 1;

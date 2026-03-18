@@ -3,15 +3,7 @@ import { EVENT_KIND } from "@shared/types";
 
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import { isNil } from "lodash";
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 
 interface AgentsContextValue {
   agents: AgentSnapshot[];
@@ -35,28 +27,23 @@ export const AgentsProvider = ({
   bridge: VsCodeBridge;
   children: ReactNode;
 }) => {
-  const agentsById = useRef(new Map<string, AgentSnapshot>());
   const [agents, setAgents] = useState<AgentSnapshot[]>([]);
-
-  const sync = useCallback(() => {
-    setAgents([...agentsById.current.values()]);
-  }, []);
 
   useEffect(() => {
     const unsubscribe = bridge.subscribe((message) => {
       const { kind, agent } = message;
 
-      if (kind === EVENT_KIND.joined || kind === EVENT_KIND.statusChanged) {
-        agentsById.current.set(agent.id, agent);
-      } else if (kind === EVENT_KIND.left) {
-        agentsById.current.delete(agent.id);
-      }
-
-      sync();
+      setAgents((prev) => {
+        if (kind === EVENT_KIND.left) {
+          return prev.filter((a) => a.id !== agent.id);
+        }
+        const without = prev.filter((a) => a.id !== agent.id);
+        return [...without, agent];
+      });
     });
     bridge.postReady();
     return () => unsubscribe();
-  }, [bridge, sync]);
+  }, [bridge]);
 
   return <AgentsContext.Provider value={{ agents }}>{children}</AgentsContext.Provider>;
 };

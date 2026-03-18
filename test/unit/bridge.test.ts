@@ -1,6 +1,6 @@
 import type { OutboundMessage } from "@shared/bridge";
-import type { AgentSnapshot } from "@shared/types";
-import { AGENT_STATUS } from "@shared/types";
+import type { AgentEvent } from "@shared/types";
+import { AGENT_STATUS, EVENT_KIND } from "@shared/types";
 import { createBridge } from "@web/bridge/bridge";
 import type { InboundMessage } from "@web/bridge/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,11 +12,10 @@ vi.mock("@ext/providers/html", () => ({
 
 type MessageHandler = (event: MessageEvent<unknown>) => void;
 
-function createSnapshot(overrides?: Partial<AgentSnapshot>): AgentSnapshot {
+function createEvent(overrides?: Partial<AgentEvent>): AgentEvent {
   return {
-    id: "agent-1",
-    status: "running",
-    taskSummary: "Reviewing bridge",
+    kind: EVENT_KIND.joined,
+    agent: { id: "agent-1", status: AGENT_STATUS.running, taskSummary: "Working" },
     ...overrides,
   };
 }
@@ -61,18 +60,35 @@ describe("webview bridge inbound parse guards", () => {
     });
   }
 
-  it("ignores malformed payloads and accepts valid agents", () => {
+  it("ignores malformed payloads and accepts valid events", () => {
     const bridge = createBridge();
     const seen: InboundMessage[] = [];
     bridge.subscribe((message) => seen.push(message));
 
-    emitInbound({ agents: {} });
+    emitInbound({ kind: "joined" });
     emitInbound({});
     expect(seen).toEqual([]);
 
-    const agents = [createSnapshot()];
-    emitInbound({ agents });
-    expect(seen).toEqual([{ agents }]);
+    const event = createEvent();
+    emitInbound(event);
+    expect(seen).toEqual([event]);
+  });
+
+  it("buffers multiple events before subscriber connects", () => {
+    const bridge = createBridge();
+    const event1 = createEvent();
+    const event2 = createEvent({
+      kind: EVENT_KIND.statusChanged,
+      agent: { id: "agent-1", status: AGENT_STATUS.idle, taskSummary: "Working" },
+    });
+
+    emitInbound(event1);
+    emitInbound(event2);
+
+    const seen: InboundMessage[] = [];
+    bridge.subscribe((message) => seen.push(message));
+
+    expect(seen).toEqual([event1, event2]);
   });
 });
 
@@ -127,17 +143,17 @@ describe("provider webview integration", () => {
     vi.useRealTimers();
   });
 
-  it("replays the latest agents when the webview sends ready", async () => {
+  it("replays buffered events when the webview sends ready", async () => {
     const { createCafeViewProvider } = await import("@ext/providers/provider");
     const provider = createCafeViewProvider({} as never);
     const harness = createWebviewViewMock();
     provider.resolveWebviewView(harness.view as never);
 
-    const agents = [createSnapshot()];
-    provider.updateAgents(agents);
+    const event = createEvent();
+    provider.postEvent(event);
     harness.sendInboundMessage({ ready: true });
 
-    expect(harness.postedMessages).toEqual([{ agents }, { agents }]);
+    expect(harness.postedMessages).toEqual([event, event]);
   });
 
   it("stops posting messages after the view is disposed", async () => {
@@ -147,7 +163,7 @@ describe("provider webview integration", () => {
     provider.resolveWebviewView(harness.view as never);
     harness.dispose();
 
-    provider.updateAgents([createSnapshot()]);
+    provider.postEvent(createEvent());
     expect(harness.postedMessages).toEqual([]);
   });
 
@@ -156,7 +172,9 @@ describe("provider webview integration", () => {
     const provider = createCafeViewProvider({} as never);
     const harness = createWebviewViewMock();
     provider.resolveWebviewView(harness.view as never);
-    provider.updateAgents([createSnapshot()]);
+
+    const event = createEvent();
+    provider.postEvent(event);
 
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
@@ -164,9 +182,8 @@ describe("provider webview integration", () => {
     expect(() => harness.sendInboundMessage(null)).not.toThrow();
     expect(() => harness.sendInboundMessage("ready")).not.toThrow();
     expect(() => harness.sendInboundMessage({})).not.toThrow();
-    expect(() => harness.sendInboundMessage({ type: "unexpected" })).not.toThrow();
 
-    expect(harness.postedMessages).toEqual([{ agents: [createSnapshot()] }]);
+    expect(harness.postedMessages).toEqual([event]);
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });

@@ -3,13 +3,15 @@ import {
   isWatchRuntimeError,
   type Observer,
   type TranscriptProvider,
+  WATCH_LIFECYCLE_KIND,
   WATCH_RUNTIME_ERROR_CODES,
 } from "@agentprobe/core";
 import { formatUnknownError } from "@ext/errors";
 import type { Logger } from "@ext/logging";
-import type { AgentSnapshot } from "@shared/types";
+import type { AgentEvent } from "@shared/types";
+import { EVENT_KIND } from "@shared/types";
 
-export type AgentsListener = (agents: AgentSnapshot[]) => void;
+export type EventListener = (event: AgentEvent) => void;
 export type ErrorListener = (error: unknown) => void;
 
 export interface WatchControllerOptions {
@@ -23,21 +25,35 @@ export interface WatchControllerOptions {
 export interface WatchController {
   start(): Promise<void>;
   stop(): Promise<void>;
-  refreshNow(): Promise<AgentSnapshot[]>;
-  onAgents(listener: AgentsListener): () => void;
+  refreshNow(): Promise<void>;
+  onEvent(listener: EventListener): () => void;
   onError(listener: ErrorListener): () => void;
 }
 
+const LIFECYCLE_TO_EVENT: Record<string, AgentEvent["kind"] | undefined> = {
+  [WATCH_LIFECYCLE_KIND.joined]: EVENT_KIND.joined,
+  [WATCH_LIFECYCLE_KIND.statusChanged]: EVENT_KIND.statusChanged,
+  [WATCH_LIFECYCLE_KIND.left]: EVENT_KIND.left,
+};
+
 export function createWatchController(options: WatchControllerOptions): WatchController {
   const { logger } = options;
-  const agentsListeners = new Set<AgentsListener>();
+  const eventListeners = new Set<EventListener>();
   const errorListeners = new Set<ErrorListener>();
 
   const observer = buildObserver(options);
 
   observer.subscribe((event) => {
     try {
-      notifyListeners(agentsListeners, event.snapshot.agents, "agents", logger);
+      const kind = LIFECYCLE_TO_EVENT[event.change.kind];
+      if (!kind) return;
+
+      const agent = event.agent;
+      const agentEvent: AgentEvent = {
+        kind,
+        agent: { id: agent.id, status: agent.status, taskSummary: agent.taskSummary },
+      };
+      notifyListeners(eventListeners, agentEvent, "event", logger);
     } catch (error: unknown) {
       notifyListeners(errorListeners, error, "error", logger);
     }
@@ -47,15 +63,14 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
     start: () => observer.start(),
     stop: () => observer.stop(),
     refreshNow: () => refreshNow(observer),
-    onAgents: (listener) => addListener(agentsListeners, listener),
+    onEvent: (listener) => addListener(eventListeners, listener),
     onError: (listener) => addListener(errorListeners, listener),
   };
 }
 
-async function refreshNow(observer: Observer): Promise<AgentSnapshot[]> {
+async function refreshNow(observer: Observer): Promise<void> {
   try {
-    const snapshot = await observer.refreshNow();
-    return snapshot.agents;
+    await observer.refreshNow();
   } catch (error: unknown) {
     if (isStoppedBeforeRefresh(error)) {
       throw new Error("Watch controller stopped before refresh completed.", { cause: error });

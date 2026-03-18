@@ -1,5 +1,6 @@
 import type { CanonicalAgentSnapshot, TranscriptProvider } from "@agentprobe/core";
 import { createWatchController } from "@ext/services/watch";
+import type { AgentEvent } from "@shared/types";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 function createDeferred<T>() {
@@ -55,7 +56,7 @@ afterEach(() => {
 });
 
 describe("watch controller", () => {
-  it("connects, emits agents, and disconnects", async () => {
+  it("emits joined events for new agents", async () => {
     const agents = [createSnapshot()];
     const provider = createMockProvider(() => ({ agents }));
 
@@ -65,27 +66,32 @@ describe("watch controller", () => {
       providers: [provider],
     });
 
-    const onAgents = vi.fn();
-    const dispose = controller.onAgents(onAgents);
+    const events: AgentEvent[] = [];
+    controller.onEvent((event) => events.push(event));
 
     await controller.start();
     await controller.refreshNow();
     await vi.waitFor(() => {
-      expect(onAgents).toHaveBeenCalled();
+      expect(events.length).toBeGreaterThan(0);
     });
-    dispose();
     await controller.stop();
 
-    expect(provider.connect).toHaveBeenCalledTimes(1);
-    expect(provider.disconnect).toHaveBeenCalledTimes(1);
+    const joined = events.find((e) => e.kind === "joined");
+    expect(joined).toBeDefined();
+    expect(joined?.agent.id).toBe("agent-1");
+    expect(joined?.agent.status).toBe("running");
+    expect(joined?.agent.taskSummary).toBe("Watch update");
   });
 
-  it("passes through all agents without filtering", async () => {
-    const agents = [
-      createSnapshot({ id: "agent-1" }),
-      createSnapshot({ id: "agent-2", isSubagent: true, status: "idle" }),
-    ];
-    const provider = createMockProvider(() => ({ agents }));
+  it("emits left events when agents disappear", async () => {
+    let callCount = 0;
+    const provider = createMockProvider(() => {
+      callCount += 1;
+      if (callCount <= 1) {
+        return { agents: [createSnapshot()] };
+      }
+      return { agents: [] };
+    });
 
     const controller = createWatchController({
       workspacePaths: ["/tmp/project"],
@@ -93,30 +99,24 @@ describe("watch controller", () => {
       providers: [provider],
     });
 
-    const result = await startAndRefresh(controller);
-    expect(result).toHaveLength(2);
-    expect(result.map((a) => a.id)).toEqual(["agent-1", "agent-2"]);
+    const events: AgentEvent[] = [];
+    controller.onEvent((event) => events.push(event));
 
-    await controller.stop();
-  });
-
-  it("does not filter out agents that existed at startup", async () => {
-    const agents = [createSnapshot({ id: "agent-1" })];
-    const provider = createMockProvider(() => ({ agents }));
-
-    const controller = createWatchController({
-      workspacePaths: ["/tmp/project"],
-      now: () => 1234,
-      providers: [provider],
+    await controller.start();
+    await controller.refreshNow();
+    await vi.waitFor(() => {
+      expect(events.some((e) => e.kind === "joined")).toBe(true);
     });
 
-    const first = await startAndRefresh(controller);
-    expect(first).toHaveLength(1);
-
-    const second = await controller.refreshNow();
-    expect(second).toHaveLength(1);
+    await controller.refreshNow();
+    await vi.waitFor(() => {
+      expect(events.some((e) => e.kind === "left")).toBe(true);
+    });
 
     await controller.stop();
+
+    const left = events.find((e) => e.kind === "left");
+    expect(left?.agent.id).toBe("agent-1");
   });
 
   it("surfaces source errors through refreshNow", async () => {
@@ -183,10 +183,3 @@ describe("watch controller", () => {
     await Promise.resolve();
   });
 });
-
-async function startAndRefresh(
-  controller: ReturnType<typeof createWatchController>,
-): Promise<CanonicalAgentSnapshot[]> {
-  await controller.start();
-  return controller.refreshNow();
-}

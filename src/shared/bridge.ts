@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AGENT_STATUS } from "./types";
+import { AGENT_STATUS, EVENT_KIND } from "./types";
 
 const agentSnapshotSchema = z.object({
   id: z.string(),
@@ -12,9 +12,12 @@ const agentSnapshotSchema = z.object({
   taskSummary: z.string(),
 });
 
-export const inboundSchema = z.object({
-  agents: z.array(agentSnapshotSchema),
+const agentEventSchema = z.object({
+  kind: z.enum([EVENT_KIND.joined, EVENT_KIND.statusChanged, EVENT_KIND.left]),
+  agent: agentSnapshotSchema,
 });
+
+export const inboundSchema = agentEventSchema;
 
 export const outboundSchema = z.object({
   ready: z.literal(true),

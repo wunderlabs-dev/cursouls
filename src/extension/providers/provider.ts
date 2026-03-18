@@ -1,25 +1,25 @@
 import { formatUnknown } from "@ext/errors";
 import { type InboundMessage, safeParseOutbound } from "@shared/bridge";
-import type { AgentSnapshot } from "@shared/types";
+import type { AgentEvent } from "@shared/types";
 import type * as vscode from "vscode";
 import { getWebviewHtml } from "./html";
 
 export const CAFE_VIEW_TYPE = "cursorCafe.sidebar";
 
 export interface CafeViewProvider extends vscode.WebviewViewProvider {
-  updateAgents(agents: AgentSnapshot[]): void;
+  postEvent(event: AgentEvent): void;
 }
 
 interface ProviderState {
   view?: vscode.WebviewView;
-  latestAgents?: AgentSnapshot[];
+  bufferedEvents: AgentEvent[];
 }
 
 export function createCafeViewProvider(
   extensionUri: vscode.Uri,
   logger?: { warn(message: string): void },
 ): CafeViewProvider {
-  const state: ProviderState = {};
+  const state: ProviderState = { bufferedEvents: [] };
   const post = (message: InboundMessage): void => {
     if (state.view) void state.view.webview.postMessage(message);
   };
@@ -36,9 +36,9 @@ export function createCafeViewProvider(
         handleOutboundMessage(msg, state, post, logger),
       );
     },
-    updateAgents(agents: AgentSnapshot[]): void {
-      state.latestAgents = agents;
-      post({ agents });
+    postEvent(event: AgentEvent): void {
+      state.bufferedEvents.push(event);
+      post(event);
     },
   };
 }
@@ -54,8 +54,8 @@ function handleOutboundMessage(
     logInvalidMessage(parsed, message, logger);
     return;
   }
-  if (state.latestAgents) {
-    post({ agents: state.latestAgents });
+  for (const event of state.bufferedEvents) {
+    post(event);
   }
 }
 

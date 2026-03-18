@@ -21,7 +21,7 @@ export interface VsCodeBridge {
 export const createBridge = (): VsCodeBridge => {
   const vscode = acquireVsCodeApi();
   const listeners = new Set<MessageListener>();
-  let buffered: InboundMessage | undefined;
+  const buffered: InboundMessage[] = [];
   let invalidMessageLogCount = 0;
 
   const onWindowMessage = (event: MessageEvent<unknown>): void => {
@@ -36,7 +36,7 @@ export const createBridge = (): VsCodeBridge => {
     }
     const message = result.data;
     if (listeners.size === 0) {
-      buffered = message;
+      buffered.push(message);
       return;
     }
     for (const listener of listeners) {
@@ -52,17 +52,17 @@ export const createBridge = (): VsCodeBridge => {
     },
     subscribe(listener: MessageListener): () => void {
       listeners.add(listener);
-      if (buffered) {
-        listener(buffered);
-        buffered = undefined;
+      for (const event of buffered) {
+        listener(event);
       }
+      buffered.length = 0;
       return () => {
         listeners.delete(listener);
       };
     },
     dispose(): void {
       listeners.clear();
-      buffered = undefined;
+      buffered.length = 0;
       window.removeEventListener("message", onWindowMessage);
     },
   };

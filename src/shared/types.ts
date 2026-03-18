@@ -12,3 +12,16 @@ export interface AgentSnapshot {
   status: AgentStatus;
   taskSummary: string;
 }
+
+export const EVENT_KIND = {
+  joined: "joined",
+  statusChanged: "statusChanged",
+  left: "left",
+} as const;
+
+export type EventKind = (typeof EVENT_KIND)[keyof typeof EVENT_KIND];
+
+export interface AgentEvent {
+  kind: EventKind;
+  agent: AgentSnapshot;
+}

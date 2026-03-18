@@ -1,18 +1,9 @@
-import type { AgentSnapshot } from "@shared/types";
+import { EVENT_KIND } from "@shared/types";
 import { createBridge } from "@web/bridge/bridge";
 import type { InboundMessage } from "@web/bridge/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type MessageHandler = (event: MessageEvent<unknown>) => void;
-
-function createSnapshot(overrides?: Partial<AgentSnapshot>): AgentSnapshot {
-  return {
-    id: "a-1",
-    status: "running",
-    taskSummary: "Working",
-    ...overrides,
-  };
-}
 
 describe("useVsCodeBridge inbound parse guards", () => {
   const messageHandlers = new Set<MessageHandler>();
@@ -46,17 +37,21 @@ describe("useVsCodeBridge inbound parse guards", () => {
     });
   }
 
-  it("ignores malformed agents payloads and accepts valid agents", () => {
+  it("rejects incomplete events and accepts valid ones", () => {
     const bridge = createBridge();
     const seen: InboundMessage[] = [];
     bridge.subscribe((message) => seen.push(message));
 
-    emitInbound({ agents: {} });
+    emitInbound({ kind: "joined" });
+    emitInbound({ agent: { id: "a-1", status: "running", taskSummary: "x" } });
     emitInbound({});
     expect(seen).toEqual([]);
 
-    const agents = [createSnapshot()];
-    emitInbound({ agents });
-    expect(seen).toEqual([{ agents }]);
+    const event = {
+      kind: EVENT_KIND.joined,
+      agent: { id: "a-1", status: "running", taskSummary: "Working" },
+    };
+    emitInbound(event);
+    expect(seen).toEqual([event]);
   });
 });

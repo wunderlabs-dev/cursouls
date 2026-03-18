@@ -1,5 +1,6 @@
-import type { CanonicalAgentSnapshot } from "@agentprobe/core";
 import type { WatchController } from "@ext/services/watch";
+import type { AgentEvent } from "@shared/types";
+import { EVENT_KIND } from "@shared/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type Listener<T> = (value: T) => void;
@@ -33,19 +34,11 @@ class MockDisposable {
   }
 }
 
-function createAgents(): CanonicalAgentSnapshot[] {
-  return [
-    {
-      id: "a-1",
-      name: "agent-1",
-      kind: "local",
-      isSubagent: false,
-      status: "running",
-      taskSummary: "Working",
-      updatedAt: Date.now(),
-      source: "cursor",
-    },
-  ];
+function createEvent(): AgentEvent {
+  return {
+    kind: EVENT_KIND.joined,
+    agent: { id: "a-1", status: "running", taskSummary: "Working" },
+  };
 }
 
 function flushAsyncSchedule(): Promise<void> {
@@ -114,23 +107,23 @@ describe("extension entry wiring", () => {
   });
 
   it("wires watch events into provider and starts controller on activate", async () => {
-    let agentsListener: Listener<CanonicalAgentSnapshot[]> | undefined;
+    let eventListener: Listener<AgentEvent> | undefined;
     let errorListener: Listener<unknown> | undefined;
     let refreshCommand: (() => Promise<void>) | undefined;
 
-    const agents = createAgents();
+    const event = createEvent();
 
     const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
     const viewProvider = {
-      updateAgents: vi.fn(),
+      postEvent: vi.fn(),
       resolveWebviewView: vi.fn(),
     };
     const watchController: WatchController = {
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(undefined),
-      refreshNow: vi.fn().mockResolvedValue(agents),
-      onAgents: vi.fn((listener: Listener<CanonicalAgentSnapshot[]>) => {
-        agentsListener = listener;
+      refreshNow: vi.fn().mockResolvedValue(undefined),
+      onEvent: vi.fn((listener: Listener<AgentEvent>) => {
+        eventListener = listener;
         return () => undefined;
       }),
       onError: vi.fn((listener: Listener<unknown>) => {
@@ -159,13 +152,12 @@ describe("extension entry wiring", () => {
     await flushAsyncSchedule();
 
     expect(watchController.start).toHaveBeenCalledTimes(1);
-    expect(viewProvider.updateAgents).toHaveBeenCalledWith(agents);
     expect(typeof refreshCommand).toBe("function");
 
-    agentsListener?.(agents);
+    eventListener?.(event);
     errorListener?.(new Error("watch failed"));
 
-    expect(viewProvider.updateAgents).toHaveBeenCalledWith(agents);
+    expect(viewProvider.postEvent).toHaveBeenCalledWith(event);
     expect(logger.error).toHaveBeenCalledWith("Watch refresh error: watch failed");
   });
 
@@ -173,7 +165,7 @@ describe("extension entry wiring", () => {
     let refreshCommand: (() => Promise<void>) | undefined;
     const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
     const viewProvider = {
-      updateAgents: vi.fn(),
+      postEvent: vi.fn(),
       resolveWebviewView: vi.fn(),
     };
     const showErrorMessage = vi.fn().mockResolvedValue(undefined);
@@ -181,7 +173,7 @@ describe("extension entry wiring", () => {
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(undefined),
       refreshNow: vi.fn().mockRejectedValue(new Error("boom")),
-      onAgents: vi.fn(() => () => undefined),
+      onEvent: vi.fn(() => () => undefined),
       onError: vi.fn(() => () => undefined),
     };
 
@@ -212,16 +204,15 @@ describe("extension entry wiring", () => {
   });
 
   it("stops active controller exactly once on deactivate", async () => {
-    const agents = createAgents();
     const viewProvider = {
-      updateAgents: vi.fn(),
+      postEvent: vi.fn(),
       resolveWebviewView: vi.fn(),
     };
     const watchController: WatchController = {
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(undefined),
-      refreshNow: vi.fn().mockResolvedValue(agents),
-      onAgents: vi.fn(() => () => undefined),
+      refreshNow: vi.fn().mockResolvedValue(undefined),
+      onEvent: vi.fn(() => () => undefined),
       onError: vi.fn(() => () => undefined),
     };
 

@@ -1,10 +1,24 @@
+import type { CanonicalAgentSnapshot } from "@agentprobe/core";
 import { BRIDGE_INBOUND_TYPE } from "@shared/bridge";
-import { AGENT_STATUS } from "@shared/types";
 import { createBridge } from "@web/bridge/bridge";
 import type { InboundMessage } from "@web/bridge/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type MessageHandler = (event: MessageEvent<unknown>) => void;
+
+function createSnapshot(overrides?: Partial<CanonicalAgentSnapshot>): CanonicalAgentSnapshot {
+  return {
+    id: "a-1",
+    name: "Guard Agent",
+    kind: "local",
+    isSubagent: false,
+    status: "running",
+    taskSummary: "Working",
+    updatedAt: 1_700_000_000_000,
+    source: "cursor-transcripts",
+    ...overrides,
+  };
+}
 
 describe("useVsCodeBridge inbound parse guards", () => {
   const messageHandlers = new Set<MessageHandler>();
@@ -43,12 +57,12 @@ describe("useVsCodeBridge inbound parse guards", () => {
     const seen: InboundMessage[] = [];
     bridge.subscribe((message) => seen.push(message));
 
-    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents, actors: {} });
+    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents, agents: {} });
     emitInbound({ type: BRIDGE_INBOUND_TYPE.agents });
     expect(seen).toEqual([]);
 
-    const actors = [{ id: "a-1", status: AGENT_STATUS.running, taskSummary: "Working" }];
-    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents, actors });
-    expect(seen).toEqual([{ type: BRIDGE_INBOUND_TYPE.agents, actors }]);
+    const agents = [createSnapshot()];
+    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents, agents });
+    expect(seen).toEqual([{ type: BRIDGE_INBOUND_TYPE.agents, agents }]);
   });
 });

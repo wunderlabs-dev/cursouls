@@ -1,8 +1,4 @@
-import {
-  type BRIDGE_INBOUND_TYPE,
-  BRIDGE_OUTBOUND_TYPE,
-  safeParseInboundBridgeMessage,
-} from "@shared/bridge";
+import { BRIDGE_OUTBOUND_TYPE, safeParseInboundBridgeMessage } from "@shared/bridge";
 
 import type { InboundMessage, OutboundMessage } from "./types";
 
@@ -16,6 +12,18 @@ declare function acquireVsCodeApi(): VsCodeApi;
 
 const MAX_INVALID_MESSAGE_LOGS = 5;
 
+interface ParseSuccess {
+  readonly success: true;
+  readonly data: InboundMessage;
+}
+
+interface ParseFailure {
+  readonly success: false;
+  readonly error: { readonly issues: ReadonlyArray<{ readonly message: string }> };
+}
+
+type ParseResult = ParseSuccess | ParseFailure;
+
 export interface VsCodeBridge {
   postReady(): void;
   subscribe(listener: MessageListener): () => void;
@@ -25,24 +33,22 @@ export interface VsCodeBridge {
 export const createBridge = (): VsCodeBridge => {
   const vscode = acquireVsCodeApi();
   const listeners = new Set<MessageListener>();
-  let bufferedAgents:
-    | Extract<InboundMessage, { type: typeof BRIDGE_INBOUND_TYPE.agents }>
-    | undefined;
+  let buffered: InboundMessage | undefined;
   let invalidMessageLogCount = 0;
 
   const onWindowMessage = (event: MessageEvent<unknown>): void => {
-    const parsed = safeParseInboundBridgeMessage(event.data);
-    if (!parsed.success) {
+    const result = safeParseInboundBridgeMessage(event.data) as ParseResult;
+    if (!result.success) {
       if (invalidMessageLogCount < MAX_INVALID_MESSAGE_LOGS) {
         invalidMessageLogCount += 1;
-        const reason = parsed.error.issues.map((issue) => issue.message).join("; ");
+        const reason = result.error.issues.map((issue) => issue.message).join("; ");
         console.warn(`[cursor-cafe] Ignoring malformed inbound message: ${reason}`);
       }
       return;
     }
-    const message = parsed.data;
+    const message = result.data;
     if (listeners.size === 0) {
-      bufferedAgents = message;
+      buffered = message;
       return;
     }
     for (const listener of listeners) {
@@ -58,9 +64,9 @@ export const createBridge = (): VsCodeBridge => {
     },
     subscribe(listener: MessageListener): () => void {
       listeners.add(listener);
-      if (bufferedAgents) {
-        listener(bufferedAgents);
-        bufferedAgents = undefined;
+      if (buffered) {
+        listener(buffered);
+        buffered = undefined;
       }
       return () => {
         listeners.delete(listener);
@@ -68,7 +74,7 @@ export const createBridge = (): VsCodeBridge => {
     },
     dispose(): void {
       listeners.clear();
-      bufferedAgents = undefined;
+      buffered = undefined;
       window.removeEventListener("message", onWindowMessage);
     },
   };

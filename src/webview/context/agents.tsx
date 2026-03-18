@@ -35,11 +35,11 @@ export const AgentsProvider = ({
   bridge: VsCodeBridge;
   children: ReactNode;
 }) => {
-  const agentMap = useRef(new Map<string, AgentSnapshot>());
+  const agentsById = useRef(new Map<string, AgentSnapshot>());
   const [agents, setAgents] = useState<AgentSnapshot[]>([]);
 
   const sync = useCallback(() => {
-    setAgents([...agentMap.current.values()]);
+    setAgents([...agentsById.current.values()]);
   }, []);
 
   useEffect(() => {
@@ -47,9 +47,9 @@ export const AgentsProvider = ({
       const { kind, agent } = message;
 
       if (kind === EVENT_KIND.joined || kind === EVENT_KIND.statusChanged) {
-        agentMap.current.set(agent.id, agent);
+        agentsById.current.set(agent.id, agent);
       } else if (kind === EVENT_KIND.left) {
-        agentMap.current.delete(agent.id);
+        agentsById.current.delete(agent.id);
       }
 
       sync();

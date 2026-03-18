@@ -1,5 +1,3 @@
-import type { RefObject } from "react";
-
 export interface AtlasFrame {
   filename: string;
   frame: { x: number; y: number; w: number; h: number };
@@ -32,12 +30,6 @@ export interface AtlasConfig {
 export interface AtlasSpriteHandle {
   play: (name: string) => void;
   readonly current: string;
-}
-
-export interface Agent {
-  id: string;
-  slot: number;
-  ref: RefObject<import("./components/actor-agent").ActorAgentHandle | null>;
 }
 
 export interface SceneEnvironmentHandle {

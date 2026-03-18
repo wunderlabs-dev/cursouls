@@ -2,15 +2,12 @@ import { ActorAgent } from "@web/components/actor-agent";
 import { ActorBarista } from "@web/components/actor-barista";
 import { SceneDialog } from "@web/components/scene-dialog";
 import { SceneEnvironment } from "@web/components/scene-environment";
-import { useAgents } from "@web/context/agents";
+import { useActors } from "@web/context/agents";
 import type { SceneEnvironmentHandle } from "@web/types";
-import { DIALOG_TEXT } from "@web/utils/constants";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
 export const Scene = () => {
-  const { agents } = useAgents();
-
-  const [dialogText] = useState(DIALOG_TEXT.WELCOME);
+  const { actors, dialogText } = useActors();
 
   const sceneRef = useRef<SceneEnvironmentHandle>(null);
 
@@ -21,8 +18,8 @@ export const Scene = () => {
           <ActorBarista />
 
           <div className="grid w-full grid-cols-4">
-            {agents.map((agent) => (
-              <ActorAgent key={agent.id} status={agent.status} taskSummary={agent.taskSummary} />
+            {actors.map((actor) => (
+              <ActorAgent key={actor.id} status={actor.status} taskSummary={actor.taskSummary} />
             ))}
           </div>
         </SceneEnvironment>

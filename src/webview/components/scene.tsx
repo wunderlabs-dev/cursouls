@@ -5,6 +5,8 @@ import atlasConfig from "@web/data/atlas.json";
 
 import { DIALOG_TEXT, SCENE_GRID } from "@web/utils/constants";
 
+import { useAgents } from "@web/context/agents";
+
 import type { Agent, AtlasConfig, SceneEnvironmentHandle } from "@web/types";
 
 import ActorAgent, { type ActorAgentHandle } from "@web/components/actor-agent";
@@ -14,7 +16,9 @@ import SceneDialog from "@web/components/scene-dialog";
 import SceneEnvironment from "@web/components/scene-environment";
 
 export const Scene = () => {
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const { agents } = useAgents();
+
+  const [actors, setActors] = useState<Agent[]>([]);
   const [dialogText] = useState(DIALOG_TEXT.WELCOME);
 
   const sceneRef = useRef<SceneEnvironmentHandle>(null);
@@ -25,7 +29,7 @@ export const Scene = () => {
     [],
   );
 
-  const occupiedSlots = agents.map((agent) => agent.slot);
+  const occupiedSlots = actors.map((actor) => actor.slot);
   const freeSlots = difference(emptySlots, occupiedSlots);
 
   const spawn = useCallback(() => {
@@ -35,14 +39,14 @@ export const Scene = () => {
       return;
     }
 
-    setAgents((prev) => [
+    setActors((prev) => [
       ...prev,
       { id: String(Date.now()), slot, ref: createRef<ActorAgentHandle>() },
     ]);
   }, [freeSlots]);
 
   useEffect(() => {
-    const latest = last(agents);
+    const latest = last(actors);
 
     if (isNil(latest) || isNil(gridRef.current)) {
       return;
@@ -51,7 +55,7 @@ export const Scene = () => {
     const cell = gridRef.current.children[latest.slot] as HTMLElement;
 
     sceneRef.current?.scrollTo(cell);
-  }, [agents]);
+  }, [actors]);
 
   return (
     <div className="h-screen w-full bg-surface px-2 py-2 text-black font-sans select-none">
@@ -60,13 +64,13 @@ export const Scene = () => {
           <ActorBarista />
 
           <div ref={gridRef} className="grid w-full grid-cols-4">
-            {SCENE_GRID.map((actor, index) => {
-              const agent = find(agents, { slot: index });
+            {SCENE_GRID.map((cell, index) => {
+              const actor = find(actors, { slot: index });
 
-              return actor ? (
-                <AtlasStatic key={actor} atlasConfig={atlasConfig as AtlasConfig} actor={actor} />
-              ) : agent ? (
-                <ActorAgent key={agent.id} ref={agent.ref} />
+              return cell ? (
+                <AtlasStatic key={cell} atlasConfig={atlasConfig as AtlasConfig} actor={cell} />
+              ) : actor ? (
+                <ActorAgent key={actor.id} ref={actor.ref} />
               ) : (
                 <div className="col-span-1 aspect-square" />
               );

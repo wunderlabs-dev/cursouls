@@ -1,4 +1,5 @@
 import type { AgentSnapshot } from "@shared/types";
+import { AGENT_STATUS } from "@shared/types";
 
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import { isNil } from "lodash";
@@ -30,7 +31,11 @@ export const AgentsProvider = ({
 
   useEffect(() => {
     const unsubscribe = bridge.subscribe((message) => {
-      setAgents(message.agents);
+      setAgents(
+        message.agents.filter(
+          (a) => a.status === AGENT_STATUS.running || a.status === AGENT_STATUS.idle,
+        ),
+      );
     });
     bridge.postReady();
     return () => unsubscribe();

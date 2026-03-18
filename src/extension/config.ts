@@ -1,16 +1,10 @@
 import {
   DEFAULT_REFRESH_MS,
-  DEFAULT_SEAT_COUNT,
   EXTENSION_CONFIG_SECTION,
   MAX_REFRESH_MS,
-  MAX_SEAT_COUNT,
   MIN_REFRESH_MS,
-  MIN_SEAT_COUNT,
   REFRESH_MS_CONFIG_KEY,
-  SEAT_COUNT_CONFIG_KEY,
 } from "@shared/constants";
-
-export type CafeConfigKey = typeof REFRESH_MS_CONFIG_KEY | typeof SEAT_COUNT_CONFIG_KEY;
 
 export interface ConfigReader {
   get<T>(key: string, defaultValue?: T): T | undefined;
@@ -18,7 +12,6 @@ export interface ConfigReader {
 
 export interface CafeConfig {
   refreshMs: number;
-  seatCount: number;
 }
 
 export function clampInt(
@@ -47,19 +40,12 @@ export function readCafeConfig(
       MIN_REFRESH_MS,
       MAX_REFRESH_MS,
     ),
-    seatCount: readConfigNumber(
-      config,
-      SEAT_COUNT_CONFIG_KEY,
-      defaults.seatCount ?? DEFAULT_SEAT_COUNT,
-      MIN_SEAT_COUNT,
-      MAX_SEAT_COUNT,
-    ),
   };
 }
 
 function readConfigNumber(
   config: ConfigReader | undefined,
-  key: CafeConfigKey,
+  key: string,
   fallback: number,
   min: number,
   max: number,

@@ -1,19 +1,21 @@
-import type { AgentStatus } from "@shared/types";
-import { AGENT_STATUS } from "@shared/types";
-import { AGENT_SKINS } from "@web/utils/constants";
 import { first, sample } from "lodash";
 import { type ComponentType, type ReactNode, useEffect, useRef, useState } from "react";
-import marqueeImport from "react-fast-marquee";
+import ReactFastMarquee from "react-fast-marquee";
 
-const Marquee = ((marqueeImport as unknown as { default?: ComponentType<{ children?: ReactNode }> })
-  .default ?? marqueeImport) as ComponentType<{ children?: ReactNode }>;
+const Marquee = ((
+  ReactFastMarquee as unknown as { default?: ComponentType<{ children?: ReactNode }> }
+).default ?? ReactFastMarquee) as ComponentType<{ children?: ReactNode }>;
 
+import type { AgentStatus } from "@shared/types";
+import { AGENT_STATUS } from "@shared/types";
 import atlasConfig from "@web/data/atlas.json";
 import type { AtlasConfig, AtlasSpriteHandle } from "@web/types";
+import { AGENT_SKINS } from "@web/utils/constants";
+
 import { Animation } from "./animation";
 import { AtlasSprite } from "./atlas-sprite";
 
-const STATUS_ANIMATION: Record<string, string> = {
+const AGENT_STATUS_ANIMATION: Record<string, string> = {
   [AGENT_STATUS.running]: "working",
   [AGENT_STATUS.idle]: "idle",
   [AGENT_STATUS.completed]: "task-complete",
@@ -22,9 +24,10 @@ const STATUS_ANIMATION: Record<string, string> = {
 
 interface ActorAgentProps {
   status: AgentStatus;
+  taskSummary: string;
 }
 
-const ActorAgent = ({ status }: ActorAgentProps) => {
+const ActorAgent = ({ status, taskSummary }: ActorAgentProps) => {
   const [skin] = useState(() => sample(AGENT_SKINS) ?? first(AGENT_SKINS));
 
   const spriteRef = useRef<AtlasSpriteHandle>(null);
@@ -32,14 +35,14 @@ const ActorAgent = ({ status }: ActorAgentProps) => {
   const bubbleConfig = (atlasConfig as AtlasConfig).actors.bubble;
 
   useEffect(() => {
-    const animation = STATUS_ANIMATION[status];
+    const animation = AGENT_STATUS_ANIMATION[status];
 
     if (animation) {
       spriteRef.current?.play(`${skin}/${animation}`);
     }
   }, [status, skin]);
 
-  const animation = STATUS_ANIMATION[status];
+  const animation = AGENT_STATUS_ANIMATION[status];
   const animationName = animation ? `${skin}/${animation}` : `${skin}/spawn`;
 
   const canSeeText = [
@@ -51,12 +54,12 @@ const ActorAgent = ({ status }: ActorAgentProps) => {
 
   return (
     <div className="group col-span-1 aspect-square relative cursor-help">
-      {canSeeText ? (
+      {canSeeText && taskSummary ? (
         <div className="absolute bottom-21 right-2 hidden group-hover:block">
           <div className="absolute left-0 right-0 top-0 bottom-1 px-1">
             <Marquee>
               <span className="text-xs leading-3 uppercase whitespace-nowrap block px-1">
-                Joke conversations in agent transcripts
+                {taskSummary}
               </span>
             </Marquee>
           </div>

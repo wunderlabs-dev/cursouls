@@ -1,6 +1,5 @@
 import type { CanonicalAgentSnapshot, TranscriptProvider } from "@agentprobe/core";
 import { createWatchController } from "@ext/services/watch";
-import type { SceneFrame } from "@shared/types";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 function createDeferred<T>() {
@@ -26,15 +25,6 @@ function createAgents(): CanonicalAgentSnapshot[] {
       source: "cursor-transcripts",
     },
   ];
-}
-
-function createFrame(): SceneFrame {
-  return {
-    generatedAt: 1234,
-    seats: [{ tableIndex: 0, agent: createAgents()[0] }],
-    queue: [],
-    health: { sourceConnected: true, sourceLabel: "cursor-transcripts", warnings: [] },
-  };
 }
 
 function createMockProvider(
@@ -66,29 +56,27 @@ afterEach(() => {
 });
 
 describe("watch controller", () => {
-  it("connects, emits frames, and disconnects", async () => {
+  it("connects, emits actors, and disconnects", async () => {
     const provider = createMockProvider(() => ({ agents: createAgents() }));
-    const store = { update: vi.fn().mockReturnValue(createFrame()) };
 
     const controller = createWatchController({
       workspacePaths: ["/tmp/project"],
-      store,
       now: () => 1234,
       providers: [provider],
     });
 
     expect(typeof controller.start).toBe("function");
     expect(typeof controller.stop).toBe("function");
-    expect(typeof controller.onFrame).toBe("function");
+    expect(typeof controller.onActors).toBe("function");
     expect(typeof controller.onError).toBe("function");
 
-    const onFrame = vi.fn();
-    const dispose = controller.onFrame(onFrame);
+    const onActors = vi.fn();
+    const dispose = controller.onActors(onActors);
 
     await controller.start();
     await controller.refreshNow();
     await vi.waitFor(() => {
-      expect(onFrame).toHaveBeenCalled();
+      expect(onActors).toHaveBeenCalled();
     });
     dispose();
     await controller.stop();
@@ -97,53 +85,15 @@ describe("watch controller", () => {
     expect(provider.disconnect).toHaveBeenCalledTimes(1);
   });
 
-  it("supports one-shot refresh used by the refresh command", async () => {
-    const provider = createMockProvider(() => ({ agents: createAgents() }));
-    const expectedFrame = createFrame();
-    const store = { update: vi.fn().mockReturnValue(expectedFrame) };
-
-    const controller = createWatchController({
-      workspacePaths: ["/tmp/project"],
-      store,
-      now: () => 1234,
-      providers: [provider],
+  it("filters out initial agents and only returns new ones", async () => {
+    let includeNew = false;
+    const provider = createMockProvider(() => {
+      const agents = [...createAgents()];
+      if (includeNew) {
+        agents.push({ ...createAgents()[0], id: "agent-2", name: "New", taskSummary: "New task" });
+      }
+      return { agents };
     });
-
-    await controller.start();
-    const frame = await controller.refreshNow();
-    await controller.stop();
-
-    expect(store.update).toHaveBeenCalled();
-    expect(frame).toEqual(expectedFrame);
-  });
-
-  it("surfaces health changes through refreshNow even without lifecycle events", async () => {
-    let callCount = 0;
-    const provider: TranscriptProvider = {
-      id: "mock",
-      discover: () => ({ inputs: [], watchPaths: [], warnings: [] }),
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      read: () => ({
-        records: [],
-        health: {
-          connected: callCount === 0,
-          sourceLabel: "cursor-transcripts",
-          warnings: callCount > 0 ? ["source unavailable"] : [],
-        },
-      }),
-      normalize: async (_readResult) => {
-        callCount += 1;
-        return {
-          agents: [],
-          health: {
-            connected: callCount <= 1,
-            sourceLabel: "cursor-transcripts",
-            warnings: callCount > 1 ? ["source unavailable"] : [],
-          },
-        };
-      },
-    };
 
     const controller = createWatchController({
       workspacePaths: ["/tmp/project"],
@@ -152,36 +102,15 @@ describe("watch controller", () => {
     });
 
     await controller.start();
-    await controller.refreshNow();
+    const initial = await controller.refreshNow();
+    expect(initial.length).toBe(0);
 
-    const refreshed = await controller.refreshNow();
+    includeNew = true;
+    const afterNew = await controller.refreshNow();
+    expect(afterNew.length).toBe(1);
+    expect(afterNew[0].id).toBe("agent-2");
 
-    expect(refreshed.health.sourceConnected).toBe(false);
-    expect(refreshed.health.warnings).toContain("source unavailable");
     await controller.stop();
-  });
-
-  it("forwards lifecycle updates through onLifecycleEvents", async () => {
-    const provider = createMockProvider(() => ({ agents: createAgents() }));
-    const store = { update: vi.fn().mockReturnValue(createFrame()) };
-    const onLifecycle = vi.fn();
-
-    const controller = createWatchController({
-      workspacePaths: ["/tmp/project"],
-      store,
-      now: () => 1234,
-      providers: [provider],
-    });
-
-    controller.onLifecycleEvents(onLifecycle);
-    await controller.start();
-    await controller.refreshNow();
-    await vi.waitFor(() => {
-      expect(onLifecycle).toHaveBeenCalled();
-    });
-    await controller.stop();
-
-    expect(onLifecycle.mock.calls[0]?.[0]?.[0]?.kind).toBe("joined");
   });
 
   it("surfaces source errors through refreshNow", async () => {
@@ -229,11 +158,9 @@ describe("watch controller", () => {
         };
       },
     };
-    const store = { update: vi.fn().mockReturnValue(createFrame()) };
 
     const controller = createWatchController({
       workspacePaths: ["/tmp/project"],
-      store,
       now: () => 1234,
       providers: [provider],
     });

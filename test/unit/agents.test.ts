@@ -5,7 +5,6 @@ import {
   type TranscriptProvider,
   WATCH_LIFECYCLE_KIND,
 } from "@agentprobe/core";
-import { AGENT_LIFECYCLE_EVENT_KIND } from "@shared/types";
 import { describe, expect, it, vi } from "vitest";
 
 interface TestAgent {
@@ -74,7 +73,7 @@ describe("observer facade", () => {
     });
     await observer.stop();
 
-    const joined = seen.find((e) => e.change.kind === AGENT_LIFECYCLE_EVENT_KIND.joined);
+    const joined = seen.find((e) => e.change.kind === "joined");
     expect(joined).toBeDefined();
     expect(joined?.agent.id).toBe("a-1");
     expect(joined?.snapshot.agents[0]?.id).toBe("a-1");

@@ -135,7 +135,11 @@ export default [
     rules: {
       "@typescript-eslint/naming-convention": [
         "error",
-        { selector: "default", format: ["camelCase"], leadingUnderscore: "allow" },
+        { selector: "default", format: ["camelCase", "PascalCase"], leadingUnderscore: "allow" },
+        {
+          selector: "import",
+          format: ["camelCase", "PascalCase"],
+        },
         {
           selector: "variable",
           format: ["camelCase", "PascalCase", "UPPER_CASE"],
@@ -158,6 +162,7 @@ export default [
       ],
       "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/consistent-type-assertions": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
       "max-lines-per-function": "off",
     },
   },

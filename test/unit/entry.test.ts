@@ -1,5 +1,5 @@
 import type { WatchController } from "@ext/services/watch";
-import type { AgentLifecycleEvent, SceneFrame } from "@shared/types";
+import type { Actor } from "@shared/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type Listener<T> = (value: T) => void;
@@ -33,17 +33,8 @@ class MockDisposable {
   }
 }
 
-function createSceneFrame(): SceneFrame {
-  return {
-    generatedAt: 1234,
-    seats: [],
-    queue: [],
-    health: {
-      sourceConnected: true,
-      sourceLabel: "test-source",
-      warnings: [],
-    },
-  };
+function createActors(): Actor[] {
+  return [{ id: "a-1", status: "running", taskSummary: "Working" }];
 }
 
 function flushAsyncSchedule(): Promise<void> {
@@ -86,19 +77,15 @@ function registerVscodeMock(mock: VscodeMock): void {
 function registerServiceMocks(overrides: {
   readCafeConfig?: ReturnType<typeof vi.fn>;
   createLogger?: ReturnType<typeof vi.fn>;
-  createCafeStore?: ReturnType<typeof vi.fn>;
   createCafeViewProvider?: ReturnType<typeof vi.fn>;
   createWatchController?: ReturnType<typeof vi.fn>;
 }): void {
   vi.doMock("@ext/config", () => ({
-    readCafeConfig: overrides.readCafeConfig ?? vi.fn(() => ({ refreshMs: 1500, seatCount: 20 })),
+    readCafeConfig: overrides.readCafeConfig ?? vi.fn(() => ({ refreshMs: 1500 })),
   }));
   vi.doMock("@ext/logging", () => ({
     createLogger:
       overrides.createLogger ?? vi.fn(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
-  }));
-  vi.doMock("@ext/services/store", () => ({
-    createCafeStore: overrides.createCafeStore ?? vi.fn(),
   }));
   vi.doMock("@ext/providers/provider", () => ({
     CAFE_VIEW_TYPE: "cursorCafe.sidebar",
@@ -116,33 +103,23 @@ describe("extension entry wiring", () => {
   });
 
   it("wires watch events into provider and starts controller on activate", async () => {
-    let frameListener: Listener<SceneFrame> | undefined;
-    let lifecycleListener: Listener<AgentLifecycleEvent[]> | undefined;
+    let actorsListener: Listener<Actor[]> | undefined;
     let errorListener: Listener<unknown> | undefined;
     let refreshCommand: (() => Promise<void>) | undefined;
 
-    const frame = createSceneFrame();
-    const lifecycleEvents: AgentLifecycleEvent[] = [
-      { kind: "joined", agentId: "a-1", at: 1234, fromStatus: null, toStatus: "running" },
-    ];
+    const actors = createActors();
 
     const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
     const viewProvider = {
-      updateFrame: vi.fn(),
-      updateLifecycleEvents: vi.fn(),
+      updateActors: vi.fn(),
       resolveWebviewView: vi.fn(),
     };
-    const store = { getFrame: vi.fn().mockReturnValue(frame), update: vi.fn() };
     const watchController: WatchController = {
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(undefined),
-      refreshNow: vi.fn().mockResolvedValue(frame),
-      onFrame: vi.fn((listener: Listener<SceneFrame>) => {
-        frameListener = listener;
-        return () => undefined;
-      }),
-      onLifecycleEvents: vi.fn((listener: Listener<AgentLifecycleEvent[]>) => {
-        lifecycleListener = listener;
+      refreshNow: vi.fn().mockResolvedValue(actors),
+      onActors: vi.fn((listener: Listener<Actor[]>) => {
+        actorsListener = listener;
         return () => undefined;
       }),
       onError: vi.fn((listener: Listener<unknown>) => {
@@ -160,9 +137,8 @@ describe("extension entry wiring", () => {
       }),
     );
     registerServiceMocks({
-      readCafeConfig: vi.fn(() => ({ refreshMs: 1500, seatCount: 20 })),
+      readCafeConfig: vi.fn(() => ({ refreshMs: 1500 })),
       createLogger: vi.fn(() => logger),
-      createCafeStore: vi.fn(() => store),
       createCafeViewProvider: vi.fn(() => viewProvider),
       createWatchController: vi.fn(() => watchController),
     });
@@ -172,36 +148,29 @@ describe("extension entry wiring", () => {
     await flushAsyncSchedule();
 
     expect(watchController.start).toHaveBeenCalledTimes(1);
-    expect(viewProvider.updateFrame).toHaveBeenCalledWith(frame);
-    expect(viewProvider.updateLifecycleEvents).toHaveBeenCalledWith([]);
+    expect(viewProvider.updateActors).toHaveBeenCalledWith(actors);
     expect(typeof refreshCommand).toBe("function");
 
-    frameListener?.(frame);
-    lifecycleListener?.(lifecycleEvents);
+    actorsListener?.(actors);
     errorListener?.(new Error("watch failed"));
 
-    expect(viewProvider.updateFrame).toHaveBeenCalledWith(frame);
-    expect(viewProvider.updateLifecycleEvents).toHaveBeenCalledWith(lifecycleEvents);
+    expect(viewProvider.updateActors).toHaveBeenCalledWith(actors);
     expect(logger.error).toHaveBeenCalledWith("Watch refresh error: watch failed");
   });
 
   it("surfaces refresh command failures through logger and error message", async () => {
     let refreshCommand: (() => Promise<void>) | undefined;
-    const frame = createSceneFrame();
     const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
     const viewProvider = {
-      updateFrame: vi.fn(),
-      updateLifecycleEvents: vi.fn(),
+      updateActors: vi.fn(),
       resolveWebviewView: vi.fn(),
     };
-    const store = { getFrame: vi.fn().mockReturnValue(frame), update: vi.fn() };
     const showErrorMessage = vi.fn().mockResolvedValue(undefined);
     const watchController: WatchController = {
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(undefined),
       refreshNow: vi.fn().mockRejectedValue(new Error("boom")),
-      onFrame: vi.fn(() => () => undefined),
-      onLifecycleEvents: vi.fn(() => () => undefined),
+      onActors: vi.fn(() => () => undefined),
       onError: vi.fn(() => () => undefined),
     };
 
@@ -216,7 +185,6 @@ describe("extension entry wiring", () => {
     );
     registerServiceMocks({
       createLogger: vi.fn(() => logger),
-      createCafeStore: vi.fn(() => store),
       createCafeViewProvider: vi.fn(() => viewProvider),
       createWatchController: vi.fn(() => watchController),
     });
@@ -233,25 +201,21 @@ describe("extension entry wiring", () => {
   });
 
   it("stops active controller exactly once on deactivate", async () => {
-    const frame = createSceneFrame();
+    const actors = createActors();
     const viewProvider = {
-      updateFrame: vi.fn(),
-      updateLifecycleEvents: vi.fn(),
+      updateActors: vi.fn(),
       resolveWebviewView: vi.fn(),
     };
-    const store = { getFrame: vi.fn().mockReturnValue(frame), update: vi.fn() };
     const watchController: WatchController = {
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(undefined),
-      refreshNow: vi.fn().mockResolvedValue(frame),
-      onFrame: vi.fn(() => () => undefined),
-      onLifecycleEvents: vi.fn(() => () => undefined),
+      refreshNow: vi.fn().mockResolvedValue(actors),
+      onActors: vi.fn(() => () => undefined),
       onError: vi.fn(() => () => undefined),
     };
 
     registerVscodeMock(buildVscodeMock({}));
     registerServiceMocks({
-      createCafeStore: vi.fn(() => store),
       createCafeViewProvider: vi.fn(() => viewProvider),
       createWatchController: vi.fn(() => watchController),
     });

@@ -1,4 +1,3 @@
-import { BRIDGE_INBOUND_TYPE } from "@shared/bridge";
 import type { AgentSnapshot } from "@shared/types";
 import { createBridge } from "@web/bridge/bridge";
 import type { InboundMessage } from "@web/bridge/types";
@@ -52,12 +51,12 @@ describe("useVsCodeBridge inbound parse guards", () => {
     const seen: InboundMessage[] = [];
     bridge.subscribe((message) => seen.push(message));
 
-    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents, agents: {} });
-    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents });
+    emitInbound({ agents: {} });
+    emitInbound({});
     expect(seen).toEqual([]);
 
     const agents = [createSnapshot()];
-    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents, agents });
-    expect(seen).toEqual([{ type: BRIDGE_INBOUND_TYPE.agents, agents }]);
+    emitInbound({ agents });
+    expect(seen).toEqual([{ agents }]);
   });
 });

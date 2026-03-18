@@ -1,4 +1,4 @@
-import { BRIDGE_INBOUND_TYPE, BRIDGE_OUTBOUND_TYPE, type OutboundMessage } from "@shared/bridge";
+import type { OutboundMessage } from "@shared/bridge";
 import type { AgentSnapshot } from "@shared/types";
 import { AGENT_STATUS } from "@shared/types";
 import { createBridge } from "@web/bridge/bridge";
@@ -23,8 +23,8 @@ function createSnapshot(overrides?: Partial<AgentSnapshot>): AgentSnapshot {
 
 describe("bridge contracts", () => {
   it("uses shared bridge contracts for message envelopes", () => {
-    const outboundReady: OutboundMessage = { type: BRIDGE_OUTBOUND_TYPE.ready };
-    expect(outboundReady.type).toBe("ready");
+    const outboundReady: OutboundMessage = { ready: true };
+    expect(outboundReady.ready).toBe(true);
     expect(AGENT_STATUS.running).toBe("running");
   });
 });
@@ -61,18 +61,18 @@ describe("webview bridge inbound parse guards", () => {
     });
   }
 
-  it("ignores malformed agents payloads and accepts valid snapshots", () => {
+  it("ignores malformed payloads and accepts valid agents", () => {
     const bridge = createBridge();
     const seen: InboundMessage[] = [];
     bridge.subscribe((message) => seen.push(message));
 
-    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents, agents: {} });
-    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents });
+    emitInbound({ agents: {} });
+    emitInbound({});
     expect(seen).toEqual([]);
 
     const agents = [createSnapshot()];
-    emitInbound({ type: BRIDGE_INBOUND_TYPE.agents, agents });
-    expect(seen).toEqual([{ type: BRIDGE_INBOUND_TYPE.agents, agents }]);
+    emitInbound({ agents });
+    expect(seen).toEqual([{ agents }]);
   });
 });
 
@@ -135,12 +135,9 @@ describe("provider webview integration", () => {
 
     const agents = [createSnapshot()];
     provider.updateAgents(agents);
-    harness.sendInboundMessage({ type: "ready" });
+    harness.sendInboundMessage({ ready: true });
 
-    expect(harness.postedMessages).toEqual([
-      { type: BRIDGE_INBOUND_TYPE.agents, agents },
-      { type: BRIDGE_INBOUND_TYPE.agents, agents },
-    ]);
+    expect(harness.postedMessages).toEqual([{ agents }, { agents }]);
   });
 
   it("stops posting messages after the view is disposed", async () => {
@@ -169,9 +166,7 @@ describe("provider webview integration", () => {
     expect(() => harness.sendInboundMessage({})).not.toThrow();
     expect(() => harness.sendInboundMessage({ type: "unexpected" })).not.toThrow();
 
-    expect(harness.postedMessages).toEqual([
-      { type: BRIDGE_INBOUND_TYPE.agents, agents: [createSnapshot()] },
-    ]);
+    expect(harness.postedMessages).toEqual([{ agents: [createSnapshot()] }]);
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });

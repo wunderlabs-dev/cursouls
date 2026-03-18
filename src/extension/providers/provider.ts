@@ -1,10 +1,5 @@
 import { formatUnknown } from "@ext/errors";
-import {
-  BRIDGE_INBOUND_TYPE,
-  BRIDGE_OUTBOUND_TYPE,
-  type InboundMessage,
-  safeParseOutboundBridgeMessage,
-} from "@shared/bridge";
+import { type InboundMessage, safeParseOutbound } from "@shared/bridge";
 import type { AgentSnapshot } from "@shared/types";
 import type * as vscode from "vscode";
 import { getWebviewHtml } from "./html";
@@ -43,7 +38,7 @@ export function createCafeViewProvider(
     },
     updateAgents(agents: AgentSnapshot[]): void {
       state.latestAgents = agents;
-      post({ type: BRIDGE_INBOUND_TYPE.agents, agents });
+      post({ agents });
     },
   };
 }
@@ -54,15 +49,13 @@ function handleOutboundMessage(
   post: (msg: InboundMessage) => void,
   logger?: { warn(msg: string): void },
 ): void {
-  const parsed = safeParseOutboundBridgeMessage(message);
+  const parsed = safeParseOutbound(message);
   if (!parsed.success) {
     logInvalidMessage(parsed, message, logger);
     return;
   }
-  if (parsed.data.type === BRIDGE_OUTBOUND_TYPE.ready) {
-    if (state.latestAgents) {
-      post({ type: BRIDGE_INBOUND_TYPE.agents, agents: state.latestAgents });
-    }
+  if (state.latestAgents) {
+    post({ agents: state.latestAgents });
   }
 }
 

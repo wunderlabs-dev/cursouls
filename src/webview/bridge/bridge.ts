@@ -1,4 +1,4 @@
-import { BRIDGE_OUTBOUND_TYPE, safeParseInboundBridgeMessage } from "@shared/bridge";
+import { safeParseInbound } from "@shared/bridge";
 
 import type { InboundMessage, OutboundMessage } from "./types";
 
@@ -25,7 +25,7 @@ export const createBridge = (): VsCodeBridge => {
   let invalidMessageLogCount = 0;
 
   const onWindowMessage = (event: MessageEvent<unknown>): void => {
-    const result = safeParseInboundBridgeMessage(event.data);
+    const result = safeParseInbound(event.data);
     if (!result.success) {
       if (invalidMessageLogCount < MAX_INVALID_MESSAGE_LOGS) {
         invalidMessageLogCount += 1;
@@ -48,7 +48,7 @@ export const createBridge = (): VsCodeBridge => {
 
   return {
     postReady(): void {
-      vscode.postMessage({ type: BRIDGE_OUTBOUND_TYPE.ready });
+      vscode.postMessage({ ready: true });
     },
     subscribe(listener: MessageListener): () => void {
       listeners.add(listener);

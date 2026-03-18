@@ -1,4 +1,3 @@
-import { BRIDGE_INBOUND_TYPE } from "@shared/bridge";
 import type { AgentSnapshot } from "@shared/types";
 
 import type { VsCodeBridge } from "@web/bridge/bridge";
@@ -32,8 +31,6 @@ export const AgentsProvider = ({
 
   useEffect(() => {
     const unsubscribe = bridge.subscribe((message) => {
-      if (message.type !== BRIDGE_INBOUND_TYPE.agents) return;
-
       if (!baseline.current) {
         baseline.current = new Set(message.agents.map((a) => a.id));
         return;

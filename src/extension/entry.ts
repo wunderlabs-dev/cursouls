@@ -107,7 +107,7 @@ async function replaceController(
     logger.warn(
       "Cursor Cafe watch is idle: Open a workspace folder to enable transcript watching.",
     );
-    viewProvider.updateActors([]);
+    viewProvider.updateAgents([]);
     return;
   }
   await attachNewController(state, workspacePaths, viewProvider, logger);
@@ -132,7 +132,7 @@ async function attachNewController(
     logger.error(`Failed to start transcript watch: ${formatUnknownError(error)}`);
     state.detach();
     state.controller = undefined;
-    viewProvider.updateActors([]);
+    viewProvider.updateAgents([]);
     return;
   }
   triggerInitialRefresh(next, state.controller, viewProvider, logger);
@@ -147,12 +147,12 @@ function wireControllerListeners(
   viewProvider: CafeViewProvider,
   logger: Logger,
 ): () => void {
-  const detachActors = controller.onActors((actors) => viewProvider.updateActors(actors));
+  const detachAgents = controller.onAgents((agents) => viewProvider.updateAgents(agents));
   const detachError = controller.onError((error: unknown) =>
     logger.error(`Watch refresh error: ${formatUnknownError(error)}`),
   );
   return () => {
-    detachActors();
+    detachAgents();
     detachError();
   };
 }
@@ -166,7 +166,7 @@ function triggerInitialRefresh(
   if (current !== next) return;
   next
     .refreshNow()
-    .then((actors) => viewProvider.updateActors(actors))
+    .then((agents) => viewProvider.updateAgents(agents))
     .catch((error: unknown) =>
       logger.error(`Initial refresh failed: ${formatUnknownError(error)}`),
     );

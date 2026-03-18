@@ -3,7 +3,7 @@ import type { AgentSnapshot } from "@shared/types";
 
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import { isNil } from "lodash";
-import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 
 interface AgentsContextValue {
   agents: AgentSnapshot[];
@@ -28,12 +28,18 @@ export const AgentsProvider = ({
   children: ReactNode;
 }) => {
   const [agents, setAgents] = useState<AgentSnapshot[]>([]);
+  const baseline = useRef<Set<string> | null>(null);
 
   useEffect(() => {
     const unsubscribe = bridge.subscribe((message) => {
-      if (message.type === BRIDGE_INBOUND_TYPE.agents) {
-        setAgents(message.agents);
+      if (message.type !== BRIDGE_INBOUND_TYPE.agents) return;
+
+      if (!baseline.current) {
+        baseline.current = new Set(message.agents.map((a) => a.id));
+        return;
       }
+
+      setAgents(message.agents.filter((a) => !baseline.current?.has(a.id)));
     });
     bridge.postReady();
     return () => unsubscribe();

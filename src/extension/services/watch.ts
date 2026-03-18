@@ -1,4 +1,5 @@
 import {
+  type CanonicalAgentSnapshot,
   createObserver,
   isWatchRuntimeError,
   type Observer,
@@ -7,10 +8,8 @@ import {
 } from "@agentprobe/core";
 import { formatUnknownError } from "@ext/errors";
 import type { Logger } from "@ext/logging";
-import type { Actor, AgentStatus } from "@shared/types";
-import { AGENT_STATUS } from "@shared/types";
 
-export type ActorsListener = (actors: Actor[]) => void;
+export type AgentsListener = (agents: CanonicalAgentSnapshot[]) => void;
 export type ErrorListener = (error: unknown) => void;
 
 export interface WatchControllerOptions {
@@ -24,28 +23,21 @@ export interface WatchControllerOptions {
 export interface WatchController {
   start(): Promise<void>;
   stop(): Promise<void>;
-  refreshNow(): Promise<Actor[]>;
-  onActors(listener: ActorsListener): () => void;
+  refreshNow(): Promise<CanonicalAgentSnapshot[]>;
+  onAgents(listener: AgentsListener): () => void;
   onError(listener: ErrorListener): () => void;
-}
-
-interface Baseline {
-  captured: boolean;
-  ids: Set<string>;
 }
 
 export function createWatchController(options: WatchControllerOptions): WatchController {
   const { logger } = options;
-  const actorsListeners = new Set<ActorsListener>();
+  const agentsListeners = new Set<AgentsListener>();
   const errorListeners = new Set<ErrorListener>();
-  const baseline: Baseline = { captured: false, ids: new Set() };
 
   const observer = buildObserver(options);
 
   observer.subscribe((event) => {
     try {
-      const actors = filterNewActors(deriveActors(event.snapshot.agents), baseline);
-      notifyListeners(actorsListeners, actors, "actors", logger);
+      notifyListeners(agentsListeners, event.snapshot.agents, "agents", logger);
     } catch (error: unknown) {
       notifyListeners(errorListeners, error, "error", logger);
     }
@@ -54,16 +46,16 @@ export function createWatchController(options: WatchControllerOptions): WatchCon
   return {
     start: () => observer.start(),
     stop: () => observer.stop(),
-    refreshNow: () => refreshNow(observer, baseline),
-    onActors: (listener) => addListener(actorsListeners, listener),
+    refreshNow: () => refreshNow(observer),
+    onAgents: (listener) => addListener(agentsListeners, listener),
     onError: (listener) => addListener(errorListeners, listener),
   };
 }
 
-async function refreshNow(observer: Observer, baseline: Baseline): Promise<Actor[]> {
+async function refreshNow(observer: Observer): Promise<CanonicalAgentSnapshot[]> {
   try {
     const snapshot = await observer.refreshNow();
-    return filterNewActors(deriveActors(snapshot.agents), baseline);
+    return snapshot.agents;
   } catch (error: unknown) {
     if (isStoppedBeforeRefresh(error)) {
       throw new Error("Watch controller stopped before refresh completed.", { cause: error });
@@ -79,15 +71,6 @@ function isStoppedBeforeRefresh(error: unknown): boolean {
   );
 }
 
-function filterNewActors(eligible: Actor[], baseline: Baseline): Actor[] {
-  if (!baseline.captured) {
-    baseline.captured = true;
-    for (const a of eligible) baseline.ids.add(a.id);
-    return [];
-  }
-  return eligible.filter((a) => !baseline.ids.has(a.id));
-}
-
 function buildObserver(options: WatchControllerOptions): Observer {
   return createObserver({
     workspacePaths: [...options.workspacePaths],
@@ -95,27 +78,6 @@ function buildObserver(options: WatchControllerOptions): Observer {
     now: options.now,
     providers: options.providers,
   });
-}
-
-interface EligibleAgent {
-  readonly id: string;
-  readonly status: AgentStatus;
-  readonly isSubagent: boolean;
-  readonly taskSummary: string;
-}
-
-function deriveActors(agents: readonly EligibleAgent[]): Actor[] {
-  return agents
-    .filter((agent) => isSeatEligible(agent))
-    .map((agent) => ({ id: agent.id, status: agent.status, taskSummary: agent.taskSummary }));
-}
-
-function isSeatEligible(agent: EligibleAgent): boolean {
-  if (agent.status === AGENT_STATUS.running) return true;
-  if (agent.status === AGENT_STATUS.completed) return true;
-  if (agent.status === AGENT_STATUS.error) return true;
-  if (agent.status !== AGENT_STATUS.idle) return false;
-  return !agent.isSubagent;
 }
 
 function addListener<T>(

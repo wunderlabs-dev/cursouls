@@ -12,19 +12,18 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
-function createAgents(): CanonicalAgentSnapshot[] {
-  return [
-    {
-      id: "agent-1",
-      name: "Ada",
-      kind: "local",
-      isSubagent: false,
-      status: "running",
-      taskSummary: "Watch update",
-      updatedAt: 1_700_000_000_100,
-      source: "cursor-transcripts",
-    },
-  ];
+function createSnapshot(overrides?: Partial<CanonicalAgentSnapshot>): CanonicalAgentSnapshot {
+  return {
+    id: "agent-1",
+    name: "Ada",
+    kind: "local",
+    isSubagent: false,
+    status: "running",
+    taskSummary: "Watch update",
+    updatedAt: 1_700_000_000_100,
+    source: "cursor-transcripts",
+    ...overrides,
+  };
 }
 
 function createMockProvider(
@@ -56,8 +55,9 @@ afterEach(() => {
 });
 
 describe("watch controller", () => {
-  it("connects, emits actors, and disconnects", async () => {
-    const provider = createMockProvider(() => ({ agents: createAgents() }));
+  it("connects, emits agents, and disconnects", async () => {
+    const agents = [createSnapshot()];
+    const provider = createMockProvider(() => ({ agents }));
 
     const controller = createWatchController({
       workspacePaths: ["/tmp/project"],
@@ -65,18 +65,13 @@ describe("watch controller", () => {
       providers: [provider],
     });
 
-    expect(typeof controller.start).toBe("function");
-    expect(typeof controller.stop).toBe("function");
-    expect(typeof controller.onActors).toBe("function");
-    expect(typeof controller.onError).toBe("function");
-
-    const onActors = vi.fn();
-    const dispose = controller.onActors(onActors);
+    const onAgents = vi.fn();
+    const dispose = controller.onAgents(onAgents);
 
     await controller.start();
     await controller.refreshNow();
     await vi.waitFor(() => {
-      expect(onActors).toHaveBeenCalled();
+      expect(onAgents).toHaveBeenCalled();
     });
     dispose();
     await controller.stop();
@@ -85,15 +80,12 @@ describe("watch controller", () => {
     expect(provider.disconnect).toHaveBeenCalledTimes(1);
   });
 
-  it("filters out initial agents and only returns new ones", async () => {
-    let includeNew = false;
-    const provider = createMockProvider(() => {
-      const agents = [...createAgents()];
-      if (includeNew) {
-        agents.push({ ...createAgents()[0], id: "agent-2", name: "New", taskSummary: "New task" });
-      }
-      return { agents };
-    });
+  it("passes through all agents without filtering", async () => {
+    const agents = [
+      createSnapshot({ id: "agent-1" }),
+      createSnapshot({ id: "agent-2", isSubagent: true, status: "idle" }),
+    ];
+    const provider = createMockProvider(() => ({ agents }));
 
     const controller = createWatchController({
       workspacePaths: ["/tmp/project"],
@@ -101,14 +93,28 @@ describe("watch controller", () => {
       providers: [provider],
     });
 
-    await controller.start();
-    const initial = await controller.refreshNow();
-    expect(initial.length).toBe(0);
+    const result = await startAndRefresh(controller);
+    expect(result).toHaveLength(2);
+    expect(result.map((a) => a.id)).toEqual(["agent-1", "agent-2"]);
 
-    includeNew = true;
-    const afterNew = await controller.refreshNow();
-    expect(afterNew.length).toBe(1);
-    expect(afterNew[0].id).toBe("agent-2");
+    await controller.stop();
+  });
+
+  it("does not filter out agents that existed at startup", async () => {
+    const agents = [createSnapshot({ id: "agent-1" })];
+    const provider = createMockProvider(() => ({ agents }));
+
+    const controller = createWatchController({
+      workspacePaths: ["/tmp/project"],
+      now: () => 1234,
+      providers: [provider],
+    });
+
+    const first = await startAndRefresh(controller);
+    expect(first).toHaveLength(1);
+
+    const second = await controller.refreshNow();
+    expect(second).toHaveLength(1);
 
     await controller.stop();
   });
@@ -173,7 +179,14 @@ describe("watch controller", () => {
 
     await expect(waiter).rejects.toThrow("Watch controller stopped before refresh completed.");
 
-    firstRead.resolve({ agents: createAgents() });
+    firstRead.resolve({ agents: [createSnapshot()] });
     await Promise.resolve();
   });
 });
+
+async function startAndRefresh(
+  controller: ReturnType<typeof createWatchController>,
+): Promise<CanonicalAgentSnapshot[]> {
+  await controller.start();
+  return controller.refreshNow();
+}

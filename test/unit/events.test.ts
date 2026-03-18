@@ -1,8 +1,7 @@
-import { createLifecycleMapper } from "@agentprobe/core";
-import type { AgentSnapshot } from "@shared/types";
+import { type CanonicalAgentSnapshot, createLifecycleMapper } from "@agentprobe/core";
 import { describe, expect, it } from "vitest";
 
-function agent(id: string, status: AgentSnapshot["status"]): AgentSnapshot {
+function agent(id: string, status: CanonicalAgentSnapshot["status"]): CanonicalAgentSnapshot {
   return {
     id,
     name: `Agent ${id}`,
@@ -17,7 +16,7 @@ function agent(id: string, status: AgentSnapshot["status"]): AgentSnapshot {
 
 describe("LifecycleMapper", () => {
   it("emits joined events for first-seen agents in input order", () => {
-    const mapper = createLifecycleMapper<AgentSnapshot, AgentSnapshot["status"]>({
+    const mapper = createLifecycleMapper<CanonicalAgentSnapshot, CanonicalAgentSnapshot["status"]>({
       getId: (value) => value.id,
       getStatus: (value) => value.status,
     });
@@ -32,7 +31,7 @@ describe("LifecycleMapper", () => {
   });
 
   it("emits heartbeat/status-changed/left transitions between snapshots", () => {
-    const mapper = createLifecycleMapper<AgentSnapshot, AgentSnapshot["status"]>({
+    const mapper = createLifecycleMapper<CanonicalAgentSnapshot, CanonicalAgentSnapshot["status"]>({
       getId: (value) => value.id,
       getStatus: (value) => value.status,
     });
@@ -76,7 +75,7 @@ describe("LifecycleMapper", () => {
   });
 
   it("forgets history after reset", () => {
-    const mapper = createLifecycleMapper<AgentSnapshot, AgentSnapshot["status"]>({
+    const mapper = createLifecycleMapper<CanonicalAgentSnapshot, CanonicalAgentSnapshot["status"]>({
       getId: (value) => value.id,
       getStatus: (value) => value.status,
     });

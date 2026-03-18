@@ -48,7 +48,6 @@ export function createCafeViewProvider(
   };
 }
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument -- Zod SafeParseReturnType is unresolvable by typescript-eslint */
 function handleOutboundMessage(
   message: unknown,
   state: ProviderState,
@@ -66,7 +65,6 @@ function handleOutboundMessage(
     }
   }
 }
-/* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 
 function logInvalidMessage(
   parsed: { error: { issues: { message: string }[] } },

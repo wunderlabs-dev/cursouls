@@ -44,12 +44,12 @@ export type OutboundMessage = z.infer<typeof outboundBridgeMessageSchema>;
 
 export function safeParseInboundBridgeMessage(
   value: unknown,
-): z.SafeParseReturnType<unknown, InboundMessage> {
+): z.ZodSafeParseResult<InboundMessage> {
   return inboundBridgeMessageSchema.safeParse(value);
 }
 
 export function safeParseOutboundBridgeMessage(
   value: unknown,
-): z.SafeParseReturnType<unknown, OutboundMessage> {
+): z.ZodSafeParseResult<OutboundMessage> {
   return outboundBridgeMessageSchema.safeParse(value);
 }

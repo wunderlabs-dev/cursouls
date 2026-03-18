@@ -1,3 +1,4 @@
+import type { CanonicalAgentSnapshot } from "@agentprobe/core";
 import { formatUnknown } from "@ext/errors";
 import {
   BRIDGE_INBOUND_TYPE,
@@ -5,19 +6,18 @@ import {
   type InboundMessage,
   safeParseOutboundBridgeMessage,
 } from "@shared/bridge";
-import type { Actor } from "@shared/types";
 import type * as vscode from "vscode";
 import { getWebviewHtml } from "./html";
 
 export const CAFE_VIEW_TYPE = "cursorCafe.sidebar";
 
 export interface CafeViewProvider extends vscode.WebviewViewProvider {
-  updateActors(actors: Actor[]): void;
+  updateAgents(agents: CanonicalAgentSnapshot[]): void;
 }
 
 interface ProviderState {
   view?: vscode.WebviewView;
-  latestActors?: Actor[];
+  latestAgents?: CanonicalAgentSnapshot[];
 }
 
 export function createCafeViewProvider(
@@ -41,13 +41,14 @@ export function createCafeViewProvider(
         handleOutboundMessage(msg, state, post, logger),
       );
     },
-    updateActors(actors: Actor[]): void {
-      state.latestActors = actors;
-      post({ type: BRIDGE_INBOUND_TYPE.agents, actors });
+    updateAgents(agents: CanonicalAgentSnapshot[]): void {
+      state.latestAgents = agents;
+      post({ type: BRIDGE_INBOUND_TYPE.agents, agents });
     },
   };
 }
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument -- Zod SafeParseReturnType is unresolvable by typescript-eslint */
 function handleOutboundMessage(
   message: unknown,
   state: ProviderState,
@@ -60,11 +61,12 @@ function handleOutboundMessage(
     return;
   }
   if (parsed.data.type === BRIDGE_OUTBOUND_TYPE.ready) {
-    if (state.latestActors) {
-      post({ type: BRIDGE_INBOUND_TYPE.agents, actors: state.latestActors });
+    if (state.latestAgents) {
+      post({ type: BRIDGE_INBOUND_TYPE.agents, agents: state.latestAgents });
     }
   }
 }
+/* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 
 function logInvalidMessage(
   parsed: { error: { issues: { message: string }[] } },

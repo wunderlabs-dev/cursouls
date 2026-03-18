@@ -37,6 +37,13 @@ export const AGENT_SOURCE_KIND = {
 } as const;
 export type AgentSourceKind = (typeof AGENT_SOURCE_KIND)[keyof typeof AGENT_SOURCE_KIND];
 
+export interface Actor {
+  id: string;
+  status: AgentStatus;
+  taskSummary: string;
+  tableIndex: number;
+}
+
 export interface SeatFrame {
   tableIndex: number;
   agent: AgentSnapshot | null;

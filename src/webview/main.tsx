@@ -1,26 +1,21 @@
-import { mountApp } from "@web/app";
 import { createBridge } from "@web/bridge/bridge";
-import { APP_ROOT_ID } from "@web/constants";
+import { App } from "@web/core/app";
+import { isNil } from "lodash";
+import { createRoot } from "react-dom/client";
 
-function mountWebviewApp(): void {
-  const root = document.getElementById(APP_ROOT_ID);
-  if (!root) {
+const APP_ROOT_ID = "app";
+
+const mount = () => {
+  const element = document.getElementById(APP_ROOT_ID);
+
+  if (isNil(element)) {
     throw new Error(`Missing #${APP_ROOT_ID} root`);
   }
 
   const bridge = createBridge();
-  const appController = mountApp(root, bridge);
+  const root = createRoot(element);
 
-  let disposed = false;
-  const cleanup = (): void => {
-    if (disposed) return;
-    disposed = true;
-    appController.destroy();
-    bridge.dispose();
-  };
+  root.render(<App bridge={bridge} />);
+};
 
-  window.addEventListener("beforeunload", cleanup);
-  window.addEventListener("unload", cleanup);
-}
-
-mountWebviewApp();
+mount();

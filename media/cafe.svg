@@ -1,7 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
-  <rect width="128" height="128" rx="20" fill="#2A2D35"/>
-  <path d="M34 78h45c11 0 20-9 20-20s-9-20-20-20h-2" stroke="#F7D8A7" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M31 46h50v22c0 14-11 25-25 25S31 82 31 68V46Z" stroke="#F7D8A7" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M46 30c0 5-3 8-3 11" stroke="#F7D8A7" stroke-width="6" stroke-linecap="round"/>
-  <path d="M62 27c0 5-3 8-3 11" stroke="#F7D8A7" stroke-width="6" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 512 512">
+  <path d="M167 39h33.4v33.4H167z" />
+  <path d="M200.3 72.3h33.4v33.4h-33.4zM167 105.7h33.4v33.4H167zM200.3 139.1h33.4v33.4h-33.4zM267.1 105.7h33.4v33.4h-33.4zM300.5 72.3h33.4v33.4h-33.4zM300.5 139.1h33.4v33.4h-33.4zM100.2 72.3h33.4v33.4h-33.4zM66.8 105.7h33.4v33.4H66.8zM100.2 139.1h33.4v33.4h-33.4zM411.8 272.7h66.8v-33.4h-66.8v-33.4H0v200.4h33.4v-167h345v167h100.2v-33.4h-66.8zM478.6 272.7H512v100.2h-33.4zM33.4 406.3h33.4v33.4H33.4zM66.8 439.7h33.4v33.4H66.8zM100.2 473h211.5v33.4H100.2zM311.7 439.7h33.4v33.4h-33.4zM345 406.3h33.4v33.4H345zM200.3 5.6h33.4V39h-33.4z" />
 </svg>

@@ -21,6 +21,9 @@
       "correctness": {
         "noUnusedVariables": "off"
       },
+      "suspicious": {
+        "noArrayIndexKey": "off"
+      },
       "style": {
         "noParameterAssign": "error",
         "noDefaultExport": "error",

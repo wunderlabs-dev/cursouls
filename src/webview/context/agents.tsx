@@ -1,21 +1,21 @@
+import type { CanonicalAgentSnapshot } from "@agentprobe/core";
 import { BRIDGE_INBOUND_TYPE } from "@shared/bridge";
-import type { Actor } from "@shared/types";
 
 import type { VsCodeBridge } from "@web/bridge/bridge";
 import { isNil } from "lodash";
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 
-interface ActorsContextValue {
-  actors: Actor[];
+interface AgentsContextValue {
+  agents: CanonicalAgentSnapshot[];
 }
 
-const ActorsContext = createContext<ActorsContextValue | null>(null);
+const AgentsContext = createContext<AgentsContextValue | null>(null);
 
-export const useActors = (): ActorsContextValue => {
-  const value = useContext(ActorsContext);
+export const useAgents = (): AgentsContextValue => {
+  const value = useContext(AgentsContext);
 
   if (isNil(value)) {
-    throw new Error("useActors must be used within AgentsProvider");
+    throw new Error("useAgents must be used within AgentsProvider");
   }
   return value;
 };
@@ -27,17 +27,17 @@ export const AgentsProvider = ({
   bridge: VsCodeBridge;
   children: ReactNode;
 }) => {
-  const [actors, setActors] = useState<Actor[]>([]);
+  const [agents, setAgents] = useState<CanonicalAgentSnapshot[]>([]);
 
   useEffect(() => {
     const unsubscribe = bridge.subscribe((message) => {
       if (message.type === BRIDGE_INBOUND_TYPE.agents) {
-        setActors(message.actors);
+        setAgents(message.agents);
       }
     });
     bridge.postReady();
     return () => unsubscribe();
   }, [bridge]);
 
-  return <ActorsContext.Provider value={{ actors }}>{children}</ActorsContext.Provider>;
+  return <AgentsContext.Provider value={{ agents }}>{children}</AgentsContext.Provider>;
 };

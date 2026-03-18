@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { find, isNil, last } from "lodash";
+import { createRef, useCallback, useEffect, useRef, useState } from "react";
+import { difference, find, isNil, last, sample } from "lodash";
 
 import atlasConfig from "@web/data/atlas.json";
 
@@ -7,17 +7,39 @@ import { DIALOG_TEXT, SCENE_GRID } from "@web/utils/constants";
 
 import type { Agent, AtlasConfig, SceneEnvironmentHandle } from "@web/types";
 
-import ActorAgent from "@web/components/actor-agent";
+import ActorAgent, { type ActorAgentHandle } from "@web/components/actor-agent";
 import ActorBarista from "@web/components/actor-barista";
 import AtlasStatic from "@web/components/atlas-static";
 import SceneDialog from "@web/components/scene-dialog";
 import SceneEnvironment from "@web/components/scene-environment";
 
 export const Scene = () => {
-  const [agents] = useState<Agent[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [dialogText] = useState(DIALOG_TEXT.WELCOME);
+
   const sceneRef = useRef<SceneEnvironmentHandle>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+
+  const emptySlots = SCENE_GRID.reduce<number[]>(
+    (accelerator, cell, index) => (cell ? accelerator : [...accelerator, index]),
+    [],
+  );
+
+  const occupiedSlots = agents.map((agent) => agent.slot);
+  const freeSlots = difference(emptySlots, occupiedSlots);
+
+  const spawn = useCallback(() => {
+    const slot = sample(freeSlots);
+
+    if (isNil(slot)) {
+      return;
+    }
+
+    setAgents((prev) => [
+      ...prev,
+      { id: String(Date.now()), slot, ref: createRef<ActorAgentHandle>() },
+    ]);
+  }, [freeSlots]);
 
   useEffect(() => {
     const latest = last(agents);

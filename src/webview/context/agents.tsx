@@ -28,6 +28,7 @@ export const AgentsProvider = ({ bridge, children }: { bridge: VsCodeBridge; chi
   const [agents, setAgents] = useState<AgentSnapshot[]>([]);
   const [frame, setFrame] = useState<SceneFrame | null>(null);
   const [lifecycleEvents, setLifecycleEvents] = useState<AgentLifecycleEvent[]>([]);
+
   const agentNames = useRef(new Map<string, string>());
   const lifecycleEventsRef = useRef<AgentLifecycleEvent[]>([]);
 

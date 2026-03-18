@@ -21,7 +21,6 @@ const ActorBarista = () => {
       onClick={() => counter.current?.play("long-counter/counter")}
     >
       <AtlasSprite
-
         ref={counter}
         atlasConfig={atlasConfig as AtlasConfig}
         animationConfig={config}

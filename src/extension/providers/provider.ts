@@ -1,6 +1,7 @@
 import { formatUnknown } from "@ext/errors";
 import { type InboundMessage, safeParseOutbound } from "@shared/bridge";
 import type { AgentEvent } from "@shared/types";
+import { EVENT_KIND } from "@shared/types";
 import type * as vscode from "vscode";
 import { getWebviewHtml } from "./html";
 
@@ -12,14 +13,14 @@ export interface CafeViewProvider extends vscode.WebviewViewProvider {
 
 interface ProviderState {
   view?: vscode.WebviewView;
-  bufferedEvents: AgentEvent[];
+  bufferedEvents: Map<string, AgentEvent>;
 }
 
 export function createCafeViewProvider(
   extensionUri: vscode.Uri,
   logger?: { warn(message: string): void },
 ): CafeViewProvider {
-  const state: ProviderState = { bufferedEvents: [] };
+  const state: ProviderState = { bufferedEvents: new Map() };
   const post = (message: InboundMessage): void => {
     if (state.view) void state.view.webview.postMessage(message);
   };
@@ -37,7 +38,11 @@ export function createCafeViewProvider(
       );
     },
     postEvent(event: AgentEvent): void {
-      state.bufferedEvents.push(event);
+      if (event.kind === EVENT_KIND.left) {
+        state.bufferedEvents.delete(event.agent.id);
+      } else {
+        state.bufferedEvents.set(event.agent.id, event);
+      }
       post(event);
     },
   };
@@ -54,7 +59,7 @@ function handleOutboundMessage(
     logInvalidMessage(parsed, message, logger);
     return;
   }
-  for (const event of state.bufferedEvents) {
+  for (const event of state.bufferedEvents.values()) {
     post(event);
   }
 }

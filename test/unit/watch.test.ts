@@ -83,6 +83,69 @@ describe("watch controller", () => {
     expect(joined?.agent.taskSummary).toBe("Watch update");
   });
 
+  it("emits statusChanged events when agent status changes", async () => {
+    let callCount = 0;
+    const provider = createMockProvider(() => {
+      callCount += 1;
+      if (callCount <= 1) {
+        return { agents: [createSnapshot({ status: "running" })] };
+      }
+      return { agents: [createSnapshot({ status: "idle" })] };
+    });
+
+    const controller = createWatchController({
+      workspacePaths: ["/tmp/project"],
+      now: () => 1234,
+      providers: [provider],
+    });
+
+    const events: AgentEvent[] = [];
+    controller.onEvent((event) => events.push(event));
+
+    await controller.start();
+    await controller.refreshNow();
+    await vi.waitFor(() => {
+      expect(events.some((e) => e.kind === "joined")).toBe(true);
+    });
+
+    await controller.refreshNow();
+    await vi.waitFor(() => {
+      expect(events.some((e) => e.kind === "statusChanged")).toBe(true);
+    });
+
+    await controller.stop();
+
+    const changed = events.find((e) => e.kind === "statusChanged");
+    expect(changed?.agent.id).toBe("agent-1");
+    expect(changed?.agent.status).toBe("idle");
+  });
+
+  it("does not forward heartbeat events for unchanged status", async () => {
+    const snapshot = createSnapshot({ status: "running" });
+    const provider = createMockProvider(() => ({ agents: [snapshot] }));
+
+    const controller = createWatchController({
+      workspacePaths: ["/tmp/project"],
+      now: () => 1234,
+      providers: [provider],
+    });
+
+    const events: AgentEvent[] = [];
+    controller.onEvent((event) => events.push(event));
+
+    await controller.start();
+    await controller.refreshNow();
+    await vi.waitFor(() => {
+      expect(events.some((e) => e.kind === "joined")).toBe(true);
+    });
+
+    await controller.refreshNow();
+    await controller.stop();
+
+    expect(events.every((e) => e.kind === "joined")).toBe(true);
+    expect(events).toHaveLength(1);
+  });
+
   it("emits left events when agents disappear", async () => {
     let callCount = 0;
     const provider = createMockProvider(() => {

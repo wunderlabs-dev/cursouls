@@ -61,6 +61,7 @@ describe("webview bridge inbound parse guards", () => {
   }
 
   it("ignores malformed payloads and accepts valid events", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const bridge = createBridge();
     const seen: InboundMessage[] = [];
     bridge.subscribe((message) => seen.push(message));
@@ -72,6 +73,7 @@ describe("webview bridge inbound parse guards", () => {
     const event = createEvent();
     emitInbound(event);
     expect(seen).toEqual([event]);
+    warnSpy.mockRestore();
   });
 
   it("buffers multiple events before subscriber connects", () => {

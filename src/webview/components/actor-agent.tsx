@@ -15,7 +15,7 @@ import { AGENT_SKINS } from "@web/utils/constants";
 import { Animation } from "./animation";
 import { AtlasSprite } from "./atlas-sprite";
 
-const AGENT_STATUS_ANIMATION: Record<string, string> = {
+const AGENT_STATUS_ANIMATION: Record<AgentStatus, string> = {
   [AGENT_STATUS.running]: "working",
   [AGENT_STATUS.idle]: "idle",
   [AGENT_STATUS.completed]: "task-complete",

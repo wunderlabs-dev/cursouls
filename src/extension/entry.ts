@@ -2,7 +2,6 @@ import type { CafeViewProvider } from "@ext/providers/provider";
 import { CAFE_VIEW_TYPE, createCafeViewProvider } from "@ext/providers/provider";
 import { createWatchController, type WatchController } from "@ext/services/watch";
 import * as vscode from "vscode";
-import { readCafeConfig } from "./config";
 import { formatUnknownError } from "./errors";
 import type { Logger } from "./logging";
 import { createLogger } from "./logging";
@@ -21,11 +20,6 @@ export function activate(context: vscode.ExtensionContext): void {
       handleRefreshCommand(session, logger),
     ),
     vscode.workspace.onDidChangeWorkspaceFolders(() => session.scheduleReplace()),
-    vscode.workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration("cursorCafe")) {
-        session.scheduleReplace();
-      }
-    }),
     new vscode.Disposable(() => void session.shutdown()),
   );
 
@@ -48,7 +42,6 @@ interface WatchSession {
 }
 
 interface SessionState {
-  config: ReturnType<typeof readCafeConfig>;
   controller?: WatchController;
   disposed: boolean;
   detach: () => void;
@@ -58,7 +51,6 @@ interface SessionState {
 function createWatchSession(extensionUri: vscode.Uri, logger: Logger): WatchSession {
   const viewProvider = createCafeViewProvider(extensionUri, logger);
   const state: SessionState = {
-    config: readCafeConfig(vscode.workspace.getConfiguration()),
     disposed: false,
     detach: () => undefined,
     replacePromise: Promise.resolve(),
@@ -70,7 +62,6 @@ function createWatchSession(extensionUri: vscode.Uri, logger: Logger): WatchSess
       return state.controller;
     },
     scheduleReplace(): void {
-      state.config = readCafeConfig(vscode.workspace.getConfiguration());
       state.replacePromise = state.replacePromise
         .then(() => replaceController(state, viewProvider, logger))
         .catch((error: unknown) =>
@@ -120,7 +111,6 @@ async function attachNewController(
 ): Promise<void> {
   const next = createWatchController({
     workspacePaths,
-    debounceMs: state.config.refreshMs,
     logger,
   });
   state.controller = next;

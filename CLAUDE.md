@@ -99,6 +99,6 @@
 
 ## Tooling
 
-- `npm run check` runs the full quality gate: `biome check ./src ./test && eslint . && tsc --noEmit && vitest run`
+- `npm run check` runs the full quality gate: `biome check ./src ./test && eslint . && npm run typecheck && vitest run`
 - Pre-commit hook runs Biome format + ESLint on staged files via lint-staged
 - Run `npm run check` after substantive changes. If build/runtime-sensitive code changed, also run `npm run build`

@@ -55,18 +55,6 @@
           "group": "navigation"
         }
       ]
-    },
-    "configuration": {
-      "title": "Cursor Cafe",
-      "properties": {
-        "cursorCafe.refreshMs": {
-          "type": "integer",
-          "default": 250,
-          "minimum": 100,
-          "maximum": 10000,
-          "description": "How often to poll for transcript changes (milliseconds)."
-        }
-      }
     }
   },
   "scripts": {
@@ -88,11 +76,17 @@
     "check": "biome check ./src ./test && eslint . && npm run typecheck && npm run test",
     "prepare": "husky"
   },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "biome format --write",
+      "eslint --fix"
+    ]
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.4.5",
     "@eslint/js": "^9.39.0",
     "@tailwindcss/cli": "^4.1.13",
-    "@types/lodash-es": "^4.17.12",
+    "@types/lodash": "^4.17.24",
     "@types/node": "^24.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -111,13 +105,11 @@
   },
   "dependencies": {
     "@agentprobe/core": "^0.2.0",
-    "@types/lodash": "^4.17.24",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.38.0",
     "lodash": "^4.17.23",
-    "lodash-es": "^4.17.23",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-fast-marquee": "^1.6.5",

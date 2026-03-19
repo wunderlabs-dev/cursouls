@@ -1,7 +1,9 @@
-import { createBridge } from "@web/bridge/bridge";
-import { App } from "@web/core/app";
 import { isNil } from "lodash";
 import { createRoot } from "react-dom/client";
+
+import { createBridge } from "@web/bridge/bridge";
+
+import { App } from "@web/core/app";
 
 const APP_ROOT_ID = "app";
 

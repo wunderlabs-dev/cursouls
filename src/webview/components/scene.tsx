@@ -1,10 +1,13 @@
+import { useRef } from "react";
+
+import type { SceneEnvironmentHandle } from "@web/types";
+
+import { useActors } from "@web/context/agents";
+
 import { ActorAgent } from "@web/components/actor-agent";
 import { ActorBarista } from "@web/components/actor-barista";
 import { SceneDialog } from "@web/components/scene-dialog";
 import { SceneEnvironment } from "@web/components/scene-environment";
-import { useActors } from "@web/context/agents";
-import type { SceneEnvironmentHandle } from "@web/types";
-import { useRef } from "react";
 
 export const Scene = () => {
   const { actors, dialogText } = useActors();

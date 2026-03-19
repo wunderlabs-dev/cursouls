@@ -1,7 +1,10 @@
-import { useCounter } from "@web/hooks/use-counter";
-import type { ActorConfig, AtlasConfig, AtlasSpriteHandle } from "@web/types";
 import { first, some } from "lodash";
 import { forwardRef, useCallback, useImperativeHandle, useState } from "react";
+
+import type { ActorConfig, AtlasConfig, AtlasSpriteHandle } from "@web/types";
+
+import { useCounter } from "@web/hooks/use-counter";
+
 import { Animation } from "./animation";
 
 interface AtlasSpriteProps {

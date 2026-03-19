@@ -1,6 +1,6 @@
-import { safeParseInbound } from "@shared/bridge";
-
 import type { InboundMessage, OutboundMessage } from "./types";
+
+import { safeParseInbound } from "@shared/bridge";
 
 type MessageListener = (message: InboundMessage) => void;
 

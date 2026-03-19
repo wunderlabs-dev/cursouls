@@ -1,19 +1,21 @@
 import { first, sample } from "lodash";
-import { type ComponentType, type ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactFastMarquee from "react-fast-marquee";
 
-const Marquee = ((
-  ReactFastMarquee as unknown as { default?: ComponentType<{ children?: ReactNode }> }
-).default ?? ReactFastMarquee) as ComponentType<{ children?: ReactNode }>;
-
 import type { AgentStatus } from "@shared/types";
+import type { ComponentType, ReactNode } from "react";
+import type { AtlasConfig, AtlasSpriteHandle } from "@web/types";
+
 import { AGENT_STATUS } from "@shared/types";
 import atlasConfig from "@web/data/atlas.json";
-import type { AtlasConfig, AtlasSpriteHandle } from "@web/types";
 import { AGENT_SKINS } from "@web/utils/constants";
 
 import { Animation } from "./animation";
 import { AtlasSprite } from "./atlas-sprite";
+
+const Marquee = ((
+  ReactFastMarquee as unknown as { default?: ComponentType<{ children?: ReactNode }> }
+).default ?? ReactFastMarquee) as ComponentType<{ children?: ReactNode }>;
 
 const AGENT_STATUS_ANIMATION: Record<AgentStatus, string> = {
   [AGENT_STATUS.running]: "working",

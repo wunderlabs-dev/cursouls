@@ -1,8 +1,9 @@
 export const AGENT_SKINS = ["agent-01", "agent-02", "agent-03", "agent-04"] as const;
 
 export const DIALOG_TEXT = {
-  WELCOME: "WELCOME TO CURSOULS!\nCreate an agent to get started.",
-  AGENT_JOINED: "Agent just joined.",
+  WELCOME: "WELCOME TO CURSOULS!\nCreate an agent to get started",
+  AGENT_JOINED: "Agent joined",
+  AGENT_STATUS_CHANGED: "Agent status changed",
 } as const;
 
 export const SCENE_GRID: (string | null)[] = [

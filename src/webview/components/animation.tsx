@@ -1,7 +1,8 @@
-import { useSpriteAnimation } from "@web/hooks/use-sprite-animation";
+import { isNil } from "lodash";
 
 import type { ActorConfig, AtlasConfig } from "@web/types";
-import { isNil } from "lodash";
+
+import { useSpriteAnimation } from "@web/hooks/use-sprite-animation";
 
 interface AnimationProps {
   atlasConfig: AtlasConfig;

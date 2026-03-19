@@ -1,6 +1,7 @@
-import type { ActorConfig, AtlasConfig, AtlasFrame } from "@web/types";
 import { find, isEmpty, isNil } from "lodash";
 import { useEffect, useMemo, useState } from "react";
+
+import type { ActorConfig, AtlasConfig, AtlasFrame } from "@web/types";
 
 const FRAME_STEP = 1;
 const FRAME_REPEAT_INFINITE = -1;

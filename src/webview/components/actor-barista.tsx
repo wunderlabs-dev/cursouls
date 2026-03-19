@@ -1,6 +1,9 @@
-import atlasConfig from "@web/data/atlas.json";
-import type { AtlasConfig, AtlasSpriteHandle } from "@web/types";
 import { useRef } from "react";
+
+import type { AtlasConfig, AtlasSpriteHandle } from "@web/types";
+
+import atlasConfig from "@web/data/atlas.json";
+
 import { AtlasSprite } from "./atlas-sprite";
 
 const ActorBarista = () => {

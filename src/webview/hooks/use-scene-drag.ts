@@ -1,7 +1,8 @@
-import { SCENE_SCROLL } from "@web/utils/constants";
 import { animate, useMotionValue } from "framer-motion";
 import { clamp, isNil } from "lodash";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+import { SCENE_SCROLL } from "@web/utils/constants";
 
 const MAX_SCROLL_Y = 0;
 const CENTER_DIVISOR = 2;

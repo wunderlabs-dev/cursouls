@@ -1,12 +1,15 @@
-import { BRIDGE_INBOUND_TYPE } from "@shared/bridge";
-import type { Actor } from "@shared/types";
+import { isNil, map, reject } from "lodash";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+
+import type { AgentEvent, AgentSnapshot } from "@shared/types";
+import type { ReactNode } from "react";
 import type { VsCodeBridge } from "@web/bridge/bridge";
+
+import { EVENT_KIND } from "@shared/types";
 import { DIALOG_TEXT } from "@web/utils/constants";
-import { isNil } from "lodash";
-import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 
 interface ActorsContextValue {
-  actors: Actor[];
+  actors: AgentSnapshot[];
   dialogText: string;
 }
 
@@ -28,25 +31,39 @@ export const AgentsProvider = ({
   bridge: VsCodeBridge;
   children: ReactNode;
 }) => {
-  const [actors, setActors] = useState<Actor[]>([]);
-  const [dialogText, setDialogText] = useState(DIALOG_TEXT.WELCOME);
+  const [actors, setActors] = useState<AgentSnapshot[]>([]);
+  const [dialogText] = useState<string>(DIALOG_TEXT.WELCOME);
+
+  const handleBridgeEvent = useCallback((event: AgentEvent) => {
+    if (event.kind === EVENT_KIND.joined) {
+      setActors((actors) => [...actors, event.agent]);
+    }
+
+    if (event.kind === EVENT_KIND.statusChanged) {
+      setActors((actors) =>
+        map(actors, (actor) => {
+          if (actor.id === event.agent.id) {
+            return event.agent;
+          }
+          return actor;
+        }),
+      );
+    }
+
+    if (event.kind === EVENT_KIND.left) {
+      setActors((actors) =>
+        reject(actors, {
+          id: event.agent.id,
+        }),
+      );
+    }
+  }, []);
 
   useEffect(() => {
-    const unsubscribe = bridge.subscribe((message) => {
-      if (message.type === BRIDGE_INBOUND_TYPE.agents) {
-        const next = message.actors;
-
-        setActors((prev) => {
-          if (next.length > prev.length) {
-            setDialogText(DIALOG_TEXT.AGENT_JOINED);
-          }
-          return next;
-        });
-      }
-    });
+    const unsubscribe = bridge.subscribe(handleBridgeEvent);
     bridge.postReady();
     return () => unsubscribe();
-  }, [bridge]);
+  }, [bridge, handleBridgeEvent]);
 
   return <ActorsContext.Provider value={{ actors, dialogText }}>{children}</ActorsContext.Provider>;
 };

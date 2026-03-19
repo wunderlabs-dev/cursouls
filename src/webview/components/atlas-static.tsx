@@ -1,5 +1,7 @@
-import type { AtlasConfig } from "@web/types";
 import { first } from "lodash";
+
+import type { AtlasConfig } from "@web/types";
+
 import { Animation } from "./animation";
 
 interface AtlasStaticProps {

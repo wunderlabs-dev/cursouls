@@ -1,16 +1,26 @@
 {
-  "name": "cursor-cafe",
-  "displayName": "Cursor Cafe",
-  "description": "A minimal VS Code extension with a custom activity bar sidebar.",
-  "version": "0.0.1",
-  "publisher": "cursor-cafe",
+  "name": "cursouls",
+  "displayName": "Cursouls",
+  "description": "Turn your Cursor into tiny pixel characters that live in a cozy cafe with your AI agents, reacting, assisting, and keeping you company while you work.",
+  "version": "0.1.1",
+  "publisher": "wunderlabs",
   "license": "MIT",
   "engines": {
     "vscode": "^1.90.0"
   },
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wunderlabs-dev/cursouls"
+  },
+  "homepage": "https://cursouls.xyz",
   "categories": [
     "Other"
   ],
+  "galleryBanner": {
+    "color": "#fdf6e3",
+    "theme": "light"
+  },
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [

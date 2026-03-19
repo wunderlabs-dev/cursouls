@@ -1,69 +1,52 @@
-# Cursor Cafe
+<p align="center">
+  <a href="https://cursouls.xyz">
+    <img src="https://cursouls.xyz/images/og.png" alt="Cursouls" width="600" />
+  </a>
+</p>
 
-Cursor/VS Code extension that renders a pixel-art cafe sidebar showing active agents from Cursor transcript files.
+<h3 align="center">Cursouls</h3>
 
-## Current behavior
+<p align="center">
+  Turn your Cursor into tiny pixel characters that live in a cozy cafe<br/>with your AI agents, reacting, assisting, and keeping you company while you work.
+</p>
 
-- Uses transcript-only ingestion (no mock source).
-- Discovers transcript files for the current workspace-derived Cursor project.
-- Parses transcript lines into agent snapshots and updates a 6-table cafe scene.
-- Shows queue overflow chips and tooltip details for clicked agents.
-- Uses file/watch-driven updates (no fixed polling loop) and pushes scene frames to the webview.
+<p align="center">
+  <a href="https://cursouls.xyz">Website</a> &middot;
+  <a href="https://marketplace.visualstudio.com/items?itemName=wunderlabs.cursouls">Marketplace</a>
+</p>
 
-## Extension contributions
+---
 
-- Activity bar container: `cursorCafe`
-- Webview sidebar view: `cursorCafe.sidebar`
-- Command: `cursorCafe.refresh`
+### Install
 
-## Development
+Search for **Cursouls** in the Cursor/VS Code extension marketplace, or visit [cursouls.xyz](https://cursouls.xyz) and click "Install Extension".
+
+### Settings
+
+| Setting                | Default | Description                                    |
+| ---------------------- | ------- | ---------------------------------------------- |
+| `cursorCafe.refreshMs` | 250     | How often to poll for transcript changes (ms)  |
+
+### Development
 
 ```bash
 npm install
 npm run build
 ```
 
-Run in watch mode:
+### Scripts
 
-```bash
-npm run watch
-```
+| Command              | Description                  |
+| -------------------- | ---------------------------- |
+| `npm run build`      | Build extension + webview    |
+| `npm run watch`      | Start dev watcher            |
+| `npm run check`      | Full quality gate            |
+| `npm run typecheck`  | Type-check only              |
+| `npm test`           | Run tests                    |
+| `npm run lint`       | Biome + ESLint               |
 
-Type-check:
+### Authors
 
-```bash
-npm run typecheck
-```
+Created by [Vlad Temian](https://x.com/vtemian) and [Marius Balaj](https://x.com/balajmarius).
 
-Run tests:
-
-```bash
-npm test
-```
-
-Lint:
-
-```bash
-npm run lint
-```
-
-## Running locally
-
-1. Open this workspace in Cursor/VS Code.
-2. Start watcher (`npm run watch`) or build once (`npm run build`).
-3. Press `F5` to launch Extension Development Host.
-4. Open the **Cursor Cafe** activity bar icon.
-
-If updates look stale, run `Cursor Cafe: Refresh` from command palette.
-This command performs a one-shot refresh against the current transcript source/watch state and pushes the latest frame immediately.
-
-## Configuration
-
-- `cursorCafe.refreshMs`
-  - Debounce window in milliseconds used to coalesce rapid transcript file-change bursts.
-  - Clamped to min/max values defined in shared constants.
-
-## Notes and limitations
-
-- Agent status for conversation-style transcript lines is partially heuristic (time-window based) when explicit status fields are not present.
-- Lifecycle events are emitted by [`@agentprobe/core`](https://www.npmjs.com/package/@agentprobe/core) as joined/status-changed/heartbeat/left and forwarded to the webview.
+Powered by [@agentprobe/core](https://www.npmjs.com/package/@agentprobe/core).

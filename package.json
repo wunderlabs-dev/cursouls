@@ -55,13 +55,6 @@
           "minimum": 100,
           "maximum": 10000,
           "description": "How often to poll for transcript changes (milliseconds)."
-        },
-        "cursorCafe.seatCount": {
-          "type": "integer",
-          "default": 20,
-          "minimum": 1,
-          "maximum": 100,
-          "description": "Number of seats (tables) visible in the cafe scene."
         }
       }
     }
@@ -87,7 +80,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.5",
-    "@eslint/js": "^10.0.1",
+    "@eslint/js": "^9.39.0",
     "@tailwindcss/cli": "^4.1.13",
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^24.0.0",
@@ -95,7 +88,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/vscode": "^1.90.0",
     "esbuild": "^0.25.0",
-    "eslint": "^10.0.3",
+    "eslint": "^9.39.0",
     "eslint-plugin-react-hooks": "^6.1.1",
     "eslint-plugin-sonarjs": "^4.0.2",
     "eslint-plugin-unicorn": "^63.0.0",

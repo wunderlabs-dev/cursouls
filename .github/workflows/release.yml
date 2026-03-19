@@ -1,0 +1,31 @@
+name: Release to Open VSX
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run check
+
+      - run: npx @vscode/vsce package --no-dependencies
+
+      - name: Publish to Open VSX
+        run: npx ovsx publish *.vsix -p ${{ secrets.OPEN_VSX_TOKEN }}
+
+      - name: Upload .vsix to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.vsix"

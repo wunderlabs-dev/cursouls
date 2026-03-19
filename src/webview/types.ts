@@ -1,3 +1,5 @@
+import type { AgentStatus } from "@shared/types";
+
 export interface AtlasFrame {
   filename: string;
   frame: { x: number; y: number; w: number; h: number };
@@ -25,6 +27,13 @@ export interface ActorConfig {
 export interface AtlasConfig {
   frames: AtlasFrame[];
   actors: Record<string, ActorConfig>;
+}
+
+export interface Actor {
+  id: string;
+  slot: number;
+  status: AgentStatus;
+  taskSummary: string;
 }
 
 export interface AtlasSpriteHandle {

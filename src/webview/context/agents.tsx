@@ -1,15 +1,21 @@
-import { isNil, map, reject } from "lodash";
+import { difference, isNil, map, reject, sample } from "lodash";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
-import type { AgentEvent, AgentSnapshot } from "@shared/types";
+import type { AgentEvent } from "@shared/types";
 import type { ReactNode } from "react";
 import type { VsCodeBridge } from "@web/bridge/bridge";
+import type { Actor } from "@web/types";
 
 import { EVENT_KIND } from "@shared/types";
-import { DIALOG_TEXT } from "@web/utils/constants";
+import { DIALOG_TEXT, SCENE_GRID } from "@web/utils/constants";
+
+const emptySlots = SCENE_GRID.reduce<number[]>(
+  (slots, cell, index) => (cell ? slots : [...slots, index]),
+  [],
+);
 
 interface ActorsContextValue {
-  actors: AgentSnapshot[];
+  actors: Actor[];
   dialogText: string;
 }
 
@@ -31,19 +37,29 @@ export const AgentsProvider = ({
   bridge: VsCodeBridge;
   children: ReactNode;
 }) => {
-  const [actors, setActors] = useState<AgentSnapshot[]>([]);
+  const [actors, setActors] = useState<Actor[]>([]);
   const [dialogText] = useState<string>(DIALOG_TEXT.WELCOME);
 
   const handleBridgeEvent = useCallback((event: AgentEvent) => {
     if (event.kind === EVENT_KIND.joined) {
-      setActors((actors) => [...actors, event.agent]);
+      setActors((actors) => {
+        const occupiedSlots = actors.map((actor) => actor.slot);
+        const freeSlots = difference(emptySlots, occupiedSlots);
+        const slot = sample(freeSlots);
+
+        if (isNil(slot)) {
+          return actors;
+        }
+
+        return [...actors, { ...event.agent, slot }];
+      });
     }
 
     if (event.kind === EVENT_KIND.statusChanged) {
       setActors((actors) =>
         map(actors, (actor) => {
           if (actor.id === event.agent.id) {
-            return event.agent;
+            return { ...actor, ...event.agent };
           }
           return actor;
         }),

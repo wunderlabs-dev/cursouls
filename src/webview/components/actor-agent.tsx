@@ -6,8 +6,9 @@ import type { AgentStatus } from "@shared/types";
 import type { ComponentType, ReactNode } from "react";
 import type { AtlasConfig, AtlasSpriteHandle } from "@web/types";
 
-import { AGENT_STATUS } from "@shared/types";
 import atlasConfig from "@web/data/atlas.json";
+
+import { AGENT_STATUS } from "@shared/types";
 import { AGENT_SKINS } from "@web/utils/constants";
 
 import { Animation } from "./animation";
@@ -36,16 +37,11 @@ const ActorAgent = ({ status, taskSummary }: ActorAgentProps) => {
   const config = (atlasConfig as AtlasConfig).actors[skin];
   const bubbleConfig = (atlasConfig as AtlasConfig).actors.bubble;
 
+  const animationName = `${skin}/${AGENT_STATUS_ANIMATION[status]}`;
+
   useEffect(() => {
-    const animation = AGENT_STATUS_ANIMATION[status];
-
-    if (animation) {
-      spriteRef.current?.play(`${skin}/${animation}`);
-    }
-  }, [status, skin]);
-
-  const animation = AGENT_STATUS_ANIMATION[status];
-  const animationName = animation ? `${skin}/${animation}` : `${skin}/spawn`;
+    spriteRef.current?.play(animationName);
+  }, [animationName]);
 
   const canSeeText = [
     `${skin}/spawn`,

@@ -2,7 +2,7 @@
   "name": "cursouls",
   "displayName": "Cursouls",
   "description": "Turn your Cursor into tiny pixel characters that live in a cozy cafe with your AI agents, reacting, assisting, and keeping you company while you work.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "publisher": "wunderlabs",
   "license": "MIT",
   "engines": {

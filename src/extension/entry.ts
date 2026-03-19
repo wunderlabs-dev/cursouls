@@ -16,9 +16,6 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     outputChannel,
     vscode.window.registerWebviewViewProvider(CAFE_VIEW_TYPE, session.viewProvider),
-    vscode.commands.registerCommand("cursorCafe.refresh", () =>
-      handleRefreshCommand(session, logger),
-    ),
     vscode.workspace.onDidChangeWorkspaceFolders(() => session.scheduleReplace()),
     new vscode.Disposable(() => void session.shutdown()),
   );
@@ -38,7 +35,6 @@ interface WatchSession {
   readonly viewProvider: CafeViewProvider;
   scheduleReplace(): void;
   shutdown(): Promise<void>;
-  readonly currentController: WatchController | undefined;
 }
 
 interface SessionState {
@@ -58,9 +54,6 @@ function createWatchSession(extensionUri: vscode.Uri, logger: Logger): WatchSess
 
   return {
     viewProvider,
-    get currentController() {
-      return state.controller;
-    },
     scheduleReplace(): void {
       state.replacePromise = state.replacePromise
         .then(() => replaceController(state, viewProvider, logger))
@@ -163,21 +156,5 @@ async function stopControllerSafely(controller: WatchController, logger: Logger)
     await controller.stop();
   } catch (error: unknown) {
     logger.error(`Failed to stop transcript watch: ${formatUnknownError(error)}`);
-  }
-}
-
-async function handleRefreshCommand(session: WatchSession, logger: Logger): Promise<void> {
-  if (!session.currentController) {
-    const message = "Open a workspace folder to enable Cursor Cafe refresh.";
-    logger.warn(message);
-    void vscode.window.showWarningMessage(message);
-    return;
-  }
-  try {
-    await session.currentController.refreshNow();
-  } catch (error: unknown) {
-    const message = `Cursor Cafe refresh failed: ${formatUnknownError(error)}`;
-    logger.error(message);
-    void vscode.window.showErrorMessage(message);
   }
 }

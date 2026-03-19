@@ -23,12 +23,7 @@
   },
   "main": "./dist/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "cursorCafe.refresh",
-        "title": "Cursor Cafe: Refresh"
-      }
-    ],
+    "commands": [],
     "viewsContainers": {
       "activitybar": [
         {
@@ -47,15 +42,7 @@
         }
       ]
     },
-    "menus": {
-      "view/title": [
-        {
-          "command": "cursorCafe.refresh",
-          "when": "view == cursorCafe.sidebar",
-          "group": "navigation"
-        }
-      ]
-    }
+    "menus": {}
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

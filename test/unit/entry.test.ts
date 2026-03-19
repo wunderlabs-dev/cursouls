@@ -9,17 +9,12 @@ type VscodeMock = {
   window: {
     createOutputChannel: ReturnType<typeof vi.fn>;
     registerWebviewViewProvider: ReturnType<typeof vi.fn>;
-    showErrorMessage: ReturnType<typeof vi.fn>;
-    showWarningMessage: ReturnType<typeof vi.fn>;
   };
   workspace: {
     getConfiguration: ReturnType<typeof vi.fn>;
     workspaceFolders: Array<{ uri: { fsPath: string } }>;
     onDidChangeWorkspaceFolders: ReturnType<typeof vi.fn>;
     onDidChangeConfiguration: ReturnType<typeof vi.fn>;
-  };
-  commands: {
-    registerCommand: ReturnType<typeof vi.fn>;
   };
   Disposable: new (callback: () => void) => { dispose(): void };
 };
@@ -46,8 +41,6 @@ function flushAsyncSchedule(): Promise<void> {
 }
 
 function buildVscodeMock(overrides: {
-  showErrorMessage?: ReturnType<typeof vi.fn>;
-  registerCommand?: ReturnType<typeof vi.fn>;
   outputChannel?: { appendLine: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn> };
 }): VscodeMock {
   const outputChannel = overrides.outputChannel ?? {
@@ -58,17 +51,12 @@ function buildVscodeMock(overrides: {
     window: {
       createOutputChannel: vi.fn(() => outputChannel),
       registerWebviewViewProvider: vi.fn(() => ({ dispose: vi.fn() })),
-      showErrorMessage: overrides.showErrorMessage ?? vi.fn().mockResolvedValue(undefined),
-      showWarningMessage: vi.fn().mockResolvedValue(undefined),
     },
     workspace: {
       getConfiguration: vi.fn(() => ({})),
       workspaceFolders: [{ uri: { fsPath: "/tmp/project" } }],
       onDidChangeWorkspaceFolders: vi.fn(() => ({ dispose: vi.fn() })),
       onDidChangeConfiguration: vi.fn(() => ({ dispose: vi.fn() })),
-    },
-    commands: {
-      registerCommand: overrides.registerCommand ?? vi.fn(() => ({ dispose: vi.fn() })),
     },
     Disposable: MockDisposable,
   };
@@ -109,7 +97,6 @@ describe("extension entry wiring", () => {
   it("wires watch events into provider and starts controller on activate", async () => {
     let eventListener: Listener<AgentEvent> | undefined;
     let errorListener: Listener<unknown> | undefined;
-    let refreshCommand: (() => Promise<void>) | undefined;
 
     const event = createEvent();
 
@@ -132,14 +119,7 @@ describe("extension entry wiring", () => {
       }),
     };
 
-    registerVscodeMock(
-      buildVscodeMock({
-        registerCommand: vi.fn((_id: string, callback: () => Promise<void>) => {
-          refreshCommand = callback;
-          return { dispose: vi.fn() };
-        }),
-      }),
-    );
+    registerVscodeMock(buildVscodeMock({}));
     registerServiceMocks({
       readCafeConfig: vi.fn(() => ({ refreshMs: 1500 })),
       createLogger: vi.fn(() => logger),
@@ -152,55 +132,12 @@ describe("extension entry wiring", () => {
     await flushAsyncSchedule();
 
     expect(watchController.start).toHaveBeenCalledTimes(1);
-    expect(typeof refreshCommand).toBe("function");
 
     eventListener?.(event);
     errorListener?.(new Error("watch failed"));
 
     expect(viewProvider.postEvent).toHaveBeenCalledWith(event);
     expect(logger.error).toHaveBeenCalledWith("Watch refresh error: watch failed");
-  });
-
-  it("surfaces refresh command failures through logger and error message", async () => {
-    let refreshCommand: (() => Promise<void>) | undefined;
-    const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
-    const viewProvider = {
-      postEvent: vi.fn(),
-      resolveWebviewView: vi.fn(),
-    };
-    const showErrorMessage = vi.fn().mockResolvedValue(undefined);
-    const watchController: WatchController = {
-      start: vi.fn().mockResolvedValue(undefined),
-      stop: vi.fn().mockResolvedValue(undefined),
-      refreshNow: vi.fn().mockRejectedValue(new Error("boom")),
-      onEvent: vi.fn(() => () => undefined),
-      onError: vi.fn(() => () => undefined),
-    };
-
-    registerVscodeMock(
-      buildVscodeMock({
-        showErrorMessage,
-        registerCommand: vi.fn((_id: string, callback: () => Promise<void>) => {
-          refreshCommand = callback;
-          return { dispose: vi.fn() };
-        }),
-      }),
-    );
-    registerServiceMocks({
-      createLogger: vi.fn(() => logger),
-      createCafeViewProvider: vi.fn(() => viewProvider),
-      createWatchController: vi.fn(() => watchController),
-    });
-
-    const { activate } = await import("@ext/entry");
-    activate({ extensionUri: {} as never, subscriptions: [] } as never);
-    await flushAsyncSchedule();
-
-    expect(refreshCommand).toBeDefined();
-    await refreshCommand?.();
-
-    expect(logger.error).toHaveBeenCalledWith("Cursor Cafe refresh failed: boom");
-    expect(showErrorMessage).toHaveBeenCalledWith("Cursor Cafe refresh failed: boom");
   });
 
   it("stops active controller exactly once on deactivate", async () => {

@@ -50,7 +50,6 @@ export const AgentsProvider = ({
         if (isNil(slot)) {
           return actors;
         }
-
         return [...actors, { ...event.agent, slot }];
       });
     }

@@ -16,7 +16,7 @@ interface AtlasSpriteProps {
 
 const AtlasSprite = forwardRef<AtlasSpriteHandle, AtlasSpriteProps>(
   ({ atlasConfig, animationConfig, defaultAnimation, onComplete }, ref) => {
-    const idleKey = first(animationConfig.anims)?.key ?? "";
+    const idleKey = first(animationConfig.anims)!.key;
 
     const { count, increment } = useCounter();
     const [animationName, setAnimationName] = useState(defaultAnimation ?? idleKey);

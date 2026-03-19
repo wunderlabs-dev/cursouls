@@ -18,8 +18,6 @@ const Marquee = ((
   ReactFastMarquee as unknown as { default?: ComponentType<{ children?: ReactNode }> }
 ).default ?? ReactFastMarquee) as ComponentType<{ children?: ReactNode }>;
 
-const TEXT_VISIBLE_ANIMATIONS = new Set(["spawn", "working", "done", "task-complete"]);
-
 interface ActorAgentProps {
   status: AgentStatus;
   taskSummary: string;
@@ -40,8 +38,12 @@ const ActorAgent = ({ status, taskSummary }: ActorAgentProps) => {
     }
   }, [animationName]);
 
-  const animationSuffix = animationName.split("/").pop() ?? "";
-  const canSeeText = TEXT_VISIBLE_ANIMATIONS.has(animationSuffix);
+  const canSeeText = new Set([
+    `${skin}/spawn`,
+    `${skin}/working`,
+    `${skin}/done`,
+    `${skin}/task-complete`,
+  ]).has(animationName);
 
   return (
     <div className="group col-span-1 aspect-square relative cursor-help">

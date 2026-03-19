@@ -15,7 +15,7 @@ const AtlasStatic = ({ atlasConfig, actor }: AtlasStaticProps) => {
       <Animation
         atlasConfig={atlasConfig}
         animationConfig={atlasConfig.actors[actor]}
-        animationName={first(atlasConfig.actors[actor].anims)?.key ?? ""}
+        animationName={first(atlasConfig.actors[actor].anims)!.key}
       />
     </div>
   );

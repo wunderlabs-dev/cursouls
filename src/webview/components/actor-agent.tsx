@@ -8,8 +8,8 @@ import type { AtlasConfig, AtlasSpriteHandle } from "@web/types";
 
 import atlasConfig from "@web/data/atlas.json";
 
-import { AGENT_STATUS } from "@shared/types";
 import { AGENT_SKINS } from "@web/utils/constants";
+import { useAnimationLifecycle } from "@web/hooks/use-animation-lifecycle";
 
 import { Animation } from "./animation";
 import { AtlasSprite } from "./atlas-sprite";
@@ -18,12 +18,7 @@ const Marquee = ((
   ReactFastMarquee as unknown as { default?: ComponentType<{ children?: ReactNode }> }
 ).default ?? ReactFastMarquee) as ComponentType<{ children?: ReactNode }>;
 
-const AGENT_STATUS_ANIMATION: Record<AgentStatus, string> = {
-  [AGENT_STATUS.running]: "working",
-  [AGENT_STATUS.idle]: "idle",
-  [AGENT_STATUS.completed]: "task-complete",
-  [AGENT_STATUS.error]: "task-failed",
-};
+const TEXT_VISIBLE_ANIMATIONS = new Set(["spawn", "working", "done", "task-complete"]);
 
 interface ActorAgentProps {
   status: AgentStatus;
@@ -37,18 +32,16 @@ const ActorAgent = ({ status, taskSummary }: ActorAgentProps) => {
   const config = (atlasConfig as AtlasConfig).actors[skin];
   const bubbleConfig = (atlasConfig as AtlasConfig).actors.bubble;
 
-  const animationName = `${skin}/${AGENT_STATUS_ANIMATION[status]}`;
+  const { animationName, advance } = useAnimationLifecycle(skin, status);
 
   useEffect(() => {
-    spriteRef.current?.play(animationName);
+    if (spriteRef.current?.current !== animationName) {
+      spriteRef.current?.play(animationName);
+    }
   }, [animationName]);
 
-  const canSeeText = [
-    `${skin}/spawn`,
-    `${skin}/working`,
-    `${skin}/done`,
-    `${skin}/task-complete`,
-  ].includes(animationName);
+  const animationSuffix = animationName.split("/").pop() ?? "";
+  const canSeeText = TEXT_VISIBLE_ANIMATIONS.has(animationSuffix);
 
   return (
     <div className="group col-span-1 aspect-square relative cursor-help">
@@ -74,6 +67,7 @@ const ActorAgent = ({ status, taskSummary }: ActorAgentProps) => {
         atlasConfig={atlasConfig as AtlasConfig}
         animationConfig={config}
         defaultAnimation={`${skin}/spawn`}
+        onComplete={advance}
       />
     </div>
   );

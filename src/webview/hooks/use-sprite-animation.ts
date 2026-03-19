@@ -1,5 +1,5 @@
 import { find, isEmpty, isNil } from "lodash";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ActorConfig, AtlasConfig, AtlasFrame } from "@web/types";
 
@@ -12,8 +12,11 @@ export const useSpriteAnimation = (
   atlasConfig: AtlasConfig,
   animationConfig: ActorConfig,
   animationName: string,
+  onComplete?: () => void,
 ): AtlasFrame["frame"] | undefined => {
   const [frameIndex, setFrameIndex] = useState(FRAME_INDEX_START);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   const { animation, framePositions } = useMemo(() => {
     const animation = find(animationConfig.anims, { key: animationName });
@@ -48,6 +51,7 @@ export const useSpriteAnimation = (
         if (prev < lastFrame) return prev + FRAME_STEP;
         if (loops) return FRAME_INDEX_START;
         clearInterval(interval);
+        onCompleteRef.current?.();
         return prev;
       });
     }, frameDuration);

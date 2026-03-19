@@ -74,6 +74,8 @@
     "typecheck:webview": "tsc -p tsconfig.webview.json --noEmit",
     "test": "vitest run",
     "check": "biome check ./src ./test && eslint . && npm run typecheck && npm run test",
+    "release": "npm version patch --no-git-tag-version && npx @vscode/vsce package --no-dependencies",
+    "release:minor": "npm version minor --no-git-tag-version && npx @vscode/vsce package --no-dependencies",
     "prepare": "husky"
   },
   "lint-staged": {

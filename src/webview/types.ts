@@ -31,6 +31,7 @@ export interface AtlasConfig {
 
 export interface Actor {
   id: string;
+  alias: string;
   slot: number;
   status: AgentStatus;
   taskSummary: string;

@@ -19,11 +19,12 @@ const Marquee = ((
 ).default ?? ReactFastMarquee) as ComponentType<{ children?: ReactNode }>;
 
 interface ActorAgentProps {
+  alias: string;
   status: AgentStatus;
   taskSummary: string;
 }
 
-const ActorAgent = ({ status, taskSummary }: ActorAgentProps) => {
+const ActorAgent = ({ alias, status, taskSummary }: ActorAgentProps) => {
   const [skin] = useState(() => sample(AGENT_SKINS) ?? first(AGENT_SKINS));
 
   const spriteRef = useRef<AtlasSpriteHandle>(null);
@@ -71,6 +72,10 @@ const ActorAgent = ({ status, taskSummary }: ActorAgentProps) => {
         defaultAnimation={`${skin}/spawn`}
         onComplete={advance}
       />
+
+      <span className="absolute bottom-0 left-0 right-0 text-center text-[8px] uppercase truncate">
+        {alias}
+      </span>
     </div>
   );
 };

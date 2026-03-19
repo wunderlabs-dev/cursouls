@@ -37,7 +37,12 @@ export const Scene = () => {
 
               if (actor) {
                 return (
-                  <ActorAgent key={index} status={actor.status} taskSummary={actor.taskSummary} />
+                  <ActorAgent
+                    key={index}
+                    alias={actor.alias}
+                    status={actor.status}
+                    taskSummary={actor.taskSummary}
+                  />
                 );
               }
               return <div key={index} className="col-span-1 aspect-square" />;

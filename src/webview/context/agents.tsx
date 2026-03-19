@@ -1,3 +1,4 @@
+import { faker } from "@faker-js/faker";
 import { difference, isNil, map, reject, sample } from "lodash";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
@@ -38,10 +39,12 @@ export const AgentsProvider = ({
   children: ReactNode;
 }) => {
   const [actors, setActors] = useState<Actor[]>([]);
-  const [dialogText] = useState<string>(DIALOG_TEXT.WELCOME);
+  const [dialogText, setDialogText] = useState<string>(DIALOG_TEXT.WELCOME);
 
   const handleBridgeEvent = useCallback((event: AgentEvent) => {
     if (event.kind === EVENT_KIND.joined) {
+      const alias = faker.person.firstName();
+
       setActors((actors) => {
         const occupiedSlots = actors.map((actor) => actor.slot);
         const freeSlots = difference(emptySlots, occupiedSlots);
@@ -50,8 +53,9 @@ export const AgentsProvider = ({
         if (isNil(slot)) {
           return actors;
         }
-        return [...actors, { ...event.agent, slot }];
+        return [...actors, { ...event.agent, alias, slot }];
       });
+      setDialogText(alias);
     }
 
     if (event.kind === EVENT_KIND.statusChanged) {

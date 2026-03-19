@@ -15,7 +15,7 @@ import { SceneDialog } from "@web/components/scene-dialog";
 import { SceneEnvironment } from "@web/components/scene-environment";
 
 export const Scene = () => {
-  const { actors, dialogText } = useActors();
+  const { actors, notifications } = useActors();
 
   const sceneRef = useRef<SceneEnvironmentHandle>(null);
 
@@ -37,12 +37,7 @@ export const Scene = () => {
 
               if (actor) {
                 return (
-                  <ActorAgent
-                    key={index}
-                    alias={actor.alias}
-                    status={actor.status}
-                    taskSummary={actor.taskSummary}
-                  />
+                  <ActorAgent key={index} status={actor.status} taskSummary={actor.taskSummary} />
                 );
               }
               return <div key={index} className="col-span-1 aspect-square" />;
@@ -50,7 +45,7 @@ export const Scene = () => {
           </div>
         </SceneEnvironment>
 
-        <SceneDialog text={dialogText} />
+        <SceneDialog notifications={notifications} />
       </div>
     </div>
   );

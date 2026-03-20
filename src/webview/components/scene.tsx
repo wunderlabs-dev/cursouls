@@ -20,8 +20,8 @@ export const Scene = () => {
   const sceneRef = useRef<SceneEnvironmentHandle>(null);
 
   return (
-    <div className="h-screen w-full bg-surface px-2 py-2 text-black font-sans select-none">
-      <div className="mx-auto flex h-full w-xl flex-col overflow-hidden rounded bg-cream">
+    <div className="h-screen w-full px-2 py-2 font-sans text-black bg-surface select-none">
+      <div className="flex flex-col overflow-hidden h-full w-xl mx-auto bg-cream rounded">
         <SceneEnvironment ref={sceneRef}>
           <ActorBarista />
 

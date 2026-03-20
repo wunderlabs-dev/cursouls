@@ -11,12 +11,12 @@ interface SceneDialogProps {
 const SceneDialog = ({ notifications }: SceneDialogProps) => {
   return (
     <div className="px-8 pb-8">
-      <div className="w-full p-px rounded border-x border-t border-b-2 border-surface bg-cream">
-        <div className="px-4 pt-2 pb-3 rounded-sm border-x border-b border-t-2 border-surface text-md antialiased whitespace-break-spaces">
+      <div className="w-full p-px bg-cream rounded border-x border-t border-b-2 border-surface">
+        <div className="px-4 pt-2 pb-3 text-md antialiased whitespace-break-spaces rounded-sm border-x border-b border-t-2 border-surface">
           {notifications.length ? (
             <ul className="space-y-0.5">
               {notifications.map((notification) => (
-                <li key={notification.id} className="uppercase text-sm">
+                <li key={notification.id} className="text-sm uppercase">
                   <Typewriter text={notification.text} />
                 </li>
               ))}

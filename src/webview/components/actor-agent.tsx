@@ -46,12 +46,12 @@ const ActorAgent = ({ status, taskSummary }: ActorAgentProps) => {
   ]).has(animationName);
 
   return (
-    <div className="group col-span-1 aspect-square relative cursor-help">
+    <div className="group relative col-span-1 aspect-square cursor-help">
       {canSeeText && taskSummary ? (
-        <div className="absolute bottom-21 right-2 hidden group-hover:block">
-          <div className="absolute left-0 right-0 top-0 bottom-1 px-1">
+        <div className="absolute right-2 bottom-21 hidden group-hover:block">
+          <div className="absolute top-0 right-0 bottom-1 left-0 px-1">
             <Marquee>
-              <span className="text-xs leading-3 uppercase whitespace-nowrap block px-1">
+              <span className="block px-1 text-xs leading-3 uppercase whitespace-nowrap">
                 {taskSummary}
               </span>
             </Marquee>

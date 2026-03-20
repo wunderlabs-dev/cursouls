@@ -11,7 +11,7 @@ interface AtlasStaticProps {
 
 const AtlasStatic = ({ atlasConfig, actor }: AtlasStaticProps) => {
   return (
-    <div className="col-span-1 flex items-center justify-center aspect-square">
+    <div className="flex items-center justify-center col-span-1 aspect-square">
       <Animation
         atlasConfig={atlasConfig}
         animationConfig={atlasConfig.actors[actor]}

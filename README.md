@@ -31,6 +31,9 @@
   <img src="https://img.shields.io/badge/agents-Cursor%20%C2%B7%20Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20OpenCode-purple" alt="supported agents" />
 </p>
 
+
+https://github.com/user-attachments/assets/740591e7-e8ba-437f-9271-ca30411cb96e
+
 ---
 
 ## Your Agent Deserves Better Than a Terminal

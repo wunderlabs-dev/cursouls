@@ -40,8 +40,8 @@ const ActorAgent = ({ status, taskSummary }: ActorAgentProps) => {
 
   const canSeeText = new Set([
     `${skin}/spawn`,
+    `${skin}/idle`,
     `${skin}/working`,
-    `${skin}/done`,
     `${skin}/task-complete`,
   ]).has(animationName);
 

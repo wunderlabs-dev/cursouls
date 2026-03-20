@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 
-const NOTIFICATIONS_MAX_VISIBLE = 5;
+const NOTIFICATIONS_DISMISS_THRESHOLD = 3;
 const NOTIFICATIONS_DISMISS_DELAY = 2500;
 
 export interface Notification {
@@ -20,10 +20,15 @@ export const useNotifications = (): NotificationQueue => {
   const dispatch = useCallback((text: string) => {
     const id = counter.current++;
 
-    setNotifications((previous) => [...previous, { id, text }].slice(-NOTIFICATIONS_MAX_VISIBLE));
+    setNotifications((previous) => [...previous, { id, text }]);
 
     setTimeout(() => {
-      setNotifications((previous) => previous.filter((notification) => notification.id !== id));
+      setNotifications((previous) => {
+        if (previous.length <= NOTIFICATIONS_DISMISS_THRESHOLD) {
+          return previous;
+        }
+        return previous.slice(-NOTIFICATIONS_DISMISS_THRESHOLD);
+      });
     }, NOTIFICATIONS_DISMISS_DELAY);
   }, []);
 

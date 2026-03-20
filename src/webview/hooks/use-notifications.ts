@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 
-const MAX_VISIBLE = 3;
-const EXPIRE_MS = 5000;
+const NOTIFICATIONS_MAX_VISIBLE = 5;
+const NOTIFICATIONS_DISMISS_DELAY = 2500;
 
 export interface Notification {
   readonly id: number;
@@ -10,22 +10,25 @@ export interface Notification {
 
 interface NotificationQueue {
   readonly notifications: readonly Notification[];
-  readonly push: (text: string) => void;
+  readonly dispatch: (text: string) => void;
 }
 
 export const useNotifications = (): NotificationQueue => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const nextId = useRef(0);
+  const counter = useRef(0);
 
-  const push = useCallback((text: string) => {
-    const id = nextId.current++;
+  const dispatch = useCallback((text: string) => {
+    const id = counter.current++;
 
-    setNotifications((prev) => [...prev.slice(-(MAX_VISIBLE - 1)), { id, text }]);
+    setNotifications((previous) => [...previous, { id, text }].slice(-NOTIFICATIONS_MAX_VISIBLE));
 
     setTimeout(() => {
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-    }, EXPIRE_MS);
+      setNotifications((previous) => previous.filter((notification) => notification.id !== id));
+    }, NOTIFICATIONS_DISMISS_DELAY);
   }, []);
 
-  return { notifications, push };
+  return {
+    notifications,
+    dispatch,
+  };
 };

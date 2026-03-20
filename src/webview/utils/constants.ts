@@ -27,6 +27,12 @@ export const SCENE_GRID: (string | null)[] = [
   null,
 ] as const;
 
+export const NOTIFICATION = {
+  idle: "WELCOME TO CURSOULS!\nCreate an agent to get started",
+  joined: "joined",
+  left: "left",
+} as const;
+
 export const SCENE_DRAG = {
   dragElastic: 0.2,
   dragTransition: {

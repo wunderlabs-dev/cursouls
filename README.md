@@ -23,8 +23,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/visual-studio-marketplace/v/wunderlabs.cursouls?label=version&color=blue" alt="version" />
-  <img src="https://img.shields.io/visual-studio-marketplace/i/wunderlabs.cursouls?label=installs&color=green" alt="installs" />
+  <img src="https://img.shields.io/open-vsx/v/wunderlabs/cursouls?label=version&color=blue" alt="version" />
+  <img src="https://img.shields.io/open-vsx/dt/wunderlabs/cursouls?label=downloads&color=green" alt="downloads" />
+  <img src="https://img.shields.io/open-vsx/rating/wunderlabs/cursouls?label=rating&color=yellow" alt="rating" />
   <img src="https://img.shields.io/badge/license-MIT-brightgreen" alt="license" />
   <img src="https://img.shields.io/badge/TypeScript-strict-blue" alt="TypeScript strict" />
   <img src="https://img.shields.io/badge/agents-Cursor%20%C2%B7%20Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20OpenCode-purple" alt="supported agents" />
